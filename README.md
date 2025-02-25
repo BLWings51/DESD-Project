@@ -18,6 +18,6 @@ docker compose up --build
 ### 2. Run the Application
 Start the application by control + clicking the link:
 
-![Link to click](assets\Screenshot 2025-02-25 164421.png)
+![Link to click](./assets/Screenshot%202025-02-25%20164421.png)
 
 The application should now be running at [http://localhost:5173](http://localhost:5173).
