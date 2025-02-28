@@ -12,32 +12,23 @@ const Login: React.FC = () => {
 		event.preventDefault(); // Prevent default form submission
 
 		try {
-			// Change this section for the port!
-			// const response = await fetch("http://localhost:8000/api/login/", {
-			// 	method: "POST",
-			// 	credentials: "include", // To handle cookies/sessions
-			// 	headers: {
-			// 		"Content-Type": "application/json",
-			// 	},
-			// 	body: JSON.stringify({ email, password }),
-			// });
+			const response = await fetch("http://localhost:8000/api/login/", {
+				method: "POST",
+				credentials: "include", // To handle cookies/sessions
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ email, password }),
+			});
 
-			// const data = await response.json();
+			const data = await response.json();
 
-			// if (response.ok) {
-			// 	alert("Login successful!");
-			// 	console.log("API Response:", data);
-			// 	navigate("/home"); // Redirect to home page
-			// } else {
-			// 	setError(data.detail || "Login failed. Please try again.");
-			// }
-			// Simulate login success if email & password are filled
-			if (email && password) {
+			if (response.ok) {
 				alert("Login successful!");
-				console.log("Simulated API Response:", { email, message: "Success" });
+				console.log("API Response:", data);
 				navigate("/home"); // Redirect to home page
 			} else {
-				setError("Please enter valid credentials.");
+				setError(data.detail || "Login failed. Please try again.");
 			}
 		} catch (error) {
 			setError("Network error. Please check your connection.");

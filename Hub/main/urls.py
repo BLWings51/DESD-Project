@@ -5,7 +5,8 @@ from . import views
 
 urlpatterns = [
     path("home/", views.home, name="home"),
-    #path("", index, name="index"),  # Root URL serves React frontend
-    re_path(r"^(?:.*)/?$", lambda request: render(request, "index.html")),  # Capture all routes
+    path("", index , name="index"),
+    path("api/login/", views.login_view, name="login"),  # Root URL serves React frontend
+    #re_path(r"^(?:.*)/?$", lambda request: render(request, "index.html")),  # Capture all routes
 
 ]
