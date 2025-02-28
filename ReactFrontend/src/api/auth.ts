@@ -1,7 +1,6 @@
-import axios from "axios";
+//import axios from "axios";
 import { useState, useEffect } from "react";
-
-const API_URL = "http://127.0.0.1:8000/api/login/";
+//const API_URL = "http://127.0.0.1:8000/api/login/";
 
 
 export const useAuth = () => {
@@ -16,32 +15,38 @@ export const useAuth = () => {
 };
 
 
-export const loginUser = async (email: string, password: string) => {
+
+export const loginUser = async (email: string, password: string): Promise<{ token: string }> => {
   try {
-    const csrfToken = getCookie("csrftoken"); // CSRF token for security
+    const response = await fetch("http://127.0.0.1:8000/api/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+  });
 
-    const response = await axios.post(
-      API_URL,
-      { email, password },
-      {
-        headers: {
-          "X-CSRFToken": csrfToken,
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      }
-    );
+    if (response.status === 401) {
+      throw new Error("Invalid credentials");
+    }
 
-    return response.data; // Return login response
+    if (!response.ok) {
+      throw new Error("Server error. Please try again later.");
+    }
+
+    return await response.json();
   } catch (error) {
-    console.error("Login failed:", error);
-    throw error;
+    if (error instanceof TypeError) {
+      // Fetch fails due to network issues (e.g., server down, no internet)
+      throw new Error("Network error. Please check your connection.");
+    }
+    throw error; // Propagate other errors (e.g., invalid credentials)
   }
 };
 
+
+
 // Helper function to get CSRF token
-const getCookie = (name: string) => {
+/*const getCookie = (name: string) => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   return parts.length === 2 ? parts.pop()?.split(";").shift() : undefined;
-};
+};*/

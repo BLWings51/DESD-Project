@@ -1,64 +1,59 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "./api/auth";
 import "./App.css";
 
-const Login: React.FC = () => {
-	const [email, setEmail] = useState<string>("");
-	const [password, setPassword] = useState<string>("");
-	const [error, setError] = useState<string | null>(null);
-	const navigate = useNavigate(); // Hook to handle navigation
+interface LoginProps {
+  setAuth: (auth: boolean) => void;
+}
 
-	const loginCall = async (event: React.FormEvent) => {
-		event.preventDefault(); // Prevent default form submission
+const Login: React.FC<LoginProps> = ({ setAuth }) => {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-		try {
-			const response = await fetch("http://localhost:8000/api/login/", {
-				method: "POST",
-				credentials: "include", // To handle cookies/sessions
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ email, password }),
-			});
+  const loginCall = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
 
-			const data = await response.json();
+    try {
+      const data = await loginUser(email, password);
+      alert("Login successful!");
+      localStorage.setItem("authToken", data.token);
+      setAuth(true);
+      navigate("/home");
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message); // Show precise error message
+      } else {
+        setError("An unexpected error occurred.");
+      }
+      console.error("Login error:", error);
+    }
+  };
 
-			if (response.ok) {
-				alert("Login successful!");
-				console.log("API Response:", data);
-				navigate("/home"); // Redirect to home page
-			} else {
-				setError(data.detail || "Login failed. Please try again.");
-			}
-		} catch (error) {
-			setError("Network error. Please check your connection.");
-			console.error("Login error:", error);
-		}
-	};
-
-	return (
-		<div className="login-container">
-			<h1>Login</h1>
-			{error && <p className="error">{error}</p>}
-			<form onSubmit={loginCall}>
-				<input
-					type="email"
-					placeholder="Email"
-					value={email}
-					onChange={(e) => setEmail(e.target.value)}
-					required
-				/>
-				<input
-					type="password"
-					placeholder="Password"
-					value={password}
-					onChange={(e) => setPassword(e.target.value)}
-					required
-				/>
-				<button type="submit">Login</button>
-			</form>
-		</div>
-	);
+  return (
+    <div className="login-container">
+      <h2>Login</h2>
+      <form onSubmit={loginCall}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && <p className="error">{error}</p>}
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  );
 };
 
 export default Login;

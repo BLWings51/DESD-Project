@@ -60,7 +60,11 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Adjust this for your frontend URL
 ]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173", 
+]
 CORS_ALLOW_CREDENTIALS = True  # Enable credentials (cookies, sessions)
+
 
 # Root URL Configuration
 ROOT_URLCONF = "Hub.urls"
