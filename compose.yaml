@@ -1,32 +1,21 @@
 services:
-  # backend:
-  #   build: ./backend
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - DEBUG=1
-  #     - DB_HOST=db
-  #     - DB_NAME=mydatabase
-  #     - DB_USER=myuser
-  #     - DB_PASS=mypassword
-  # depends_on:
-  #   - db
+   backend:
+     build: ./UniHub/main
+     ports:
+      - "8000:8000"
+     environment:
+      - DEBUG=1
+      - SQLITE_PATH=/UniHub/db.sqlite3
+     volumes:
+      - sqlite_data:/UniHub
 
-  frontend:
-    build: ./ReactFrontend
+   frontend:
+    build: ./ReactFrontend/Unihub
     ports:
       - "5173:5173"
-    # depends_on:
-    #   - backend
-    # db:
-    #   image: postgres:15
-    #   restart: always
-    #   environment:
-    #     POSTGRES_DB: mydatabase
-    #     POSTGRES_USER: myuser
-    #     POSTGRES_PASSWORD: mypassword
-    #   volumes:
-    #     - postgres_data:/var/lib/postgresql/data
+    depends_on:
+      - backend
 
-    # volumes:
-    #   postgres_data:
+volumes:
+  sqlite_data: 
+
