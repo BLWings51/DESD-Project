@@ -8,8 +8,8 @@ It should open the login page, if not it is most likely at home page. It that ha
 
 Here are two accounts to try and test the login:
 
-```test@gmail.com```
-```newuser@example.com```
+- ```test@gmail.com```
+- ```newuser@example.com```
 
 Doesn't matter which one to pick and they both have ```password``` as password. Once logged in it should direct to homepage, saying ```Welcome to homepage, you are successfully logged in```.
 
