@@ -1,52 +1,71 @@
-//import axios from "axios";
+import axios from "axios";
 import { useState, useEffect } from "react";
-//const API_URL = "http://127.0.0.1:8000/api/login/";
 
+const API_URL = "http://127.0.0.1:8000/api/";
+
+const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // Ensures cookies are sent with requests
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Define response types
+interface AuthStatusResponse {
+  authenticated: boolean;
+}
+
+interface LoginResponse {
+  token: string;
+}
 
 export const useAuth = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-    useEffect(() => {
-        const token = localStorage.getItem("authToken");
-        setIsAuthenticated(!!token);
-    }, []);
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await api.get<AuthStatusResponse>("auth-status/");
+        setIsAuthenticated(response.data.authenticated);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
 
-    return { isAuthenticated, setIsAuthenticated };
+    checkAuthStatus();
+  }, []);
+
+  return { isAuthenticated, setIsAuthenticated };
 };
 
-
-
-export const loginUser = async (email: string, password: string): Promise<{ token: string }> => {
+export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-  });
-
-    if (response.status === 401) {
-      throw new Error("Invalid credentials");
-    }
-
-    if (!response.ok) {
-      throw new Error("Server error. Please try again later.");
-    }
-
-    return await response.json();
-  } catch (error) {
-    if (error instanceof TypeError) {
-      // Fetch fails due to network issues (e.g., server down, no internet)
+    const response = await api.post<LoginResponse>("login/", 
+      { email, password }, 
+      { headers: { "X-CSRFToken": getCookie("csrftoken") || "" } } // Add CSRF token if needed
+    );
+    
+    return response.data; // Ensure response returns the expected object
+  } catch (error: any) {
+    if (error.response) {
+      if (error.response.status === 401) {
+        throw new Error("Invalid credentials");
+      } else {
+        throw new Error("Server error. Please try again later.");
+      }
+    } else if (error.request) {
       throw new Error("Network error. Please check your connection.");
+    } else {
+      throw new Error("An unexpected error occurred.");
     }
-    throw error; // Propagate other errors (e.g., invalid credentials)
   }
 };
 
-
-
 // Helper function to get CSRF token
-/*const getCookie = (name: string) => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  return parts.length === 2 ? parts.pop()?.split(";").shift() : undefined;
-};*/
+const getCookie = (name: string): string | undefined => {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(name + "="))
+    ?.split("=")[1];
+};

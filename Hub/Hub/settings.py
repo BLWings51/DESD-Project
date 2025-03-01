@@ -56,14 +56,29 @@ MIDDLEWARE = [
 ]
 
 # CORS (Cross-Origin Resource Sharing) Settings
-CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Adjust this for your frontend URL
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173", 
 ]
+
+# Use session authentication (if not using JWT)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Change to True in production
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = False  # Change to True in production
+CORS_ALLOW_CREDENTIALS = True  # Allow sending cookies
+CORS_ALLOW_ALL_ORIGINS = False # Disable all origins
 CORS_ALLOW_CREDENTIALS = True  # Enable credentials (cookies, sessions)
+
+# If using Django REST framework
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ]
+}
 
 
 # Root URL Configuration
