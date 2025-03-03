@@ -1,21 +1,22 @@
 services:
-   backend:
-     build: ./UniHub/main
-     ports:
+  backend:
+    build: ./UniHub/main
+    ports:
       - "8000:8000"
-     environment:
+    environment:
       - DEBUG=1
       - SQLITE_PATH=/UniHub/db.sqlite3
-     volumes:
+    volumes:
       - sqlite_data:/UniHub
 
-   frontend:
-    build: ./ReactFrontend/Unihub
+  frontend:
+    build: ./ReactFrontend
     ports:
       - "5173:5173"
     depends_on:
       - backend
 
 volumes:
-  sqlite_data: 
+  sqlite_data:
+
 
