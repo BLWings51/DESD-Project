@@ -16,7 +16,7 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
   const loginCall = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-
+  
     try {
       const data = await loginUser(email, password);
       alert("Login successful!");
@@ -25,17 +25,14 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
       navigate("/home");
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes("Account doesn't exist")) {
-          setError("Account doesn't exist, try again");
-        } else {
-          setError(error.message); // Show precise error message
-        }
+        setError(error.message); // Show precise error message
       } else {
         setError("An unexpected error occurred.");
       }
       console.error("Login error:", error);
     }
   };
+  
 
   return (
     <div className="login-container">

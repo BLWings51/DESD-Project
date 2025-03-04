@@ -18,6 +18,7 @@ interface AuthStatusResponse {
 }
 
 interface LoginResponse {
+  status: number;
   token: string;
 }
 
@@ -43,22 +44,29 @@ export const useAuth = () => {
 
 export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
   try {
-    const csrfToken = getCookie("csrftoken") || "";
     const response = await api.post<LoginResponse>(
       "login/",
       { email, password },
-      { headers: { "X-CSRFToken": csrfToken } }
+      { headers: { "X-CSRFToken": getCookie("csrftoken") || "" } }
     );
-    
-    return response.data; // Ensure response returns the expected object
-  } catch (error: any) {
-    console.error("Login error:", error);
 
+    return response.data;
+  } catch (error: any) {
     if (error.response) {
-      if (error.response.status === 401) {
-        throw new Error("Invalid credentials");
-      } else if (error.response.status === 404) {
-        throw new Error("Account doesn't exist, try again");
+      const status = error.response.status;
+      const message = error.response.data?.message || "";
+
+      if (status === 404) {
+        // Specifically handle "Account does not exist"
+        throw new Error("Account does not exist, please sign up.");
+      } else if (status === 400) {
+        if (message.toLowerCase().includes("invalid credentials")) {
+          throw new Error("Invalid email or password.");
+        } else {
+          throw new Error("Bad request, please check your input.");
+        }
+      } else if (status === 401) {
+        throw new Error("Invalid credentials.");
       } else {
         throw new Error("Server error. Please try again later.");
       }

@@ -1,6 +1,6 @@
 import json
 from django.http import JsonResponse
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password
@@ -22,17 +22,21 @@ def login_view(request):
             email = data.get("email")
             password = data.get("password")
 
-            # Check if user exists
-            try:
-                user = Account.objects.get(email=email)
-                if user.check_password(password):
-                    return JsonResponse({"message": "Login successful"}, status=200)
-                else:
-                    return JsonResponse({"detail": "Invalid credentials"}, status=400)
-            except Account.DoesNotExist:
-                return JsonResponse({"detail": "Account does not exist"}, status=400)
+            if not email or not password:
+                return JsonResponse({"message": "Email and password are required"}, status=400)
+
+            # Check if account exists
+            user = Account.objects.filter(email=email).first()
+
+            if not user:
+                return JsonResponse({"message": "Account does not exist"}, status=404)
+
+            if check_password(password, user.password):
+                return JsonResponse({"message": "Login successful", "token": "your_generated_token"}, status=200)
+            else:
+                return JsonResponse({"message": "Invalid credentials"}, status=401)
 
         except json.JSONDecodeError:
-            return JsonResponse({"detail": "Invalid JSON"}, status=400)
+            return JsonResponse({"message": "Invalid JSON format"}, status=400)
 
-    return JsonResponse({"detail": "Method not allowed"}, status=405)
+    return JsonResponse({"message": "Method not allowed"}, status=405)
