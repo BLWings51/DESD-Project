@@ -8,6 +8,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the project files
+#COPY manage.py .
 COPY . .
 
 # Ensure the SQLite database file is stored persistently

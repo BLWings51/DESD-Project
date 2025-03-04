@@ -25,7 +25,11 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
       navigate("/home");
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message); // Show precise error message
+        if (error.message.includes("Account doesn't exist")) {
+          setError("Account doesn't exist, try again");
+        } else {
+          setError(error.message); // Show precise error message
+        }
       } else {
         setError("An unexpected error occurred.");
       }

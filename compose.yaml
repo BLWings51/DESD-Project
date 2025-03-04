@@ -1,21 +1,22 @@
 services:
-   backend:
-     build: ./UniHub/main
-     ports:
+  backend:
+    build:
+      context: ./Hub  # Build context is the Hub directory
+      dockerfile: ./main/Dockerfile
+    ports:
       - "8000:8000"
-     environment:
+    environment:
       - DEBUG=1
-      - SQLITE_PATH=/UniHub/db.sqlite3
-     volumes:
-      - sqlite_data:/UniHub
+      - SQLITE_PATH=/app/db.sqlite3  # Path within the container
+    volumes:
+      - sqlite_data:/app  # Mount volume at /app
 
-   frontend:
-    build: ./ReactFrontend/Unihub
+  frontend:
+    build: ./ReactFrontend
     ports:
       - "5173:5173"
     depends_on:
       - backend
 
 volumes:
-  sqlite_data: 
-
+  sqlite_data:

@@ -1,7 +1,8 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
 
-const API_URL = "http://127.0.0.1:8000/api/";
+// Use environment variable for API URL to avoid hardcoding
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000/api/";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -29,6 +30,7 @@ export const useAuth = () => {
         const response = await api.get<AuthStatusResponse>("auth-status/");
         setIsAuthenticated(response.data.authenticated);
       } catch (error) {
+        console.error("Auth check failed:", error);
         setIsAuthenticated(false);
       }
     };
@@ -41,16 +43,22 @@ export const useAuth = () => {
 
 export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
   try {
-    const response = await api.post<LoginResponse>("login/", 
-      { email, password }, 
-      { headers: { "X-CSRFToken": getCookie("csrftoken") || "" } } // Add CSRF token if needed
+    const csrfToken = getCookie("csrftoken") || "";
+    const response = await api.post<LoginResponse>(
+      "login/",
+      { email, password },
+      { headers: { "X-CSRFToken": csrfToken } }
     );
     
     return response.data; // Ensure response returns the expected object
   } catch (error: any) {
+    console.error("Login error:", error);
+
     if (error.response) {
       if (error.response.status === 401) {
         throw new Error("Invalid credentials");
+      } else if (error.response.status === 404) {
+        throw new Error("Account doesn't exist, try again");
       } else {
         throw new Error("Server error. Please try again later.");
       }
@@ -62,10 +70,9 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
   }
 };
 
+
 // Helper function to get CSRF token
 const getCookie = (name: string): string | undefined => {
-  return document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(name + "="))
-    ?.split("=")[1];
+  const match = document.cookie.match(`(^|;)\\s*${name}\\s*=\\s*([^;]+)`);
+  return match ? decodeURIComponent(match[2]) : undefined;
 };
