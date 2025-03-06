@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { loginUser } from "./api/auth";
 import "./App.css";
 
+import { Card, Flex, Container, Grid, Group, Center, Title, TextInput, Button } from '@mantine/core';
+
 interface LoginProps {
   setAuth: (auth: boolean) => void;
 }
@@ -16,7 +18,7 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
   const loginCall = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-  
+
     try {
       const data = await loginUser(email, password);
       alert("Login successful!");
@@ -31,29 +33,45 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
       }
       console.error("Login error:", error);
     }
+
+    navigate("/home");
   };
-  
+
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-      <form onSubmit={loginCall}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {error && <p className="error">{error}</p>}
-        <button type="submit">Login</button>
-      </form>
-    </div>
+    <Flex justify={"center"} align={"center"} h={"100vh"} direction={"column"}>
+      <Card p={50} bd={"2px solid gray.6"} radius={"lg"}>
+
+        <Card.Section>
+          <Title>Login</Title>
+        </Card.Section>
+
+        <Card.Section mt={"lg"}>
+
+          <form onSubmit={loginCall}>
+            <TextInput
+              variant="filled"
+              radius={"md"}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextInput
+              mt={"xs"}
+              variant="filled"
+              radius={"md"}
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {error && <p className="error">{error}</p>}
+            <Button color="secondary.5" mt={"md"} type="submit">Login</Button>
+          </form>
+        </Card.Section>
+      </Card>
+    </Flex>
   );
 };
 
