@@ -1,8 +1,8 @@
 services:
   backend:
     build:
-      context: ./UniHub  # Build context is the UniHub directory
-      dockerfile: ./Dockerfile
+      context: ./Hub  # Build context is the Hub directory
+      dockerfile: ./main/Dockerfile
     ports:
       - "8000:8000"
     environment:
