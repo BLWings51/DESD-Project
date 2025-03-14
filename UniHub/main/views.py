@@ -109,7 +109,7 @@ def is_authenticated(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def SingupView(request):
+def SignupView(request):
     email = request.data.get('email')
     if Account.objects.filter(email=email).exists():
         return Response({"error": "Email is already in use"}, status=400)
