@@ -16,26 +16,36 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
   const navigate = useNavigate();
 
   const loginCall = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError(null);
+  event.preventDefault();
+  setError(null);
 
-    try {
-      const data = await loginUser(email, password);
-      alert("Login successful!");
-      localStorage.setItem("authToken", data.token);
-      setAuth(true);
-      navigate("/home");
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message); // Show precise error message
-      } else {
-        setError("An unexpected error occurred.");
-      }
-      console.error("Login error:", error);
-    }
+  try {
+    const response = await loginUser(email, password);
+    if (!(response.status==200)) {
+      const errorData = response;
+      throw new Error(errorData.message || "Login failed");
+    };
 
+    const data = response;
+
+    // Store tokens
+    console.log(data)
+    console.log(data.access)
+    localStorage.setItem("accessToken", data.access);
+    localStorage.setItem("refreshToken", data.refresh);
+
+    alert("Login successful!");
+    setAuth(true);
     navigate("/home");
-  };
+  } catch (error) {
+    if (error instanceof Error) {
+      setError(error.message);
+    } else {
+      setError("An unexpected error occurred.");
+    }
+  }
+};
+
 
 
   return (

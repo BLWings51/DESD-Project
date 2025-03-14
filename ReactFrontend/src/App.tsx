@@ -20,7 +20,7 @@ const App: React.FC = () => {
           <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/" />} /> */}
           <Route path="/" element={<Login setAuth={setAuthenticated} />} />
           <Route path="/home" element={<Home />} />
-          <Route path="/signUp" element={<SignUp />} />
+          <Route path="/signUp" element={<SignUp  setAuth={setAuthenticated}/>} />
         </Routes>
       </Router>
     </MantineProvider>

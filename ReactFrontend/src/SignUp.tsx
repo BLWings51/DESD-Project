@@ -33,7 +33,6 @@ const SignUp: React.FC<SignUpProps> = ({ setAuth }) => {
             }
             console.error("SignUp error:", error);
         }
-
         navigate("/home");
     };
 
