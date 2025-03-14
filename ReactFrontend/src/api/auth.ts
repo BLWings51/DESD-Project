@@ -39,7 +39,7 @@ export const signUpUser = async (email: string, password: string) => {
     } catch (error) {
       // Handle the error if the API response fails
       if (error.response) {
-        throw new Error(error.response.data.message || "Login failed");
+        throw new Error(error.response.data.success || "Signup failed");
       } else {
         // Handle other errors such as network errors
         throw new Error("An unexpected error occurred");
