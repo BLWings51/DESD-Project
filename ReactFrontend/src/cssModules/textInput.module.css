@@ -1,0 +1,13 @@
+.input {
+    &[data-variant='filled'] {
+        background-color: var(--mantine-color-gray-5);
+
+        &::placeholder {
+            color: var(--mantine-color-gray-0);
+        }
+
+        &:focus {
+            border-color: var(--mantine-color-blue-filled);
+        }
+    }
+}

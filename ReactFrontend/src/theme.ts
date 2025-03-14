@@ -1,0 +1,29 @@
+import { Input, createTheme } from '@mantine/core';
+import classes from './cssModules/textInput.module.css';
+
+export const theme = createTheme({
+    white: "#eeeee4",
+    autoContrast: true,
+    colors: {
+        primary: ['#E3F2FD', '#BBDEFB', '#90CAF9', '#64B5F6', '#42A5F5', '#2196F3', '#1E88E5', '#1976D2', '#1565C0', '#0D47A1'],
+        secondary: ['#FCE4EC', '#F8BBD0', '#F48FB1', '#F06292', '#EC407A', '#E91E63', '#D81B60', '#C2185B', '#AD1457', '#880E4F'],
+        tertiary: ['#FFF3E0', '#FFE0B2', '#FFCC80', '#FFB74D', '#FFA726', '#FF9800', '#FB8C00', '#F57C00', '#EF6C00', '#E65100'],
+    },
+
+    shadows: {
+        md: '1px 1px 3px rgba(0, 0, 0, .25)',
+        xl: '5px 5px 3px rgba(0, 0, 0, .25)',
+    },
+
+    headings: {
+        fontFamily: 'Roboto, sans-serif',
+        sizes: {
+            h1: { fontSize: "36" },
+        },
+    },
+
+    components: {
+        Input: Input.extend({ classNames: classes }),
+    }
+
+});

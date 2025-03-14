@@ -2,6 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useState } from "react";
 import Login from "./Login";
 import Home from "./Home";
+import SignUp from "./SignUp";
+
+import { MantineProvider, createTheme } from '@mantine/core';
+import { theme } from './theme';
+
+import '@mantine/core/styles.css';
 
 const App: React.FC = () => {
   const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
