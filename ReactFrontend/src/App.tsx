@@ -7,14 +7,6 @@ const App: React.FC = () => {
   const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
 
   return (
-<<<<<<< Updated upstream
-    <Router>
-      <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Login setAuth={setAuthenticated} />} />
-        <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/" />} />
-      </Routes>
-    </Router>
-=======
     <MantineProvider theme={theme} >
       <Router>
         <Routes>
@@ -26,7 +18,6 @@ const App: React.FC = () => {
         </Routes>
       </Router>
     </MantineProvider>
->>>>>>> Stashed changes
   );
 };
 

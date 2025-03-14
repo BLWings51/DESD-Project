@@ -20,12 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wtxribms4s6&pger7qz!^l=%k*&mihw_@$yn28z6d7a*$&obrg'
+SECRET_KEY = 'django-insecure-lo&i=f(@lf0v1b9^xenw1fmwepd#a*yd5*7$=+!m31evo57)k+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -38,16 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'rest_framework_simplejwt',
     'main',
-    'corsheaders',
 ]
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Use JWT auth
-    ),
-}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -57,12 +51,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",  # React app running on localhost
-]
+REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': (
+    'main.authentication.CookiesJWTAuthentication',
+),
+'DEFAULT_PERMISSION_CLASSES': (
+    'rest_framework.permissions.IsAuthenticated'
+)}
 
 ROOT_URLCONF = 'UniHub.urls'
 
@@ -113,6 +109,9 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# TAKE THIS OUT IF YOU WANT TO SIGN IN AS THE SUPERUSER
+AUTH_USER_MODEL = "main.Account"
 
 
 # Internationalization

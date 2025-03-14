@@ -29,18 +29,10 @@ export const loginUser = async (email: string, password: string) => {
   }
 };
 
-<<<<<<< Updated upstream
-
-// Helper function to get CSRF token
-const getCookie = (name: string): string | undefined => {
-  const match = document.cookie.match(`(^|;)\\s*${name}\\s*=\\s*([^;]+)`);
-  return match ? decodeURIComponent(match[2]) : undefined;
-};
-=======
 export const signUpUser = async (email: string, password: string) => {
     try {
       // Send a POST request to the login API endpoint with email and password
-      const response = await axios.post("/api/login/", { email, password });
+      const response = await axios.post("/api/signup/", { email, password });
   
       // Return the response data containing tokens and user info
       return response.data;
@@ -54,4 +46,3 @@ export const signUpUser = async (email: string, password: string) => {
       }
     }
   };
->>>>>>> Stashed changes

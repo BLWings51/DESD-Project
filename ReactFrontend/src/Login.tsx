@@ -14,27 +14,6 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
   const navigate = useNavigate();
 
   const loginCall = async (event: React.FormEvent) => {
-<<<<<<< Updated upstream
-    event.preventDefault();
-    setError(null);
-  
-    try {
-      const data = await loginUser(email, password);
-      alert("Login successful!");
-      localStorage.setItem("authToken", data.token);
-      setAuth(true);
-      navigate("/home");
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message); // Show precise error message
-      } else {
-        setError("An unexpected error occurred.");
-      }
-      console.error("Login error:", error);
-    }
-  };
-  
-=======
   event.preventDefault();
   setError(null);
 
@@ -66,7 +45,6 @@ const Login: React.FC<LoginProps> = ({ setAuth }) => {
 };
 
 
->>>>>>> Stashed changes
 
   return (
     <div className="login-container">
