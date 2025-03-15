@@ -1,48 +1,53 @@
-import axios from 'axios';
+const API_BASE_URL = "http://127.0.0.1:8000/api"; // Change to your Django API base URL
 
-const API_URL = "http://localhost:8000"
+// Define the expected response structure
+interface ApiResponse<T> {
+  error: boolean;
+  data?: T;
+  message?: string;
+}
 
-const api = axios.create({
-    baseURL: API_URL,
-    withCredentials: true, // Ensures cookies are sent with requests
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+// Define the function parameters
+interface RequestOptions {
+  endpoint: string;
+  method?: "GET" | "POST" | "PUT" | "DELETE"; // Restrict to valid HTTP methods
+  data?: Record<string, any>; // Generic object for request body
+  token?: string; // Optional authentication token
+}
 
-// Define the API call function for login
-export const loginUser = async (email: string, password: string) => {
-  try {
-    // Send a POST request to the login API endpoint with email and password
-    const response = await api.post("/api/login/", { email, password });
+// The API request function with proper TypeScript typings
+async function apiRequest<T>({ endpoint, method = "GET", data, token }: RequestOptions): Promise<ApiResponse<T>> {
+  const url = `${API_BASE_URL}${endpoint}`;
 
-    // Return the response data containing tokens and user info
-    return response;
-  } catch (error) {
-    // Handle the error if the API response fails
-    if (error.response) {
-      throw new Error(error.response.data.detail || "Login failed");
-    } else {
-      // Handle other errors such as network errors
-      throw new Error("An unexpected error occurred");
-    }
-  }
-};
-
-export const signUpUser = async (email: string, password: string) => {
-    try {
-      // Send a POST request to the login API endpoint with email and password
-      const response = await axios.post("/api/signup/", { email, password });
-  
-      // Return the response data containing tokens and user info
-      return response.data;
-    } catch (error) {
-      // Handle the error if the API response fails
-      if (error.response) {
-        throw new Error(error.response.data.success || "Signup failed");
-      } else {
-        // Handle other errors such as network errors
-        throw new Error("An unexpected error occurred");
-      }
-    }
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
   };
+
+  if (token) {
+    headers["Authorization"] = `Token ${token}`;
+  }
+
+  const options: RequestInit = {
+    method,
+    headers,
+  };
+
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  try {
+    const response = await fetch(url, options);
+    const responseData: T = await response.json();
+
+    if (!response.ok) {
+      return { error: true, message: (responseData as any)?.detail || "Something went wrong!" };
+    }
+
+    return { error: false, data: responseData };
+  } catch (err) {
+    return { error: true, message: (err as Error).message || "Network error!" };
+  }
+}
+
+export default apiRequest;

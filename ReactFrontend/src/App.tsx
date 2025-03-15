@@ -10,7 +10,8 @@ import { theme } from './theme';
 import '@mantine/core/styles.css';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setAuthenticated] = useState<boolean>(false);
+  const [authToken, setAuthToken] = useState<string>("");
+  const [refreshToken, setRefreshToken] = useState<string>("");
 
   return (
     <MantineProvider theme={theme} >
@@ -18,9 +19,9 @@ const App: React.FC = () => {
         <Routes>
           {/* <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Login setAuth={setAuthenticated} />} />
           <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/" />} /> */}
-          <Route path="/" element={<Login setAuth={setAuthenticated} />} />
+          <Route path="/" element={<Login setAuth={setAuthToken} setRefresh={setRefreshToken} />} />
           <Route path="/home" element={<Home />} />
-          <Route path="/signUp" element={<SignUp  setAuth={setAuthenticated}/>} />
+          {/* <Route path="/signUp" element={<SignUp />} /> */}
         </Routes>
       </Router>
     </MantineProvider>
