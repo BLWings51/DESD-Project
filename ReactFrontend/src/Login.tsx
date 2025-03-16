@@ -1,34 +1,33 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import apiRequest from "./api/auth";
+import apiRequest, { saveTokensToLocalStorage } from "./api/auth";
 import "./App.css";
-
-import { Card, Flex, Container, Grid, Group, Center, Title, TextInput, Button } from '@mantine/core';
-
-interface LoginProps {
-  setAuth: (authToken: string) => void;
-  setRefresh: (refreshToken: string) => void;
-}
+import { Card, Flex, Title, TextInput, Button } from '@mantine/core';
 
 interface LoginResponse {
-  authToken: string;
-  refreshToken: string;
+  access: string; // Access token
+  refresh: string; // Refresh token
 }
 
-async function loginUser(username: string, password: string) {
+async function loginUser(email: string, password: string): Promise<LoginResponse | null> {
   const response = await apiRequest<LoginResponse>({
     endpoint: "/login/",
     method: "POST",
-    data: { username, password },
+    data: { email, password },
   });
 
-  if (response.error) {
+  if (response.error || !response.data) {
     console.error("Login failed:", response.message);
     return null;
   }
 
   console.log("Login successful, tokens received:", response.data);
   return response.data; // Return both tokens
+}
+
+interface LoginProps {
+  setAuth: (authToken: string) => void;
+  setRefresh: (refreshToken: string) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
@@ -44,30 +43,33 @@ const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
     const response = await loginUser(email, password);
 
     if (!response) {
-      setError("Invalid username or password");
+      setError("Invalid email or password");
     } else {
-      setAuth(response.authToken);
-      setRefresh(response.refreshToken);
+      // Save tokens to local storage using the utility function
+      saveTokensToLocalStorage(response.access, response.refresh);
 
-      localStorage.setItem("authToken", response.authToken);
-      localStorage.setItem("refreshToken", response.refreshToken);
+      console.log(response.access);
+      console.log(response.refresh);
+
+
+
+      // Update state with tokens
+      setAuth(response.access);
+      setRefresh(response.refresh);
 
       alert("Login successful!");
       navigate("/home");
     }
   };
 
-
   return (
     <Flex justify={"center"} align={"center"} h={"100vh"} direction={"column"}>
       <Card p={50} bd={"2px solid gray.6"} radius={"lg"}>
-
         <Card.Section>
           <Title>Login</Title>
         </Card.Section>
 
         <Card.Section mt={"lg"}>
-
           <form onSubmit={handleLogin}>
             <TextInput
               variant="filled"
@@ -76,6 +78,7 @@ const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
             <TextInput
               mt={"xs"}
@@ -85,6 +88,7 @@ const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
             {error && <p className="error">{error}</p>}
             <Button color="secondary.5" mt={"md"} type="submit">Login</Button>

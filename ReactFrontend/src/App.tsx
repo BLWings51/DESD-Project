@@ -21,7 +21,7 @@ const App: React.FC = () => {
           <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/" />} /> */}
           <Route path="/" element={<Login setAuth={setAuthToken} setRefresh={setRefreshToken} />} />
           <Route path="/home" element={<Home />} />
-          {/* <Route path="/signUp" element={<SignUp />} /> */}
+          <Route path="/signup" element={<SignUp setAuth={setAuthToken} setRefresh={setRefreshToken} />} />
         </Routes>
       </Router>
     </MantineProvider>

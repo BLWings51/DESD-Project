@@ -14,7 +14,7 @@ const Navbar: React.FC = () => {
                     <Group gap="lg" className="desktop-links">
                         <Button color='var(--mantine-color-secondary-5)' variant="subtle" component={Link} to="/home">Home</Button>
                         <Button variant="subtle" component={Link} to="/">Login</Button>
-                        <Button variant="subtle" component={Link} to="/signUp">Sign Up</Button>
+                        <Button variant="subtle" component={Link} to="/signup">Sign Up</Button>
                         <Button variant="subtle">Contact</Button>
                     </Group>
 
