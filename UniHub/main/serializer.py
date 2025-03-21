@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account
+from .models import Account, Society
 
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,3 +12,21 @@ class SignupSerializer(serializers.ModelSerializer):
         account.set_password(validated_data['password'])
         account.save()
         return account
+    
+# class SocietySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model=SocietyRelation
+#         fields = ['society', 'account', 'adminStatus']
+#         extra_kwargs = {'adminStatus': {'write_only': False}}
+
+#     def create(self, validated_data):
+#         society = SocietyRelation(society=validated_data['society'])
+#         account = Account(email=validated_data['email'])
+#         account._state(validated_data['adminStatus'])
+#         account.save()
+#         return account
+
+class SocietySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Society
+        fields = '__all__'  # This includes all fields
