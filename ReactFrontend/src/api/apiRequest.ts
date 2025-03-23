@@ -42,7 +42,7 @@ async function apiRequest<T>({ endpoint, method = "GET", data }: RequestOptions)
             if (refreshed) {
                 return apiRequest<T>({ endpoint, method, data }); // Retry request after refreshing
             } else {
-                window.location.href = "/login"; // Redirect if refresh fails
+                window.location.href = "/"; // Redirect if refresh fails
                 return { error: true, message: "Authentication failed" };
             }
         }

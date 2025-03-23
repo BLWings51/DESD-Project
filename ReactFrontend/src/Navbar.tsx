@@ -11,8 +11,8 @@ const Navbar: React.FC = () => {
     useEffect(() => {
         const checkAuth = async () => {
             const response = await apiRequest<{ authenticated: boolean }>({
-                endpoint: "/auth/status/", // Make sure your Django backend provides this route
-                method: "GET",
+                endpoint: "/authenticated/", // Make sure your Django backend provides this route
+                method: "POST",
             });
 
             setIsAuthenticated(response.data?.authenticated || false);
