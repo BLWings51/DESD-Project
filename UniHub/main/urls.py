@@ -9,4 +9,6 @@ urlpatterns = [
     path('authenticated/', views.is_authenticated),
     path('signup/', signup.SignupView),
     path('ProfileSettings/', profile.UpdateProfileView)
+    path('admin_check/', is_admin),
 ]
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
