@@ -13,10 +13,10 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         
         model=Account
-        fields = ['bio', 'firstName', 'lastName', 'email', 'password']
+        fields = ['bio', 'firstName', 'lastName', 'email', 'pfp', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
-    def validateEamil(self, value):
+    def validateEmail(self, value):
         user = self.context['request'].user
         
         if Account.objects.exclude(pk=user.account.pk).filter(email=value).exists():
@@ -28,6 +28,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         instance.firstName = validated_data.get('firstName', instance.firstName)
         instance.lastName = validated_data.get('lastName', instance.lastName)
         instance.email = validated_data.get('email', instance.email)
+        instance.pfp = validated_data.get('pfp', instance.pfp)
         password = validated_data.get('password', None)
         
         if password:
@@ -39,7 +40,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def UpdateProfileView(request):
-    account = request.user.account
+    account = request.user
     serializer = UpdateProfileSerializer(account, data=request.data, partial=True, context={'request': request})
     
     if serializer.is_valid():

@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.urls import path
-from main import signup, views
+from main import signup, views, profile
 
 urlpatterns = [
     path('login/', views.CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
@@ -8,4 +8,5 @@ urlpatterns = [
     path('logout/', views.logout),
     path('authenticated/', views.is_authenticated),
     path('signup/', signup.SignupView),
+    path('ProfileSettings/', profile.UpdateProfileView)
 ]
