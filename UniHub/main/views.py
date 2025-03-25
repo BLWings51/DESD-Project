@@ -107,17 +107,5 @@ def logout(request):
 def is_authenticated(request):
     return Response({'authenticated':True})
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def SignupView(request):
-    email = request.data.get('email')
-    if Account.objects.filter(email=email).exists():
-        return Response({"error": "Email is already in use"}, status=400)
-    serializer = SignupSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.data)
-
 
 
