@@ -46,6 +46,9 @@ const Navbar: React.FC = () => {
                                 <Button variant="subtle" onClick={handleLogout}>
                                     Logout
                                 </Button>
+                                <Button variant="subtle" component={Link} to="/profile">
+                                    Profile
+                                </Button>
                             </>
                         ) : (
                             <>

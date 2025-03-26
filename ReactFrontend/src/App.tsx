@@ -3,11 +3,13 @@ import { useState } from "react";
 import Login from "./Login";
 import Home from "./Home";
 import SignUp from "./SignUp";
+import Profile from "./Profile";
 
 import { MantineProvider, createTheme } from '@mantine/core';
 import { theme } from './theme';
 
 import '@mantine/core/styles.css';
+
 
 const App: React.FC = () => {
 
@@ -20,6 +22,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Login />} />
           <Route path="/home" element={<Home />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </Router>
     </MantineProvider>
