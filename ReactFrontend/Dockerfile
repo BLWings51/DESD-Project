@@ -13,6 +13,9 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# Copy SSL certificates into the container
+COPY certs /app/certs
+
 # Expose the React development server port
 EXPOSE 5173
 

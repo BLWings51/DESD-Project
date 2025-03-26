@@ -55,12 +55,12 @@ MIDDLEWARE = [
 ]
 
 # Allow requests from localhost:5173
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "https://localhost:5173",
+# ]
 
 # Allow all origins (for development only, not recommended in production)
-# CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Allow specific headers and methods if needed
 CORS_ALLOW_CREDENTIALS = True
