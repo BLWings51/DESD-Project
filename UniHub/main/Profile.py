@@ -48,3 +48,22 @@ def UpdateProfileView(request):
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
 
+class GetAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Account
+        fields = ['bio', 'firstName', 'lastName', 'email', 'pfp']
+
+        def getAccountDetails(self, account):
+            accountDetails = {'bio':account.bio, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp}
+            return accountDetails
+        
+
+
+#getting account details to show on page
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getAccountDetails(request):
+    account = request.user
+    serializer = GetAccountSerializer(account)
+    return Response(serializer.data)
+
