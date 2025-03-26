@@ -1,36 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import apiRequest, { saveTokensToLocalStorage } from "./api/auth";
+import apiRequest from "./api/apiRequest"; // Ensure this uses `credentials: "include"`
 import "./App.css";
-import { Card, Flex, Title, TextInput, Button } from '@mantine/core';
+import { Card, Flex, Title, TextInput, Button } from "@mantine/core";
 
-interface LoginResponse {
-  access: string; // Access token
-  refresh: string; // Refresh token
-}
-
-async function loginUser(email: string, password: string): Promise<LoginResponse | null> {
-  const response = await apiRequest<LoginResponse>({
-    endpoint: "/login/",
-    method: "POST",
-    data: { email, password },
-  });
-
-  if (response.error || !response.data) {
-    console.error("Login failed:", response.message);
-    return null;
-  }
-
-  console.log("Login successful, tokens received:", response.data);
-  return response.data; // Return both tokens
-}
-
-interface LoginProps {
-  setAuth: (authToken: string) => void;
-  setRefresh: (refreshToken: string) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
+const Login = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -40,23 +14,15 @@ const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
     event.preventDefault();
     setError(null);
 
-    const response = await loginUser(email, password);
+    const response = await apiRequest<{ message: string }>({
+      endpoint: "/login/",
+      method: "POST",
+      data: { email, password },
+    });
 
-    if (!response) {
+    if (response.error) {
       setError("Invalid email or password");
     } else {
-      // Save tokens to local storage using the utility function
-      saveTokensToLocalStorage(response.access, response.refresh);
-
-      console.log(response.access);
-      console.log(response.refresh);
-
-
-
-      // Update state with tokens
-      setAuth(response.access);
-      setRefresh(response.refresh);
-
       alert("Login successful!");
       navigate("/home");
     }
@@ -91,7 +57,9 @@ const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
               required
             />
             {error && <p className="error">{error}</p>}
-            <Button color="secondary.5" mt={"md"} type="submit">Login</Button>
+            <Button color="secondary.5" mt={"md"} type="submit">
+              Login
+            </Button>
           </form>
         </Card.Section>
       </Card>
