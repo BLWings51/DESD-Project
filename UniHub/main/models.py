@@ -25,7 +25,10 @@ class AccountManager(BaseUserManager):
 
 class Account(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    pfp = models.ImageField(max_length=500, default=None, blank=True, null=True)
+    firstName = models.CharField(max_length=500)
+    lastName = models.CharField(max_length=500)
+    pfp = models.ImageField(max_length=500, upload_to="profile_pics", default="default.webp")
+    bio = models.CharField(max_length=3000, blank=True)
     adminStatus = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True)  # Required for Django user model
