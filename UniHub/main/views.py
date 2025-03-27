@@ -8,7 +8,6 @@ from rest_framework.response import Response
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializer import SignupSerializer
 from .models import Account
 from .permissions import CustomIsAdminUser
 

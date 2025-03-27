@@ -24,6 +24,7 @@ class AccountManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class Account(AbstractBaseUser, PermissionsMixin):
+    studentID = models.IntegerField(unique=True)
     email = models.EmailField(unique=True)
     firstName = models.CharField(max_length=500)
     lastName = models.CharField(max_length=500)
@@ -34,7 +35,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)  # Required for Django user model
     is_staff = models.BooleanField(default=False)  # Required for admin access
 
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = "studentID"
     REQUIRED_FIELDS = []
 
     objects = AccountManager()

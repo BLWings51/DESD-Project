@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from .models import Account
+from .models import Account, SocietyRelation, Society
 from rest_framework import serializers
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
@@ -49,18 +49,38 @@ def UpdateProfileView(request):
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
 
+# Displaying the societies the person is apart of
+# Serializer
+class GetSocietySerializer(serializers.ModelSerializer):
+     class Meta:
+        model = Society
+        fields = ['name']
+        
+class SocietyRelationSerializer(serializers.ModelSerializer):
+    society = GetSocietySerializer(read_only=True)
+
+    class Meta:
+        model = SocietyRelation
+        fields = ['society']
 
 # Displaying profile details
 # Serializer
 class GetAccountSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
 
+    societies = SocietyRelationSerializer(
+        many=True, 
+        # Getting the names of societies from the account in society relations
+        source='societyrelation_set',
+        read_only=True
+    )
+    
     class Meta:
         model=Account
-        fields = ['bio', 'firstName', 'lastName', 'email', 'pfp', 'is_owner']
+        fields = ['bio', "studentID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies"]
 
     def getAccountDetails(self, account):
-        accountDetails = {'bio':account.bio, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
+        accountDetails = {'bio':account.bio, 'studentID':account.studentID, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
         return accountDetails
     
     def get_is_owner(self, account):
@@ -71,12 +91,14 @@ class GetAccountSerializer(serializers.ModelSerializer):
                 is_owner = True
         return is_owner
         
+        
 
 # Views
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def getAccountDetails(request, account_name):
-    account = get_object_or_404(Account, email=account_name)
+    account = get_object_or_404(Account, studentID=account_name)
     serializer = GetAccountSerializer(account, context={'request': request})
     return Response(serializer.data)
+
 

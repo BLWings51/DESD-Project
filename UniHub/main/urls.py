@@ -8,7 +8,7 @@ urlpatterns = [
     path('logout/', views.logout),
     path('authenticated/', views.is_authenticated),
     path('signup/', signup.SignupView),
-    path('ProfileSettings/', Profile.UpdateProfileView),
+    path('Profile/Settings/', Profile.UpdateProfileView),
     path('admin_check/', views.is_admin),
     path('Profile/<str:account_name>/', Profile.getAccountDetails),
     path('Societies/<str:society_name>/CreateEvent', Events.CreateEvent)
