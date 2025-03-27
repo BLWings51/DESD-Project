@@ -10,6 +10,6 @@ urlpatterns = [
     path('signup/', signup.SignupView),
     path('ProfileSettings/', Profile.UpdateProfileView),
     path('admin_check/', views.is_admin),
-    path('Profile/', Profile.getAccountDetails)
+    path('Profile/<str:account_name>/', Profile.getAccountDetails)
 ]
 

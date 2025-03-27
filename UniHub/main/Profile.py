@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from rest_framework.generics import get_object_or_404
+
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 
@@ -48,22 +49,34 @@ def UpdateProfileView(request):
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
 
+
+# Displaying profile details
+# Serializer
 class GetAccountSerializer(serializers.ModelSerializer):
+    is_owner = serializers.SerializerMethodField()
+
     class Meta:
         model=Account
-        fields = ['bio', 'firstName', 'lastName', 'email', 'pfp']
+        fields = ['bio', 'firstName', 'lastName', 'email', 'pfp', 'is_owner']
 
-        def getAccountDetails(self, account):
-            accountDetails = {'bio':account.bio, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp}
-            return accountDetails
+    def getAccountDetails(self, account):
+        accountDetails = {'bio':account.bio, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
+        return accountDetails
+    
+    def get_is_owner(self, account):
+        request = self.context.get('request')
+        is_owner = False
+        if request.user.is_authenticated:
+            if account.email == request.user.email:
+                is_owner = True
+        return is_owner
         
 
-
-#getting account details to show on page
+# Views
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def getAccountDetails(request):
-    account = request.user
-    serializer = GetAccountSerializer(account)
+@permission_classes([AllowAny])
+def getAccountDetails(request, account_name):
+    account = get_object_or_404(Account, email=account_name)
+    serializer = GetAccountSerializer(account, context={'request': request})
     return Response(serializer.data)
 

@@ -67,6 +67,8 @@ class SocietyRelation(models.Model):
 
 class Event(models.Model):
     society = models.ForeignKey(Society, on_delete=models.CASCADE)
+    name = models.CharField(max_length=400)
+    details = models.CharField(max_length=4000)
     startTime = models.DateTimeField()
     endTime = models.DateTimeField()
     Location = models.CharField(max_length=200)
