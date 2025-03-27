@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account
+from .models import Account, Society
 
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,3 +12,19 @@ class SignupSerializer(serializers.ModelSerializer):
         account.set_password(validated_data['password'])
         account.save()
         return account
+    
+
+class SocietySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Society
+        fields = ['name', 'numOfInterestedPeople', 'description']
+
+    def create(self, validated_data):
+        society = Society.objects.create(**validated_data)
+        society.save()
+        return society
+    
+    def validate_name(self, value):
+        if Society.objects.filter(name=value).exists():
+            raise serializers.ValidationError("Society with this name already exists.")
+        return value
