@@ -25,8 +25,8 @@ class AccountManager(BaseUserManager):
 
 class Account(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
-    firstName = models.CharField(max_length=500)
-    lastName = models.CharField(max_length=500)
+    firstName = models.CharField(max_length=100, default='Unknown')
+    lastName = models.CharField(max_length=500, default='person')
     pfp = models.ImageField(max_length=500, upload_to="profile_pics", default="default.webp")
     bio = models.CharField(max_length=3000, blank=True)
     adminStatus = models.BooleanField(default=False)
