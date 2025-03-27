@@ -1,66 +1,99 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import apiRequest from "./api/apiRequest"; // Ensure this uses `credentials: "include"`
+import { useState, useEffect } from "react";
+import { useAuth } from './authContext'; // Make sure path is correct
+import { Link, useNavigate } from 'react-router-dom';
 import "./App.css";
-import { Card, Flex, Title, TextInput, Button } from "@mantine/core";
+import { Card, Flex, Title, TextInput, Button, Text, Alert } from "@mantine/core";
 
 const Login = () => {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault();
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/home');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    const response = await apiRequest<{ message: string }>({
-      endpoint: "/login/",
-      method: "POST",
-      data: { email, password },
-    });
-
-    if (response.error) {
-      setError("Invalid email or password");
-    } else {
-      alert("Login successful!");
-      navigate("/home");
+    try {
+      await login(email, password);
+      // No need to navigate here - the useEffect will handle it
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Flex justify={"center"} align={"center"} h={"100vh"} direction={"column"}>
-      <Card p={50} bd={"2px solid gray.6"} radius={"lg"}>
-        <Card.Section>
-          <Title>Login</Title>
+    <Flex justify="center" align="center" h="100vh" direction="column">
+      <Card p={50} withBorder radius="lg" w={400}>
+        <Card.Section p="md">
+          <Title order={2}>Login</Title>
         </Card.Section>
 
-        <Card.Section mt={"lg"}>
-          <form onSubmit={handleLogin}>
+        <Card.Section p="md">
+          {error && (
+            <Alert color="red" mb="md">
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
             <TextInput
+              label="Email"
               variant="filled"
-              radius={"md"}
+              radius="md"
               type="email"
-              placeholder="Email"
+              placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
+              mb="sm"
             />
+
             <TextInput
-              mt={"xs"}
+              label="Password"
               variant="filled"
-              radius={"md"}
+              radius="md"
               type="password"
-              placeholder="Password"
+              placeholder="Your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
+              mb="md"
             />
-            {error && <p className="error">{error}</p>}
-            <Button color="secondary.5" mt={"md"} type="submit">
+
+            <Button
+              fullWidth
+              color="blue"
+              type="submit"
+              loading={isLoading}
+            >
               Login
             </Button>
           </form>
+        </Card.Section>
+
+        <Card.Section p="md" ta="center">
+          <Text size="sm">
+            Don't have an account?{' '}
+            <Link to="/signup" style={{ color: 'var(--mantine-color-blue-6)' }}>
+              Sign up here
+            </Link>
+          </Text>
         </Card.Section>
       </Card>
     </Flex>
