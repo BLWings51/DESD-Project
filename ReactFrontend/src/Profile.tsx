@@ -18,7 +18,6 @@ import {
 import { useForm } from "@mantine/form";
 import { IconEdit, IconTrash, IconCheck, IconX } from "@tabler/icons-react";
 import apiRequest from "./api/apiRequest";
-import CustomNavbar from "./Navbar";
 
 interface UserProfile {
     id?: string;
@@ -28,6 +27,7 @@ interface UserProfile {
     isAdmin?: boolean;
     isActive?: boolean;
     isStaff?: boolean;
+    pfp?: string;  // Add this
     [key: string]: any;
 }
 
@@ -38,15 +38,16 @@ const Profile = () => {
     const [editing, setEditing] = useState<boolean>(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
 
+    // In your form initialization:
     const form = useForm<UserProfile>({
         initialValues: {
-            name: '',
+            firstName: '',
+            lastName: '',
             email: '',
             bio: '',
-            isAdmin: false,
-            isStaff: false,
+            pfp: '../../UniHub/media/profile_pics/default.webp', // Set default here
         },
-    });
+    })
 
     // Fetch user profile
     const fetchUserProfile = async () => {
@@ -55,7 +56,7 @@ const Profile = () => {
 
         try {
             const response = await apiRequest<UserProfile>({
-                endpoint: "/profile/",
+                endpoint: "/Profile/",
                 method: "GET",
             });
 
@@ -63,24 +64,15 @@ const Profile = () => {
                 throw new Error(response.message);
             }
 
-            setUser(response.data || null);
             if (response.data) {
+                if (response.data.pfp === null) response.data.pfp = "../../UniHub/media/profile_pics/default.webp";
+
                 form.setValues(response.data);
             }
+
+            setUser(form.getValues());
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load profile");
-
-            // Simulated data for demo purposes
-            const demoData = {
-                id: "123",
-                name: "Luqmaan",
-                email: "luqmaan@example.com",
-                bio: `Part 7 is peak fiction!\n\n"I will devour that light and be the villain if I have to!!!"\n\nOUSEN IS THAT GUY!!!!!!`,
-                isAdmin: false,
-                isStaff: false,
-            };
-            setUser(demoData);
-            form.setValues(demoData);
         } finally {
             setLoading(false);
         }
@@ -96,13 +88,16 @@ const Profile = () => {
         setError(null);
 
         try {
-            const method = user?.id ? "PUT" : "POST";
-            const endpoint = user?.id ? `/profile/${user.id}` : "/profile/";
+            const method = "POST";
+            const endpoint = "/ProfileSettings/";
+
+            // Destructure to exclude pfp, then use the rest
+            const { pfp, ...dataToSend } = values;
 
             const response = await apiRequest<UserProfile>({
                 endpoint,
                 method,
-                data: values,
+                data: dataToSend,
             });
 
             if (response.error) {
@@ -150,7 +145,6 @@ const Profile = () => {
     if (loading && !user) {
         return (
             <>
-                <CustomNavbar />
                 <Flex justify="center" align="center" h="100vh">
                     <Loader size="xl" mt="xl" />
                 </Flex>
@@ -160,7 +154,6 @@ const Profile = () => {
 
     return (
         <>
-            <CustomNavbar />
             <Flex justify="center" align="center" direction="column" py="xl">
                 <Card p={30} shadow="md" radius="lg" w={400}>
                     <Group justify="space-between" mb="md">
@@ -194,9 +187,16 @@ const Profile = () => {
                     {editing ? (
                         <form onSubmit={form.onSubmit(handleSubmit)}>
                             <TextInput
-                                label="Name"
+                                label="First Name"
                                 placeholder="Your name"
-                                {...form.getInputProps('name')}
+                                {...form.getInputProps('firstName')}
+                                mb="sm"
+                            />
+
+                            <TextInput
+                                label="Last Name"
+                                placeholder="Your name"
+                                {...form.getInputProps('lastName')}
                                 mb="sm"
                             />
 
@@ -215,24 +215,18 @@ const Profile = () => {
                                 mb="sm"
                             />
 
-                            <Switch
+                            {/* <Switch
                                 label="Admin status"
                                 {...form.getInputProps('isAdmin', { type: 'checkbox' })}
                                 mb="sm"
-                            />
-
-                            <Switch
-                                label="Staff status"
-                                {...form.getInputProps('isStaff', { type: 'checkbox' })}
-                                mb="md"
-                            />
+                            /> */}
 
                             <Group justify="flex-end">
                                 <Button
                                     variant="default"
                                     onClick={() => {
                                         setEditing(false);
-                                        form.reset();
+                                        if (user) form.setValues(user);
                                     }}
                                     leftSection={<IconX size={16} />}
                                 >
@@ -249,9 +243,23 @@ const Profile = () => {
                         </form>
                     ) : user ? (
                         <Box>
+                            {/* Add profile picture at the top */}
+                            <Flex justify="center" mb="md">
+                                <img
+                                    src={user.pfp}
+                                    alt="Profile"
+                                    style={{
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        objectFit: 'cover'
+                                    }}
+                                />
+                            </Flex>
+
                             {Object.entries(user).map(([key, value]) => {
-                                // Skip id field from display
-                                if (key === 'id') return null;
+                                // Skip id and pfp fields from text display (we show pfp separately)
+                                if (key === 'id' || key === 'pfp') return null;
 
                                 return (
                                     <Text key={key} mt="xs">
@@ -262,6 +270,7 @@ const Profile = () => {
                                 );
                             })}
                         </Box>
+
                     ) : (
                         <Box>
                             <Text mb="md">No profile found. Would you like to create one?</Text>
