@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .serializer import SignupSerializer
 from .models import Account
+from .permissions import CustomIsAdminUser
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
@@ -62,7 +63,7 @@ class CustomRefreshTokenView(TokenRefreshView):
             account = authenticate(request, username=email, password=password)
 
             if not account:
-                return Response({"message": "Invalid email or password"}, status=400)
+                return Response({"message": "Account no longer exists"}, status=400)
             refresh_token = request.COOKIES.get('refresh_token')
             request_data = request.data.copy()
             request_data['refresh'] = refresh_token
@@ -110,16 +111,8 @@ def is_authenticated(request):
     return Response({'authenticated':True})
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def SignupView(request):
-    email = request.data.get('email')
-    if Account.objects.filter(email=email).exists():
-        return Response({"error": "Email is already in use"}, status=400)
-    serializer = SignupSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.data)
-
+@permission_classes([CustomIsAdminUser])
+def is_admin(request):
+    return Response({"admin":True})
 
 
