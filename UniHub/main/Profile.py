@@ -51,6 +51,7 @@ def UpdateProfileView(request):
 
 
 # Displaying profile details
+# Serializer
 class GetAccountSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
 
@@ -71,8 +72,7 @@ class GetAccountSerializer(serializers.ModelSerializer):
         return is_owner
         
 
-
-#getting account details to show on page
+# Views
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def getAccountDetails(request, account_name):
