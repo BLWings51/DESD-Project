@@ -75,8 +75,8 @@ const SignUp = () => {
                 <Card.Section mt={"md"}>
                     <Text>
                         Already have an account?{' '}
-                        <Link to="/login" style={{ color: 'blue', textDecoration: 'underline' }}>
-                            Sign up here
+                        <Link to="/" style={{ color: 'blue', textDecoration: 'underline' }}>
+                            Login here
                         </Link>
                     </Text>
                 </Card.Section>

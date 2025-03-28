@@ -21,13 +21,13 @@ import apiRequest from "./api/apiRequest";
 
 interface UserProfile {
     id?: string;
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
     bio?: string;
-    isAdmin?: boolean;
-    isActive?: boolean;
-    isStaff?: boolean;
-    pfp?: string;  // Add this
+    pfp?: string;
+    societies?: Array<string>;
+    events?: Array<string>;
     [key: string]: any;
 }
 
@@ -45,7 +45,7 @@ const Profile = () => {
             lastName: '',
             email: '',
             bio: '',
-            pfp: '../../UniHub/media/profile_pics/default.webp', // Set default here
+            pfp: '../../UniHub/media/profile_pics/default.webp',
         },
     })
 
@@ -66,6 +66,7 @@ const Profile = () => {
 
             if (response.data) {
                 if (response.data.pfp === null) response.data.pfp = "../../UniHub/media/profile_pics/default.webp";
+                response.data.societies = ["Anime society", "Football society"];
 
                 form.setValues(response.data);
             }
