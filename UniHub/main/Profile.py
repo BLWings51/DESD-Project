@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from .models import Account, SocietyRelation, Society
+from .models import Account, SocietyRelation, Society, Event#, EventRelation
 from rest_framework import serializers
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
@@ -63,21 +63,31 @@ class SocietyRelationSerializer(serializers.ModelSerializer):
         model = SocietyRelation
         fields = ['society']
 
+# Displaying the Events the person is apart of
+# Serializers
+class GetEventSerializer(serializers.ModelSerializer):
+     class Meta:
+        model = Event
+        fields = ['name']
+        
+class EventRelationSerializer(serializers.ModelSerializer):
+    society = GetSocietySerializer(read_only=True)
+
+    class Meta:
+        #model = EventRelation
+        fields = ['event']        
+        
+
 # Displaying profile details
 # Serializer
 class GetAccountSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
-
-    societies = SocietyRelationSerializer(
-        many=True, 
-        # Getting the names of societies from the account in society relations
-        source='societyrelation_set',
-        read_only=True
-    )
+    societies = serializers.SerializerMethodField()
+    events = serializers.SerializerMethodField()
     
     class Meta:
         model=Account
-        fields = ['bio', "studentID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies"]
+        fields = ['bio', "studentID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies", "events"]
 
     def getAccountDetails(self, account):
         accountDetails = {'bio':account.bio, 'studentID':account.studentID, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
@@ -91,7 +101,11 @@ class GetAccountSerializer(serializers.ModelSerializer):
                 is_owner = True
         return is_owner
         
-        
+    def get_societies(self, account):
+        return [relation.society.name for relation in account.societyrelation_set.all()]
+    
+    def get_events(self, account):
+        return [relation.event.name for relation in account.eventrelation_set.all()]
 
 # Views
 @api_view(['GET'])

@@ -24,8 +24,8 @@ class AccountManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class Account(AbstractBaseUser, PermissionsMixin):
-    studentID = models.IntegerField(unique=True)
     email = models.EmailField(unique=True)
+    studentID = models.IntegerField(unique=True)
     firstName = models.CharField(max_length=500)
     lastName = models.CharField(max_length=500)
     pfp = models.ImageField(max_length=500, upload_to="profile_pics", default="default.webp")
