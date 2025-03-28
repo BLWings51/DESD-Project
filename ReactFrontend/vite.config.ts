@@ -17,3 +17,7 @@ export default defineConfig({
     host: true, // Listen on all network interfaces
   },
 });
+
+// export default defineConfig({
+//   plugins: [react()],
+// });

@@ -8,7 +8,6 @@ import {
     Alert,
     TextInput,
     Textarea,
-    Switch,
     Button,
     Modal,
     Group,
@@ -18,16 +17,18 @@ import {
 import { useForm } from "@mantine/form";
 import { IconEdit, IconTrash, IconCheck, IconX } from "@tabler/icons-react";
 import apiRequest from "./api/apiRequest";
+import { Link } from "react-router-dom";
 
 interface UserProfile {
     id?: string;
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
     bio?: string;
     isAdmin?: boolean;
     isActive?: boolean;
     isStaff?: boolean;
-    pfp?: string;  // Add this
+    pfp?: string;
     [key: string]: any;
 }
 
@@ -38,18 +39,16 @@ const Profile = () => {
     const [editing, setEditing] = useState<boolean>(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
 
-    // In your form initialization:
     const form = useForm<UserProfile>({
         initialValues: {
             firstName: '',
             lastName: '',
             email: '',
             bio: '',
-            pfp: '../../UniHub/media/profile_pics/default.webp', // Set default here
+            pfp: '../../UniHub/media/profile_pics/default.webp',
         },
     })
 
-    // Fetch user profile
     const fetchUserProfile = async () => {
         setLoading(true);
         setError(null);
@@ -66,7 +65,6 @@ const Profile = () => {
 
             if (response.data) {
                 if (response.data.pfp === null) response.data.pfp = "../../UniHub/media/profile_pics/default.webp";
-
                 form.setValues(response.data);
             }
 
@@ -82,7 +80,6 @@ const Profile = () => {
         fetchUserProfile();
     }, []);
 
-    // Create or Update profile
     const handleSubmit = async (values: UserProfile) => {
         setLoading(true);
         setError(null);
@@ -91,7 +88,6 @@ const Profile = () => {
             const method = "POST";
             const endpoint = "/ProfileSettings/";
 
-            // Destructure to exclude pfp, then use the rest
             const { pfp, ...dataToSend } = values;
 
             const response = await apiRequest<UserProfile>({
@@ -113,7 +109,6 @@ const Profile = () => {
         }
     };
 
-    // Delete profile
     const handleDelete = async () => {
         setLoading(true);
         setError(null);
@@ -144,53 +139,54 @@ const Profile = () => {
 
     if (loading && !user) {
         return (
-            <>
-                <Flex justify="center" align="center" h="100vh">
-                    <Loader size="xl" mt="xl" />
-                </Flex>
-            </>
+            <Flex justify="center" align="center" h="100vh">
+                <Loader size="xl" mt="xl" />
+            </Flex>
         );
     }
 
     return (
-        <>
-            <Flex justify="center" align="center" direction="column" py="xl">
-                <Card p={30} shadow="md" radius="lg" w={400}>
-                    <Group justify="space-between" mb="md">
-                        <Title order={2}>Profile</Title>
-                        {!editing && user ? (
-                            <Group gap="xs">
-                                <ActionIcon
-                                    color="blue"
-                                    onClick={() => setEditing(true)}
-                                    title="Edit profile"
-                                >
-                                    <IconEdit size={18} />
-                                </ActionIcon>
-                                <ActionIcon
-                                    color="red"
-                                    onClick={() => setDeleteModalOpen(true)}
-                                    title="Delete profile"
-                                >
-                                    <IconTrash size={18} />
-                                </ActionIcon>
-                            </Group>
-                        ) : null}
-                    </Group>
+        <Flex justify={"center"} align={"center"} h={"90vh"} direction={"column"}>
+            <Card w={550} p={50} radius={"lg"} style={{ backgroundColor: 'var(--mantine-color-primary-6)' }}>
+                <Card.Section style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    <Title style={{ color: 'var(--mantine-color-secondary-1)', fontSize: "32px" }}>Profile</Title>
+                </Card.Section>
 
-                    {error && (
-                        <Alert color="red" mb="md">
-                            {error}
-                        </Alert>
-                    )}
+                {error && (
+                    <Alert color="red" mb="md">
+                        {error}
+                    </Alert>
+                )}
 
+                <Card.Section p="md">
                     {editing ? (
                         <form onSubmit={form.onSubmit(handleSubmit)}>
+                            <Flex justify="center" mb="md">
+                                <img
+                                    src={form.values.pfp}
+                                    alt="Profile"
+                                    style={{
+                                        width: 100,
+                                        height: 100,
+                                        borderRadius: '50%',
+                                        objectFit: 'cover'
+                                    }}
+                                />
+                            </Flex>
+
                             <TextInput
                                 label="First Name"
                                 placeholder="Your name"
                                 {...form.getInputProps('firstName')}
                                 mb="sm"
+                                styles={{
+                                    input: {
+                                        backgroundColor: 'var(--mantine-color-primary-8)',
+                                        border: "2px solid rgb(255, 255, 255)",
+                                        padding: "16px",
+                                        fontSize: "16px",
+                                    },
+                                }}
                             />
 
                             <TextInput
@@ -198,6 +194,14 @@ const Profile = () => {
                                 placeholder="Your name"
                                 {...form.getInputProps('lastName')}
                                 mb="sm"
+                                styles={{
+                                    input: {
+                                        backgroundColor: 'var(--mantine-color-primary-8)',
+                                        border: "2px solid rgb(255, 255, 255)",
+                                        padding: "16px",
+                                        fontSize: "16px",
+                                    },
+                                }}
                             />
 
                             <TextInput
@@ -205,6 +209,14 @@ const Profile = () => {
                                 placeholder="your@email.com"
                                 {...form.getInputProps('email')}
                                 mb="sm"
+                                styles={{
+                                    input: {
+                                        backgroundColor: 'var(--mantine-color-primary-8)',
+                                        border: "2px solid rgb(255, 255, 255)",
+                                        padding: "16px",
+                                        fontSize: "16px",
+                                    },
+                                }}
                             />
 
                             <Textarea
@@ -213,15 +225,17 @@ const Profile = () => {
                                 {...form.getInputProps('bio')}
                                 minRows={4}
                                 mb="sm"
+                                styles={{
+                                    input: {
+                                        backgroundColor: 'var(--mantine-color-primary-8)',
+                                        border: "2px solid rgb(255, 255, 255)",
+                                        padding: "16px",
+                                        fontSize: "16px",
+                                    },
+                                }}
                             />
 
-                            {/* <Switch
-                                label="Admin status"
-                                {...form.getInputProps('isAdmin', { type: 'checkbox' })}
-                                mb="sm"
-                            /> */}
-
-                            <Group justify="flex-end">
+                            <Group justify="flex-end" mt="xl">
                                 <Button
                                     variant="default"
                                     onClick={() => {
@@ -236,6 +250,7 @@ const Profile = () => {
                                     type="submit"
                                     loading={loading}
                                     leftSection={<IconCheck size={16} />}
+                                    color="tertiary.8"
                                 >
                                     Save
                                 </Button>
@@ -243,44 +258,73 @@ const Profile = () => {
                         </form>
                     ) : user ? (
                         <Box>
-                            {/* Add profile picture at the top */}
                             <Flex justify="center" mb="md">
                                 <img
                                     src={user.pfp}
                                     alt="Profile"
                                     style={{
-                                        width: 100,
-                                        height: 100,
+                                        width: 150,
+                                        height: 150,
                                         borderRadius: '50%',
-                                        objectFit: 'cover'
+                                        objectFit: 'cover',
+                                        border: "4px solid var(--mantine-color-secondary-1)"
                                     }}
                                 />
                             </Flex>
 
-                            {Object.entries(user).map(([key, value]) => {
-                                // Skip id and pfp fields from text display (we show pfp separately)
-                                if (key === 'id' || key === 'pfp') return null;
-
-                                return (
-                                    <Text key={key} mt="xs">
-                                        <strong>{key}:</strong> {typeof value === "boolean" ?
-                                            (value ? "Yes" : "No") :
-                                            value}
+                            {/* Display user info without labels */}
+                            <Flex direction="column" gap="sm" align="center">
+                                <Text size="xl" style={{ color: 'white', fontWeight: 'bold' }}>
+                                    {user.firstName} {user.lastName}
+                                </Text>
+                                <Text style={{ color: 'white' }}>{user.email}</Text>
+                                {user.bio && (
+                                    <Text style={{ 
+                                        color: 'white', 
+                                        textAlign: 'center',
+                                        maxWidth: '80%',
+                                        marginTop: '1rem'
+                                    }}>
+                                        {user.bio}
                                     </Text>
-                                );
-                            })}
-                        </Box>
+                                )}
+                            </Flex>
 
+                            <Group justify="flex-end" mt="xl">
+                                <ActionIcon
+                                    color="var(--mantine-color-secondary-1)"
+                                    onClick={() => setEditing(true)}
+                                    title="Edit profile"
+                                    size="lg"
+                                >
+                                    <IconEdit size={24} />
+                                </ActionIcon>
+                                <ActionIcon
+                                    color="red"
+                                    onClick={() => setDeleteModalOpen(true)}
+                                    title="Delete profile"
+                                    size="lg"
+                                >
+                                    <IconTrash size={24} />
+                                </ActionIcon>
+                            </Group>
+                        </Box>
                     ) : (
                         <Box>
-                            <Text mb="md">No profile found. Would you like to create one?</Text>
-                            <Button onClick={() => setEditing(true)}>
+                            <Text mb="md" style={{ color: 'white' }}>
+                                No profile found. Would you like to create one?
+                            </Text>
+                            <Button 
+                                onClick={() => setEditing(true)}
+                                color="tertiary.8"
+                                fullWidth
+                            >
                                 Create Profile
                             </Button>
                         </Box>
                     )}
-                </Card>
-            </Flex>
+                </Card.Section>
+            </Card>
 
             {/* Delete confirmation modal */}
             <Modal
@@ -288,10 +332,19 @@ const Profile = () => {
                 onClose={() => setDeleteModalOpen(false)}
                 title="Delete Profile"
                 centered
+                styles={{
+                    title: { color: 'var(--mantine-color-secondary-1)' },
+                    content: { backgroundColor: 'var(--mantine-color-primary-6)' }
+                }}
             >
-                <Text>Are you sure you want to delete your profile? This action cannot be undone.</Text>
+                <Text style={{ color: 'white' }}>
+                    Are you sure you want to delete your profile? This action cannot be undone.
+                </Text>
                 <Group mt="xl" justify="flex-end">
-                    <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+                    <Button 
+                        variant="default" 
+                        onClick={() => setDeleteModalOpen(false)}
+                    >
                         Cancel
                     </Button>
                     <Button
@@ -303,7 +356,7 @@ const Profile = () => {
                     </Button>
                 </Group>
             </Modal>
-        </>
+        </Flex>
     );
 };
 

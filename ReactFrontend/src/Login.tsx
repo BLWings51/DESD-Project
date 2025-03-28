@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import "./App.css";
 import { Card, Flex, Title, TextInput, Button, Text, Alert } from "@mantine/core";
 
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,11 +37,16 @@ const Login = () => {
   };
 
   return (
-    <Flex justify="center" align="center" h="100vh" direction="column">
-      <Card p={50} withBorder radius="lg" w={400}>
-        <Card.Section p="md">
-          <Title order={2}>Login</Title>
-        </Card.Section>
+
+    <>
+
+      <Flex justify={"center"} align={"center"} h={"90vh"} direction={"column"}>
+      <Card w={550} h={400} p={50} bd={"2px solid gray.6"} radius={"lg"} style={{ backgroundColor: 'var(--mantine-color-primary-6)' }}>
+        
+        
+      <Card.Section style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <Title style={{ color: 'var(--mantine-color-secondary-1)', fontSize: "32px" }}>Login</Title>
+      </Card.Section>
 
         <Card.Section p="md">
           {error && (
@@ -50,40 +56,62 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <TextInput
-              label="Email"
-              variant="filled"
-              radius="md"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="username"
-              mb="sm"
+          <TextInput
+
+          mb="xl" // Adds margin-bottom to create space
+          mt = "lg"
+          variant="filled"
+          radius={"md"}
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+
+
+          styles={{
+            input: {
+              
+              backgroundColor: 'var(--mantine-color-primary-8)', // Background color
+              border: "2px solid rgb(255, 255, 255)", // Border color
+              padding: "24px", // Padding inside input box
+              fontSize: "16px", // Font size
+            },
+          }}
+
+          />
+
+          <TextInput
+
+            mb="xl" // Adds margin-bottom to create space
+            mt = "xl"
+            variant="filled"
+            radius={"md"}
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+
+
+            styles={{
+              input: {
+                backgroundColor: 'var(--mantine-color-primary-8)', // Background color
+                border: "2px solid rgb(255, 255, 255)", // Border color
+                padding: "24px", // Padding inside input box
+                fontSize: "16px", // Font size
+              },
+            }}
             />
 
-            <TextInput
-              label="Password"
-              variant="filled"
-              radius="md"
-              type="password"
-              placeholder="Your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              mb="md"
-            />
-
+          <Card.Section style={{ textAlign: "center" }}>
             <Button
-              fullWidth
-              color="blue"
+              color= "tertiary.8"
               type="submit"
               loading={isLoading}
             >
               Login
             </Button>
+
+            </Card.Section>
           </form>
         </Card.Section>
 
@@ -97,6 +125,10 @@ const Login = () => {
         </Card.Section>
       </Card>
     </Flex>
+
+
+    </>
+
   );
 };
 
