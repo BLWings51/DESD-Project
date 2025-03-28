@@ -14,5 +14,6 @@ urlpatterns = [
     path('society/', society.SocietyListCreateView.as_view(), name='society-list-create'),
     path('Societies/<int:pk>/', society.SocietyDetailView.as_view(), name='society-detail'),
     path('Profile/<str:account_name>/', Profile.getAccountDetails),
-    path('Societies/<str:society_name>/CreateEvent', Events.CreateEvent)
+    path('Societies/<str:society_name>/CreateEvent/', Events.CreateEvent),
+    path('Societies/<str:society_name>/Events/', Events.getAllEvents)
 ]

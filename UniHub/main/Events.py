@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from rest_framework import serializers
-from .models import Event, Society
+from .models import Event, Society, SocietyRelation
 
 # creating an event
 @api_view(['POST'])
@@ -37,3 +37,25 @@ class CreateEventSerializer(serializers.ModelSerializer):
         event = Event(society=society, name=validated_data['name'], details=validated_data['details'], startTime=validated_data['startTime'], endTime=validated_data['endTime'], location=validated_data['location'])
         event.save()
         return event
+    
+
+# retreiving data for every event within a society
+class GetAllEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Event
+        fields = ['name', 'details', 'startTime', 'endTime', 'location']
+
+        
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getAllEvents(request, society_name):
+    society = get_object_or_404(Society, name=society_name)
+    events = Event.objects.filter(society=society)
+    serializer = GetAllEventSerializer(events, many=True)
+    return Response(serializer.data)
+
+# deleting an event
+class DeleteEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        

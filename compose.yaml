@@ -9,7 +9,8 @@ services:
       - DEBUG=1
       - SQLITE_PATH=/app/db.sqlite3  # Path within the container
     volumes:
-      - sqlite_data:/app  # Mount volume at /app
+      #- sqlite_data:/app  # Mount volume at /app
+      - ./UniHub:/app
 
   frontend:
     build: ./ReactFrontend
