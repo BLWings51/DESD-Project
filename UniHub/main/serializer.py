@@ -25,8 +25,12 @@ class SignupSerializer(serializers.ModelSerializer):
 #         account._state(validated_data['adminStatus'])
 #         account.save()
 #         return account
-
+    
 class SocietySerializer(serializers.ModelSerializer):
     class Meta:
         model = Society
-        fields = '__all__'  # This includes all fields
+        fields = ['name', 'numOfInterestedPeople', 'description']
+
+    def create(self, validated_data):
+        society = Society.objects.create(**validated_data)
+        return society
