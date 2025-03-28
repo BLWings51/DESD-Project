@@ -8,11 +8,11 @@ urlpatterns = [
     path('logout/', views.logout),
     path('authenticated/', views.is_authenticated),
     path('signup/', signup.SignupView),
-    path('ProfileSettings/', Profile.UpdateProfileView),
+    path('Profile/Settings/', Profile.UpdateProfileView),
     path('admin_check/', views.is_admin),
     path('Profile/', Profile.getAccountDetails),
     path('society/', society.SocietyListCreateView.as_view(), name='society-list-create'),
     path('Societies/<int:pk>/', society.SocietyDetailView.as_view(), name='society-detail'),
-    path('Profile/<str:account_name>/', Profile.getAccountDetails),
+    path('Profile/<str:account_ID>/', Profile.getAccountDetails),
     path('Societies/<str:society_name>/CreateEvent', Events.CreateEvent)
 ]
