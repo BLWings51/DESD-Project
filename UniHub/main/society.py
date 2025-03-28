@@ -1,6 +1,6 @@
 from rest_framework import generics
 from .models import Society
-from .serializer import SocietySerializer, serializers
+from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
@@ -15,6 +15,21 @@ def society_create(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class SocietySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Society
+        fields = ['name', 'numOfInterestedPeople', 'description']
+
+    def create(self, validated_data):
+        society = Society.objects.create(**validated_data)
+        society.save()
+        return society
+    
+    def validate_name(self, value):
+        if Society.objects.filter(name=value).exists():
+            raise serializers.ValidationError("Society with this name already exists.")
+        return value
     
 # List all societies or create a new one
 class SocietyListCreateView(generics.ListCreateAPIView):

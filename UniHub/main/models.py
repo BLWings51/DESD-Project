@@ -73,3 +73,7 @@ class Event(models.Model):
     endTime = models.DateTimeField()
     location = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
+
+class EventRelation(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE)
