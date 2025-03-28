@@ -11,6 +11,10 @@ urlpatterns = [
     path('ProfileSettings/', Profile.UpdateProfileView),
     path('admin_check/', views.is_admin),
     path('Profile/', Profile.getAccountDetails),
-    path('society/', society.SocietyListCreateView.as_view(), name='society-list-create'),
-    path('society/<int:pk>/', society.SocietyDetailView.as_view(), name='society-detail')
+    path('Societies/CreateSociety', society.society_create, name='society-list-create'),
+    path('Societies/<str:society_name>/', society.getSocietyDetails, name='society-detail'),
+    path('Societies/<str:society_name>/UpdateSociety/', society.UpdateSocietyView, name="update-society"),
+    path('Societies/<str:society_name>/DeleteSociety/', society.DeleteSocietyView, name="delete-society"),
+    path('Societies/<str:society_name>/join/', society.join_society, name='join-society'),
+    path('Societies/<str:society_name>/leave/', society.leave_society, name='leave-society'),
 ]
