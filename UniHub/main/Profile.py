@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from .models import Account, SocietyRelation, Society, Event#, EventRelation
+from .models import Account, SocietyRelation, Society, Event, EventRelation
 from rest_framework import serializers
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
@@ -73,7 +73,7 @@ class EventRelationSerializer(serializers.ModelSerializer):
     society = GetSocietySerializer(read_only=True)
 
     class Meta:
-        #model = EventRelation
+        model = EventRelation
         fields = ['event']        
         
 
@@ -82,11 +82,11 @@ class EventRelationSerializer(serializers.ModelSerializer):
 class GetAccountSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
     societies = serializers.SerializerMethodField()
-    #events = serializers.SerializerMethodField()
+    events = serializers.SerializerMethodField()
     
     class Meta:
         model=Account
-        fields = ['bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies"]
+        fields = ['bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies", "events"]
 
     def getAccountDetails(self, account):
         accountDetails = {'bio':account.bio, 'accountID':account.accountID, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
@@ -103,8 +103,8 @@ class GetAccountSerializer(serializers.ModelSerializer):
     def get_societies(self, account):
         return [relation.society.name for relation in account.societyrelation_set.all()]
     
-    #def get_events(self, account):
-     #   return [relation.event.name for relation in account.eventrelation_set.all()]
+    def get_events(self, account):
+        return [relation.event.name for relation in account.eventrelation_set.all()]
 
 # Views
 @api_view(['GET'])

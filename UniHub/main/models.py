@@ -39,7 +39,6 @@ class Account(AbstractBaseUser, PermissionsMixin):
 
     objects = AccountManager()
 
-    # ✅ Fix: Prevent field clashes by adding `related_name`
     groups = models.ManyToManyField(
         "auth.Group",
         related_name="account_users",
@@ -52,11 +51,11 @@ class Account(AbstractBaseUser, PermissionsMixin):
     )
 
     def __str__(self):
-        return self.email
+        return self.accountID
 
     
 class Society(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, unique=True)
     numOfInterestedPeople = models.IntegerField(default=0)
     description = models.CharField(max_length=2000)
 
