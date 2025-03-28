@@ -1,21 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from './authContext';
+import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest"; // Ensure `apiRequest.ts` uses `credentials: "include"`
 import "./App.css";
-import { Card, Flex, Title, TextInput, Button } from "@mantine/core";
+import { Card, Flex, Title, TextInput, Button, Text } from "@mantine/core";
 
 const SignUp = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
+
+    const { login, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/home');
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleSignUp = async (event: React.FormEvent) => {
         event.preventDefault();
         setError(null);
 
         const response = await apiRequest<{ message: string }>({
-            endpoint: "/signup/", // Ensure this matches your Django backend route
+            endpoint: "/signup/",
             method: "POST",
             data: { email, password },
         });
@@ -23,8 +33,8 @@ const SignUp = () => {
         if (response.error) {
             setError(response.message || "Signup failed. Please try again.");
         } else {
-            alert("Signup successful! Redirecting...");
-            navigate("/home");
+            login(email, password);
+
         }
     };
 
@@ -61,6 +71,14 @@ const SignUp = () => {
                             Sign Up
                         </Button>
                     </form>
+                </Card.Section>
+                <Card.Section mt={"md"}>
+                    <Text>
+                        Already have an account?{' '}
+                        <Link to="/" style={{ color: 'blue', textDecoration: 'underline' }}>
+                            Login here
+                        </Link>
+                    </Text>
                 </Card.Section>
             </Card>
         </Flex>
