@@ -1,11 +1,9 @@
 import "./App.css";
 import { Stack, Group, Grid, Center } from '@mantine/core';
-import CustomNavbar from "./Navbar"
 
 const Home: React.FC = () => {
   return (
     <>
-      <CustomNavbar />
       <Group justify="center" align="center">
 
         <Stack align="center">

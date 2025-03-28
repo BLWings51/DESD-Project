@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'main',
 ]
 
@@ -74,9 +75,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': (
     'main.authentication.CookiesJWTAuthentication',
+    #'rest_framework.authentication.TokenAuthentication',
 ),
 'DEFAULT_PERMISSION_CLASSES': (
-    'rest_framework.permissions.IsAuthenticated'
+    'rest_framework.permissions.IsAuthenticated',
+    #'rest_framework_simplejwt.authentication.JWTAuthentication'
 )}
 
 ROOT_URLCONF = 'UniHub.urls'

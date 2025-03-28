@@ -2,7 +2,6 @@ from rest_framework.generics import get_object_or_404
 
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -79,4 +78,3 @@ def getAccountDetails(request, account_name):
     account = get_object_or_404(Account, email=account_name)
     serializer = GetAccountSerializer(account, context={'request': request})
     return Response(serializer.data)
-
