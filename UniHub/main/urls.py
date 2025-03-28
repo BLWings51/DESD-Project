@@ -10,7 +10,7 @@ urlpatterns = [
     path('signup/', signup.SignupView),
     path('Profile/Settings/', Profile.UpdateProfileView),
     path('admin_check/', views.is_admin),
-    path('Profile/<str:account_name>/', Profile.getAccountDetails),
-    path('Societies/<str:society_name>/CreateEvent', Events.CreateEvent)
+    path('Profile/<str:account_ID>/', Profile.getAccountDetails),
+    path('Societies/<str:society_name>/CreateEvent/', Events.CreateEvent)
 ]
 

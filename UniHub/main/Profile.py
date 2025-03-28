@@ -83,35 +83,35 @@ class EventRelationSerializer(serializers.ModelSerializer):
 class GetAccountSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
     societies = serializers.SerializerMethodField()
-    events = serializers.SerializerMethodField()
+    #events = serializers.SerializerMethodField()
     
     class Meta:
         model=Account
-        fields = ['bio', "studentID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies", "events"]
+        fields = ['bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies"]
 
     def getAccountDetails(self, account):
-        accountDetails = {'bio':account.bio, 'studentID':account.studentID, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
+        accountDetails = {'bio':account.bio, 'accountID':account.accountID, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
         return accountDetails
     
     def get_is_owner(self, account):
         request = self.context.get('request')
         is_owner = False
         if request.user.is_authenticated:
-            if account.email == request.user.email:
+            if account.accountID == request.user.accountID:
                 is_owner = True
         return is_owner
         
     def get_societies(self, account):
         return [relation.society.name for relation in account.societyrelation_set.all()]
     
-    def get_events(self, account):
-        return [relation.event.name for relation in account.eventrelation_set.all()]
+    #def get_events(self, account):
+     #   return [relation.event.name for relation in account.eventrelation_set.all()]
 
 # Views
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def getAccountDetails(request, account_name):
-    account = get_object_or_404(Account, studentID=account_name)
+def getAccountDetails(request, account_ID):
+    account = get_object_or_404(Account, accountID=account_ID)
     serializer = GetAccountSerializer(account, context={'request': request})
     return Response(serializer.data)
 

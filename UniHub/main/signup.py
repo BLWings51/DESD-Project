@@ -19,8 +19,8 @@ def SignupView(request):
     if Account.objects.filter(email=email).exists():
         return Response({"error": "Email is already in use"}, status=400)
     
-    studentID = request.data.get('studentID')
-    if Account.objects.filter(studentID=studentID).exists():
+    accountID = request.data.get('accountID')
+    if Account.objects.filter(accountID=accountID).exists():
         return Response({"error": "Student ID is already in use"}, status=400)
     
     serializer = SignupSerializer(data=request.data)
@@ -33,11 +33,11 @@ def SignupView(request):
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
         model=Account
-        fields = ['studentID', 'email', 'firstName', 'lastName', 'password']
+        fields = ['accountID', 'email', 'firstName', 'lastName', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        account = Account(studentID=validated_data["studentID"], email=validated_data['email'], firstName=validated_data["firstName"], lastName=validated_data["lastName"])
+        account = Account(accountID=validated_data["accountID"], email=validated_data['email'], firstName=validated_data["firstName"], lastName=validated_data["lastName"])
         account.set_password(validated_data['password'])
         account.save()
         return account
