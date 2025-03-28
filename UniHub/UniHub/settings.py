@@ -71,11 +71,11 @@ CORS_ALLOW_HEADERS = ["Authorization", "Content-Type"]
 
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': (
     'main.authentication.CookiesJWTAuthentication',
-    'rest_framework.authentication.TokenAuthentication',
+    #'rest_framework.authentication.TokenAuthentication',
 ),
 'DEFAULT_PERMISSION_CLASSES': (
     'rest_framework.permissions.IsAuthenticated',
-    'rest_framework_simplejwt.authentication.JWTAuthentication'
+    #'rest_framework_simplejwt.authentication.JWTAuthentication'
 )}
 
 ROOT_URLCONF = 'UniHub.urls'
