@@ -113,4 +113,3 @@ def is_authenticated(request):
 def is_admin(request):
     return Response({"admin":True})
 
-

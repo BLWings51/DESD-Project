@@ -1,71 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from './authContext';
+import { Link } from 'react-router-dom';
 import { useNavigate } from "react-router-dom";
-import apiRequest, { saveTokensToLocalStorage } from "./api/auth";
+import apiRequest from "./api/apiRequest"; // Ensure `apiRequest.ts` uses `credentials: "include"`
 import "./App.css";
-import { Card, Flex, Title, TextInput, Button } from '@mantine/core';
+import { Card, Flex, Title, TextInput, Button, Text } from "@mantine/core";
 
-interface SignUpResponse {
-    access: string; // Access token
-    refresh: string; // Refresh token
-}
-
-async function signUpUser(email: string, password: string): Promise<SignUpResponse | null> {
-    const response = await apiRequest<SignUpResponse>({
-        endpoint: "/signup/", // Update this endpoint to match your backend
-        method: "POST",
-        data: { email, password },
-    });
-
-    if (response.error || !response.data) {
-        console.error("Signup failed:", response.message);
-        throw new Error(response.message || "Signup failed");
-    }
-
-    console.log("Signup successful, tokens received:", response.data);
-    return response.data; // Return both tokens
-}
-
-interface SignUpProps {
-    setAuth: (authToken: string) => void;
-    setRefresh: (refreshToken: string) => void;
-}
-
-const SignUp: React.FC<SignUpProps> = ({ setAuth, setRefresh }) => {
+const SignUp = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
+
+    const { login, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/home');
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleSignUp = async (event: React.FormEvent) => {
         event.preventDefault();
         setError(null);
 
-        try {
-            const response = await signUpUser(email, password);
+        const response = await apiRequest<{ message: string }>({
+            endpoint: "/signup/",
+            method: "POST",
+            data: { email, password },
+        });
 
-            if (!response) {
-                setError("Signup failed. Please try again.");
-            } else {
-                // Save tokens to local storage using the utility function
-                saveTokensToLocalStorage(response.access, response.refresh);
+        if (response.error) {
+            setError(response.message || "Signup failed. Please try again.");
+        } else {
+            login(email, password);
 
-                console.log("Access Token:", response.access); // Debugging line
-                console.log("Refresh Token:", response.refresh); // Debugging line
-
-                // Update state with tokens
-                setAuth(response.access);
-                setRefresh(response.refresh);
-
-                alert("Signup successful!");
-                navigate("/home");
-            }
-        } catch (error) {
-            if (error instanceof Error) {
-                setError(error.message); // Show precise error message
-            } else {
-                setError("An unexpected error occurred.");
-            }
-            console.error("Signup error:", error);
         }
     };
 
@@ -98,8 +67,18 @@ const SignUp: React.FC<SignUpProps> = ({ setAuth, setRefresh }) => {
                             required
                         />
                         {error && <p className="error">{error}</p>}
-                        <Button color="secondary.5" mt={"md"} type="submit">Sign Up</Button>
+                        <Button color="secondary.5" mt={"md"} type="submit">
+                            Sign Up
+                        </Button>
                     </form>
+                </Card.Section>
+                <Card.Section mt={"md"}>
+                    <Text>
+                        Already have an account?{' '}
+                        <Link to="/login" style={{ color: 'blue', textDecoration: 'underline' }}>
+                            Sign up here
+                        </Link>
+                    </Text>
                 </Card.Section>
             </Card>
         </Flex>
