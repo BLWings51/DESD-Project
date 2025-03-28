@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'main',
 ]
 
@@ -74,9 +75,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': (
     'main.authentication.CookiesJWTAuthentication',
+    #'rest_framework.authentication.TokenAuthentication',
 ),
 'DEFAULT_PERMISSION_CLASSES': (
-    'rest_framework.permissions.IsAuthenticated'
+    'rest_framework.permissions.IsAuthenticated',
+    #'rest_framework_simplejwt.authentication.JWTAuthentication'
 )}
 
 ROOT_URLCONF = 'UniHub.urls'
@@ -154,3 +157,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import os
+
+# Removing the need to install pillow only if the environment variable is set
+if os.environ.get("DISABLE_PILLOW_CHECK"):
+    SILENCED_SYSTEM_CHECKS = ['fields.E210']

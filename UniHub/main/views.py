@@ -8,20 +8,19 @@ from rest_framework.response import Response
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializer import SignupSerializer
 from .models import Account
 from .permissions import CustomIsAdminUser
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         try:
-            email = request.data.get('email')
+            accountID = request.data.get('accountID')
             password = request.data.get('password')
 
-            account = authenticate(request, username=email, password=password)
+            account = authenticate(request, username=accountID, password=password)
 
             if not account:
-                return Response({"message": "Invalid email or password"}, status=400)
+                return Response({"message": "Invalid accountID or password"}, status=400)
             
             response = super().post(request, *args, **kwargs)
             tokens = response.data
@@ -57,10 +56,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomRefreshTokenView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
-            email = request.data.get('email')
+            accountID = request.data.get('accountID')
             password = request.data.get('password')
 
-            account = authenticate(request, username=email, password=password)
+            account = authenticate(request, username=accountID, password=password)
 
             if not account:
                 return Response({"message": "Account no longer exists"}, status=400)
@@ -114,5 +113,4 @@ def is_authenticated(request):
 @permission_classes([CustomIsAdminUser])
 def is_admin(request):
     return Response({"admin":True})
-
 
