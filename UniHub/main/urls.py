@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.urls import path
-from main import signup, views, Profile, society
+from main import signup, views, Profile, society, Events
 
 urlpatterns = [
     path('login/', views.CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
@@ -12,5 +12,7 @@ urlpatterns = [
     path('admin_check/', views.is_admin),
     path('Profile/', Profile.getAccountDetails),
     path('society/', society.SocietyListCreateView.as_view(), name='society-list-create'),
-    path('society/<int:pk>/', society.SocietyDetailView.as_view(), name='society-detail')
+    path('Societies/<int:pk>/', society.SocietyDetailView.as_view(), name='society-detail'),
+    path('Profile/<str:account_name>/', Profile.getAccountDetails),
+    path('Societies/<str:society_name>/CreateEvent', Events.CreateEvent)
 ]

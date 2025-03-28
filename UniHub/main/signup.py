@@ -12,6 +12,9 @@ from .models import Account
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def SignupView(request):
+    if request.user.is_authenticated:
+        return Response({"error": "You are already logged in."}, status=403)
+
     email = request.data.get('email')
     if Account.objects.filter(email=email).exists():
         return Response({"error": "Email is already in use"}, status=400)

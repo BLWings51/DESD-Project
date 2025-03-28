@@ -57,7 +57,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
     
 class Society(models.Model):
     name = models.CharField(max_length=200)
-    numOfInterestedPeople = models.IntegerField()
+    numOfInterestedPeople = models.IntegerField(default=0)
     description = models.CharField(max_length=2000)
 
 class SocietyRelation(models.Model):
@@ -67,6 +67,9 @@ class SocietyRelation(models.Model):
 
 class Event(models.Model):
     society = models.ForeignKey(Society, on_delete=models.CASCADE)
+    name = models.CharField(max_length=400)
+    details = models.CharField(max_length=4000)
     startTime = models.DateTimeField()
     endTime = models.DateTimeField()
-    Location = models.CharField(max_length=200)
+    location = models.CharField(max_length=200)
+    numOfInterestedPeople = models.IntegerField(default=0)
