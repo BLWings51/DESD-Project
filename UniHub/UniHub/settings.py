@@ -57,12 +57,12 @@ MIDDLEWARE = [
 ]
 
 # Allow requests from localhost:5173
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "https://localhost:5173",
+# ]
 
 # Allow all origins (for development only, not recommended in production)
-# CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Allow specific headers and methods if needed
 CORS_ALLOW_CREDENTIALS = True
@@ -158,3 +158,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import os
+
+# Removing the need to install pillow only if the environment variable is set
+if os.environ.get("DISABLE_PILLOW_CHECK"):
+    SILENCED_SYSTEM_CHECKS = ['fields.E210']
