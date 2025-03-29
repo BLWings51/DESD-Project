@@ -6,6 +6,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 
+# Functions with decorators
+
+# Join society
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def join_society(request, society_name):
@@ -25,7 +28,7 @@ def join_society(request, society_name):
 
     return Response({"message": "User joined the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
 
-
+# Leave society
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def leave_society(request, society_name):
@@ -45,15 +48,65 @@ def leave_society(request, society_name):
 
     return Response({"message": "User left the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
 
-
+# Create society
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def society_create(request):
+    # Check if the user is an admin
+    if not request.user.adminStatus:
+        return Response({"Unauthorised": "Only admins can create society"}, status=403)
     serializer = SocietySerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Update society
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def UpdateSocietyView(request, society_name):  
+    try:
+        society = Society.objects.get(name=society_name)  # Fetch the society by name
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
+
+    # Check if the user is an admin
+    if not request.user.adminStatus:
+        return Response({"Unauthorised": "Only admins can update the society"}, status=403)
+
+    serializer = UpdateSocietySerializer(society, data=request.data, partial=True, context={'request': request})
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+
+    return Response(serializer.errors, status=400)
+
+
+# Get society Details
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getSocietyDetails(request, society_name):
+    society = Society.objects.get(name=society_name)
+    serializer = GetSocietySerializer(society)
+    return Response(serializer.data)
+
+# Delete society
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def DeleteSocietyView(request, society_name):  
+    try:
+        # Check if the user is an admin
+        if not request.user.adminStatus:
+            return Response({"Unauthorised": "Only admins can delete society"}, status=403)
+        society = Society.objects.get(name=society_name)  # Find society by name
+        society.delete()  # Delete the society
+        return Response({"success": "Society deleted successfully"}, status=200)
+    except Society.DoesNotExist:
+        return Response({"error": "Society does not exist"}, status=404)
+    
+
+# Serializers
 
 class SocietySerializer(serializers.ModelSerializer):
     class Meta:
@@ -69,23 +122,6 @@ class SocietySerializer(serializers.ModelSerializer):
         if Society.objects.filter(name=value).exists():
             raise serializers.ValidationError("Society with this name already exists.")
         return value
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def UpdateSocietyView(request, society_name):  
-    try:
-        society = Society.objects.get(name=society_name)  # Fetch the society by name
-    except Society.DoesNotExist:
-        return Response({"error": "Society not found"}, status=404)
-
-    serializer = UpdateSocietySerializer(society, data=request.data, partial=True, context={'request': request})
-
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-
-    return Response(serializer.errors, status=400)
-
 
 class UpdateSocietySerializer(serializers.ModelSerializer):
     class Meta:
@@ -109,13 +145,6 @@ class UpdateSocietySerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def getSocietyDetails(request, society_name):
-    society = Society.objects.get(name=society_name)
-    serializer = GetSocietySerializer(society)
-    return Response(serializer.data)
-
 class GetSocietySerializer(serializers.ModelSerializer):
     class Meta:
         model=Society
@@ -125,12 +154,3 @@ class GetSocietySerializer(serializers.ModelSerializer):
             societyDetails = {'name':society.name, 'numOfInterestedPeople':society.numOfInterestedPeople, 'description':society.description}
             return societyDetails
 
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def DeleteSocietyView(request, society_name):  
-    try:
-        society = Society.objects.get(name=society_name)  # Find society by name
-        society.delete()  # Delete the society
-        return Response({"success": "Society deleted successfully"}, status=200)
-    except Society.DoesNotExist:
-        return Response({"error": "Society does not exist"}, status=404)
