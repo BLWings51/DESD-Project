@@ -7,9 +7,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.generics import get_object_or_404
 
-from .models import Account
-from .permissions import CustomIsAdminUser
+from .models import Account, SocietyRelation, Society
+from .permissions import CustomIsAdminUser, IsSocietyAdmin
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
@@ -114,3 +115,8 @@ def is_authenticated(request):
 def is_admin(request):
     return Response({"admin":True})
 
+@api_view(['POST'])
+@permission_classes([IsSocietyAdmin])
+def is_society_admin(request, society_name):
+    society = get_object_or_404(Society, name=society_name)
+    return Response({"Society Admin":True})

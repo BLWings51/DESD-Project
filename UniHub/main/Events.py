@@ -10,22 +10,9 @@ from rest_framework.response import Response
 
 from rest_framework import serializers
 from .models import Event, Society, SocietyRelation
+from .permissions import IsSocietyAdmin
 
 # creating an event
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def CreateEvent(request, society_name):
-    society = get_object_or_404(Society, name=society_name)
-    serializer = CreateEventSerializer(data=request.data, context={'society': society})
-    startTime = request.data.get('startTime')
-    endTime = request.data.get('endTime')
-    if endTime <= startTime:
-        return Response({"error": "End date cannot be equal to or before the start date"}, status=400)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-    return Response(serializer.data)
-
 class CreateEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
@@ -38,6 +25,20 @@ class CreateEventSerializer(serializers.ModelSerializer):
         event.save()
         return event
     
+@api_view(['POST'])
+@permission_classes([IsSocietyAdmin])
+def CreateEvent(request, society_name):
+    society = get_object_or_404(Society, name=society_name)
+    serializer = CreateEventSerializer(data=request.data, context={'society': society})
+    startTime = request.data.get('startTime')
+    endTime = request.data.get('endTime')
+    if endTime <= startTime:
+        return Response({"error": "End date cannot be equal to or before the start date"}, status=400)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.data)
+    
 
 # retreiving data for every event within a society
 class GetAllEventSerializer(serializers.ModelSerializer):
@@ -47,8 +48,8 @@ class GetAllEventSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status']
 
     def getEventDetails(self, event):
-        accountDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status}
-        return accountDetails
+        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status}
+        return eventDetails
 
     def get_status(self, event):
         status = "none"
