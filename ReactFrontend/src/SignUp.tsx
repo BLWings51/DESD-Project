@@ -1,81 +1,119 @@
 import { useState, useEffect } from "react";
 import { useAuth } from './authContext';
-import { Link } from 'react-router-dom';
-import { useNavigate } from "react-router-dom";
-import apiRequest from "./api/apiRequest"; // Ensure `apiRequest.ts` uses `credentials: "include"`
-import "./App.css";
-import { Card, Flex, Title, TextInput, Button, Text } from "@mantine/core";
+import { Link, useNavigate } from 'react-router-dom';
+import apiRequest from "./api/apiRequest";
+import { Card, Flex, Title, TextInput, Button, Text, Alert, Loader } from "@mantine/core";
 
 const SignUp = () => {
-    const [email, setEmail] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
+    const [accountID, setAccountID] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const { login, isAuthenticated } = useAuth();
+    const { login, isAuthenticated, isLoading: authLoading } = useAuth();
     const navigate = useNavigate();
 
+    // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated) {
             navigate('/home');
         }
     }, [isAuthenticated, navigate]);
 
-    const handleSignUp = async (event: React.FormEvent) => {
-        event.preventDefault();
+    const handleSignUp = async (e: React.FormEvent) => {
+        e.preventDefault();
         setError(null);
+        setIsLoading(true);
 
-        const response = await apiRequest<{ message: string }>({
-            endpoint: "/signup/",
-            method: "POST",
-            data: { email, password },
-        });
+        try {
+            // 1. First make the signup request
+            const response = await apiRequest<{ message: string }>({
+                endpoint: "/signup/",
+                method: "POST",
+                data: { accountID, password },
+            });
 
-        if (response.error) {
-            setError(response.message || "Signup failed. Please try again.");
-        } else {
-            login(email, password);
+            if (response.error) {
+                throw new Error(response.message || "Signup failed");
+            }
 
+            // 2. If signup succeeds, automatically log the user in
+            await login(accountID, password);
+
+            // The useEffect will handle navigation when isAuthenticated changes
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
+    if (authLoading) {
+        return (
+            <Flex justify="center" align="center" h="100vh">
+                <Loader size="xl" />
+            </Flex>
+        );
+    }
+
     return (
-        <Flex justify={"center"} align={"center"} h={"100vh"} direction={"column"}>
-            <Card p={50} bd={"2px solid gray.6"} radius={"lg"}>
-                <Card.Section>
-                    <Title>Sign Up</Title>
+        <Flex justify="center" align="center" h="100vh" direction="column">
+            <Card p={50} withBorder radius="lg" w={400}>
+                <Card.Section p="md">
+                    <Title order={2}>Sign Up</Title>
                 </Card.Section>
 
-                <Card.Section mt={"lg"}>
+                <Card.Section p="md">
+                    {error && (
+                        <Alert color="red" mb="md">
+                            {error}
+                        </Alert>
+                    )}
+
                     <form onSubmit={handleSignUp}>
                         <TextInput
+                            label="Account ID"
                             variant="filled"
-                            radius={"md"}
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            radius="md"
+                            type="number"
+                            placeholder="#000000"
+                            value={accountID}
+                            onChange={(e) => setAccountID(e.target.value)}
                             required
+                            autoComplete="username"
+                            mb="sm"
                         />
+
                         <TextInput
-                            mt={"xs"}
+                            label="Password"
                             variant="filled"
-                            radius={"md"}
+                            radius="md"
                             type="password"
-                            placeholder="Password"
+                            placeholder="Your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            autoComplete="new-password"
+                            mb="md"
                         />
-                        {error && <p className="error">{error}</p>}
-                        <Button color="secondary.5" mt={"md"} type="submit">
+
+                        <Button
+                            fullWidth
+                            color="blue"
+                            type="submit"
+                            loading={isLoading}
+                            disabled={isLoading || authLoading}
+                        >
                             Sign Up
                         </Button>
                     </form>
                 </Card.Section>
-                <Card.Section mt={"md"}>
-                    <Text>
+
+                <Card.Section p="md" ta="center">
+                    <Text size="sm">
                         Already have an account?{' '}
-                        <Link to="/" style={{ color: 'blue', textDecoration: 'underline' }}>
+                        <Link to="/" style={{ color: 'var(--mantine-color-blue-6)' }}>
                             Login here
                         </Link>
                     </Text>
