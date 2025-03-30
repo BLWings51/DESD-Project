@@ -16,5 +16,6 @@ urlpatterns = [
     path('Profile/<str:account_ID>/', Profile.getAccountDetails),
     path('Societies/<str:society_name>/CreateEvent/', Events.CreateEvent),
     path('Societies/<str:society_name>/Events/', Events.getAllEvents),
-    path('Societies/<str:society_name>/IsSocietyAdmin/', views.is_society_admin)
+    path('Societies/<str:society_name>/IsSocietyAdmin/', views.is_society_admin),
+    path('Societies/<str:society_name>/<int:eventID>/', Events.deleteEvent)
 ]

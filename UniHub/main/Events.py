@@ -72,16 +72,12 @@ def getAllEvents(request, society_name):
     return Response(serializer.data)
 
 # deleting an event
-class DeleteEventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Event
-        fields = ['__all__']
-
-    def delete(self, validated_data):
-        try:
-            event = Event.objects.filter(id=validated_data['id'])
-            event.delete()
-            return Response({"success":True}, status=200)
-        except:
-            return Response({"error": "Event does not exist"}, status=400)
-        
+@api_view(['DELETE'])
+@permission_classes([IsSocietyAdmin])
+def deleteEvent(request, society_name, eventID):
+    try:
+        event = get_object_or_404(Event, id=eventID)
+        event.delete()
+        return Response({"success":"true"}, status=200)
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
