@@ -20,31 +20,31 @@ const Navbar: React.FC = () => {
                     <Text size="xl">UWEhub</Text>
 
                     <Group gap="lg" className="desktop-links">
-                        <Button color="var(--mantine-color-secondary-5)" variant="subtle" component={Link} to="/home">
+                        <Button color="var(--mantine-color-secondary-1)" variant="subtle" component={Link} to="/home">
                             Home
                         </Button>
 
                         {isAuthenticated ? (
                             <>
-                                <Button variant="subtle" onClick={handleLogout}>
+                                <Button color="var(--mantine-color-secondary-1)" variant="subtle" onClick={handleLogout}>
                                     Logout
                                 </Button>
-                                <Button variant="subtle" component={Link} to="/profile">
+                                <Button color="var(--mantine-color-secondary-1)" variant="subtle" component={Link} to="/profile">
                                     Profile
                                 </Button>
                             </>
                         ) : (
                             <>
-                                <Button variant="subtle" component={Link} to="/">
+                                <Button color="var(--mantine-color-secondary-1)" variant="subtle" component={Link} to="/">
                                     Login
                                 </Button>
-                                <Button variant="subtle" component={Link} to="/signup">
+                                <Button color="var(--mantine-color-secondary-1)" variant="subtle" component={Link} to="/signup">
                                     Sign Up
                                 </Button>
                             </>
                         )}
 
-                        <Button variant="subtle">Contact</Button>
+                        <Button color="var(--mantine-color-secondary-1)" variant="subtle">Contact</Button>
                     </Group>
                 </Group>
             </Container>
