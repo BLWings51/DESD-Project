@@ -19,15 +19,16 @@ def join_society(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
 
     if user in society.members.all():
-        return Response({"UserError": "User already a member"}, status=400)
+        return Response({"UserError": f"{full_name} is already a member"}, status=400)
 
     society.members.add(user)  # Add user to members list
     society.numOfInterestedPeople += 1  # Increase count
     society.save()
 
-    return Response({"message": "User joined the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
+    return Response({"message": f"{full_name} joined the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
 
 # Leave society
 @api_view(['POST'])
@@ -39,15 +40,16 @@ def leave_society(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
 
     if user not in society.members.all():
-        return Response({"UserError": "User is not a member"}, status=400)
+        return Response({"UserError": f"{full_name} is not a member"}, status=400)
 
     society.members.remove(user)  # Remove user from members list
     society.numOfInterestedPeople = max(0, society.numOfInterestedPeople - 1)  # Decrease count, prevent negative numbers
     society.save()
 
-    return Response({"message": "User left the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
+    return Response({"message": f"{full_name} left the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
 
 # Create society
 @api_view(['POST'])
