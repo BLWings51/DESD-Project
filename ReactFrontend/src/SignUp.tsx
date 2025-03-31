@@ -185,9 +185,6 @@ const SignUp = () => {
                         >
                             Sign Up
                         </Button>
-                        </Card.Section>
-
-
                     </form>
                 </Card.Section>
 
