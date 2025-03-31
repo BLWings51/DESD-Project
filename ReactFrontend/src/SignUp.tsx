@@ -5,8 +5,14 @@ import apiRequest from "./api/apiRequest";
 import { Card, Flex, Title, TextInput, Button, Text, Alert, Loader } from "@mantine/core";
 
 const SignUp = () => {
-    const [accountID, setAccountID] = useState("");
-    const [password, setPassword] = useState("");
+    const [formData, setFormData] = useState({
+        accountID: "",
+        email: "",
+        firstName: "",
+        lastName: "",
+        password: "",
+        confirmPassword: ""
+    });
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -20,17 +26,35 @@ const SignUp = () => {
         }
     }, [isAuthenticated, navigate]);
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
+            // Prepare data for API (excluding confirmPassword)
+            const { confirmPassword, ...signupData } = formData;
+
             // 1. First make the signup request
             const response = await apiRequest<{ message: string }>({
                 endpoint: "/signup/",
                 method: "POST",
-                data: { accountID, password },
+                data: signupData,
             });
 
             if (response.error) {
@@ -38,9 +62,7 @@ const SignUp = () => {
             }
 
             // 2. If signup succeeds, automatically log the user in
-            await login(accountID, password);
-
-            // The useEffect will handle navigation when isAuthenticated changes
+            await login(formData.accountID, formData.password);
 
         } catch (err) {
             setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
@@ -74,25 +96,81 @@ const SignUp = () => {
                     <form onSubmit={handleSignUp}>
                         <TextInput
                             label="Account ID"
+                            name="accountID"
                             variant="filled"
                             radius="md"
                             type="number"
                             placeholder="#000000"
-                            value={accountID}
-                            onChange={(e) => setAccountID(e.target.value)}
+                            value={formData.accountID}
+                            onChange={handleChange}
                             required
                             autoComplete="username"
                             mb="sm"
                         />
 
                         <TextInput
+                            label="Email"
+                            name="email"
+                            variant="filled"
+                            radius="md"
+                            type="email"
+                            placeholder="your@email.com"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            autoComplete="email"
+                            mb="sm"
+                        />
+
+                        <TextInput
+                            label="First Name"
+                            name="firstName"
+                            variant="filled"
+                            radius="md"
+                            placeholder="John"
+                            value={formData.firstName}
+                            onChange={handleChange}
+                            required
+                            autoComplete="given-name"
+                            mb="sm"
+                        />
+
+                        <TextInput
+                            label="Last Name"
+                            name="lastName"
+                            variant="filled"
+                            radius="md"
+                            placeholder="Doe"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                            required
+                            autoComplete="family-name"
+                            mb="sm"
+                        />
+
+                        <TextInput
                             label="Password"
+                            name="password"
                             variant="filled"
                             radius="md"
                             type="password"
                             placeholder="Your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            value={formData.password}
+                            onChange={handleChange}
+                            required
+                            autoComplete="new-password"
+                            mb="sm"
+                        />
+
+                        <TextInput
+                            label="Confirm Password"
+                            name="confirmPassword"
+                            variant="filled"
+                            radius="md"
+                            type="password"
+                            placeholder="Confirm your password"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
                             required
                             autoComplete="new-password"
                             mb="md"
