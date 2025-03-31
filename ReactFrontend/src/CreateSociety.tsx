@@ -25,7 +25,7 @@ const CreateSociety = () => {
 
         try {
             const response = await apiRequest<{ message: string }>({
-                endpoint: '/createSociety/',
+                endpoint: '/Societies/CreateSociety',
                 method: 'POST',
                 data: values,
             });

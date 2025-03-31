@@ -10,7 +10,10 @@ interface Society {
     name: string;
     description: string;
     logo: string | null;
-    is_admin: boolean;
+}
+
+interface Is_Admin {
+    admin: boolean;
 }
 
 const Societies = () => {
@@ -22,17 +25,21 @@ const Societies = () => {
 
     useEffect(() => {
         const fetchData = async () => {
+
             try {
                 // Check if user is admin
-                // const adminCheck = await apiRequest({
-                //     endpoint: '/admin_check/',
-                //     method: 'GET',
-                // });
-                // setIsAdmin(adminCheck.data?.is_admin || false);
+                const adminCheck = await apiRequest<Is_Admin>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                setIsAdmin(adminCheck.data?.admin || false);
+            } catch (err) { }
 
+
+            try {
                 // Fetch societies
                 const response = await apiRequest<Society[]>({
-                    endpoint: '/createSociety/',
+                    endpoint: '/Societies/',
                     method: 'GET',
                 });
                 setSocieties(response.data || []);
@@ -72,11 +79,11 @@ const Societies = () => {
             {error && <Text color="red">{error}</Text>}
 
             <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
-                {societies.map((society, index) => (
+                {societies.map((society) => (
                     <Card
                         key={society.id}
                         component={Link}
-                        to={`/Societies/${index + 1}`}
+                        to={`/Societies/${society.name}`}
                         shadow="sm"
                         padding="lg"
                         radius="md"

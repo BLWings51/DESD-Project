@@ -20,4 +20,6 @@ urlpatterns = [
     path('Societies/<str:society_name>/DeleteSociety/', society.DeleteSocietyView, name="delete-society"),
     path('Societies/<str:society_name>/join/', society.join_society, name='join-society'),
     path('Societies/<str:society_name>/leave/', society.leave_society, name='leave-society'),
+    path('Societies/<str:society_name>/CreateEvent/', Events.CreateEvent),
+    path('Societies/<str:society_name>/Events/', Events.getAllEvents),
 ]

@@ -19,9 +19,15 @@ interface SocietyDetail {
 interface Event {
     id: number;
     name: string;
-    description: string;
-    date: string;
+    details: string;
+    startTime: string;
+    endTime: string;
     location: string;
+    status: string;
+}
+
+interface Is_Admin {
+    admin: boolean;
 }
 
 const SocietyDetail = () => {
@@ -32,7 +38,26 @@ const SocietyDetail = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(true);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            if (!isAuthenticated) return;
+            try {
+                const response = await apiRequest<Is_Admin>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                setIsAdmin(response.data?.admin || false);
+                console.log("iouaerhgioAWHGOIHWEGIOHGEORFIH")
+                console.log(response.data?.admin)
+            } catch (error) {
+                console.error("Failed to check admin status:", error);
+            }
+        };
+        checkAdminStatus();
+    }, [isAuthenticated, loggedAccountID]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -67,12 +92,33 @@ const SocietyDetail = () => {
         fetchData();
     }, [society_name]);
 
-    const handleJoinLeave = async () => {
+    const handleJoin = async () => {
         if (!society) return;
 
         try {
             await apiRequest({
-                endpoint: `/Societies/${society_name}/${society.is_member ? 'leave' : 'join'}/`,
+                endpoint: `/Societies/${society_name}/join/`,
+                method: 'POST',
+            });
+            // Refresh society data
+            const response = await apiRequest<SocietyDetail>({
+                endpoint: `/Societies/${society_name}/`,
+                method: 'GET',
+            });
+            if (response.data) {
+                setSociety(response.data);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Operation failed");
+        }
+    };
+
+    const handleLeave = async () => {
+        if (!society) return;
+
+        try {
+            await apiRequest({
+                endpoint: `/Societies/${society_name}/leave/`,
                 method: 'POST',
             });
             // Refresh society data
@@ -91,13 +137,26 @@ const SocietyDetail = () => {
     const handleDeleteSociety = async () => {
         try {
             await apiRequest({
-                endpoint: `/Societies/${society_name}/`,
+                endpoint: `/Societies/${society_name}/DeleteSociety/`,
                 method: 'DELETE',
             });
             navigate('/Societies');
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to delete society");
         }
+    };
+
+    const formatDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "Invalid date";
+
+        return date.toLocaleString([], {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     if (loading) {
@@ -114,12 +173,12 @@ const SocietyDetail = () => {
                 <Title order={2}>{society.name}</Title>
 
                 <Group>
-                    {true && (
+                    {isAdmin && (
                         <>
                             <Button
                                 leftSection={<IconEdit size={16} />}
                                 component={Link}
-                                to={`/Societies/${society_name}/UpdateSociety`}
+                                to={`/Societies/${society_name}/UpdateSociety/`}
                             >
                                 Edit
                             </Button>
@@ -132,13 +191,21 @@ const SocietyDetail = () => {
                             </ActionIcon>
                         </>
                     )}
-                    {isAuthenticated && !true && (
-                        <Button
-                            color={society.is_member ? 'red' : 'blue'}
-                            onClick={handleJoinLeave}
-                        >
-                            {society.is_member ? 'Leave' : 'Join'} ({society.numOfInterestedPeople})
-                        </Button>
+                    {isAuthenticated && (
+                        <>
+                            <Button
+                                color={'blue'}
+                                onClick={handleJoin}
+                            >
+                                {'Join'} ({society.numOfInterestedPeople})
+                            </Button>
+                            <Button
+                                color={'red'}
+                                onClick={handleLeave}
+                            >
+                                {'Leave'} ({society.numOfInterestedPeople})
+                            </Button>
+                        </>
                     )}
                 </Group>
             </Flex>
@@ -164,10 +231,10 @@ const SocietyDetail = () => {
                 </Tabs.List>
 
                 <Tabs.Panel value="events">
-                    {true && (
+                    {isAdmin && (
                         <Button
                             component={Link}
-                            to={`/Societies/${society_name}/CreateEvent`}
+                            to={`/Societies/${society_name}/CreateEvent/`}
                             mb="md"
                         >
                             Create Event
@@ -180,8 +247,16 @@ const SocietyDetail = () => {
                                 <Group justify="space-between">
                                     <div>
                                         <Title order={4}>{event.name}</Title>
-                                        <Text>{new Date(event.date).toLocaleString()}</Text>
+                                        <Text>
+                                            {formatDateTime(event.startTime)} - {formatDateTime(event.endTime)}
+                                        </Text>
                                         <Text>{event.location}</Text>
+                                        <Badge
+                                            color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
+                                            mt="sm"
+                                        >
+                                            {event.status}
+                                        </Badge>
                                     </div>
                                     <Button
                                         component={Link}

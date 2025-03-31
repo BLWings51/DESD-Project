@@ -56,7 +56,7 @@ const UpdateSociety = () => {
 
         try {
             const response = await apiRequest<{ message: string }>({
-                endpoint: `/Societies/${society_name}/`,
+                endpoint: `/Societies/${society_name}/UpdateSociety/`,
                 method: 'POST',
                 data: values,
             });
