@@ -14,7 +14,7 @@ export default defineConfig({
       key: fs.readFileSync(keyPath),
       cert: fs.readFileSync(certPath),
     },
-    host: true, // Listen on all network interfaces
+    host: true,
   },
 });
 

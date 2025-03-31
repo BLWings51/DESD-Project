@@ -4,8 +4,9 @@ import apiRequest from './api/apiRequest';
 interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
+    loggedAccountID: string | null;
     checkAuth: () => Promise<void>;
-    login: (email: string, password: string) => Promise<void>;
+    login: (accountID: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -14,31 +15,50 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [loggedAccountID, setLoggedAccountID] = useState<string | null>(null);
 
     const checkAuth = async () => {
         setIsLoading(true);
         try {
-            const response = await apiRequest<{ authenticated: boolean }>({
+            const response = await apiRequest<{ authenticated: boolean; accountID?: string }>({
                 endpoint: '/authenticated/',
                 method: 'POST',
             });
-            setIsAuthenticated(response.data?.authenticated || false);
+
+            if (response.data?.authenticated && response.data.accountID) {
+                setIsAuthenticated(true);
+            } else {
+                setIsAuthenticated(false);
+                setLoggedAccountID(null);
+            }
         } catch (error) {
             setIsAuthenticated(false);
+            setLoggedAccountID(null);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const login = async (email: string, password: string) => {
+    const login = async (accountID: string, password: string) => {
         setIsLoading(true);
         try {
-            await apiRequest({
+            const response = await apiRequest({
                 endpoint: '/login/',
                 method: 'POST',
-                data: { email, password },
+                data: { accountID, password },
             });
-            await checkAuth(); // Verify auth status after login
+
+            if (response.error) {
+                throw new Error(response.message || "Login failed");
+            }
+
+            setLoggedAccountID(accountID);
+            setIsAuthenticated(true);
+            // Don't need to call checkAuth() here since we're setting the state directly
+        } catch (error) {
+            setIsAuthenticated(false);
+            setLoggedAccountID(null);
+            throw error; // Re-throw the error to be caught by the Login component
         } finally {
             setIsLoading(false);
         }
@@ -52,6 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 method: 'POST',
             });
             setIsAuthenticated(false);
+            setLoggedAccountID(null); // Reset account ID on logout
         } finally {
             setIsLoading(false);
         }
@@ -63,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, isLoading, checkAuth, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, isLoading, loggedAccountID, checkAuth, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

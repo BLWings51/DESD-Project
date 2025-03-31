@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
-import { useAuth } from './authContext'; // Make sure path is correct
+import { useAuth } from './authContext';
 import { Link, useNavigate } from 'react-router-dom';
-import "./App.css";
 import { Card, Flex, Title, TextInput, Button, Text, Alert } from "@mantine/core";
 
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [accountID, setAccountID] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
+  const {
+    login,
+    isAuthenticated,
+    isLoading: authLoading
+  } = useAuth();
+
   const navigate = useNavigate();
 
   // Redirect if already authenticated
@@ -24,15 +27,12 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoading(true);
 
     try {
-      await login(email, password);
-      // No need to navigate here - the useEffect will handle it
+      await login(accountID, password);
+      // No need to navigate here - the useEffect will handle it when isAuthenticated changes
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -56,57 +56,38 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-          <TextInput
+            <TextInput
+              label="Account ID"
+              variant="filled"
+              radius="md"
+              type="number"
+              placeholder="#000000"
+              value={accountID}
+              onChange={(e) => setAccountID(e.target.value)}
+              required
+              autoComplete="username"
+              mb="sm"
+            />
 
-          mb="xl" // Adds margin-bottom to create space
-          mt = "lg"
-          variant="filled"
-          radius={"md"}
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-
-
-          styles={{
-            input: {
-              
-              backgroundColor: 'var(--mantine-color-primary-8)', // Background color
-              border: "2px solid rgb(255, 255, 255)", // Border color
-              padding: "24px", // Padding inside input box
-              fontSize: "16px", // Font size
-            },
-          }}
-
-          />
-
-          <TextInput
-
-            mb="xl" // Adds margin-bottom to create space
-            mt = "xl"
-            variant="filled"
-            radius={"md"}
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-
-
-            styles={{
-              input: {
-                backgroundColor: 'var(--mantine-color-primary-8)', // Background color
-                border: "2px solid rgb(255, 255, 255)", // Border color
-                padding: "24px", // Padding inside input box
-                fontSize: "16px", // Font size
-              },
-            }}
+            <TextInput
+              label="Password"
+              variant="filled"
+              radius="md"
+              type="password"
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              mb="md"
             />
 
           <Card.Section style={{ textAlign: "center" }}>
             <Button
               color= "tertiary.8"
               type="submit"
-              loading={isLoading}
+              loading={authLoading}
+              disabled={authLoading}
             >
               Login
             </Button>

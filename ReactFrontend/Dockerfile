@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Install dependencies
 RUN npm install
+RUN npm install -g vite
 
 # Copy the rest of the application code
 COPY . .
@@ -20,4 +21,5 @@ COPY certs /app/certs
 EXPOSE 5173
 
 # Start the React app
-CMD ["npm", "start"]
+# CMD ["npm", "start"]
+CMD ["vite", "--host"]
