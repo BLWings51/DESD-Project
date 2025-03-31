@@ -86,7 +86,12 @@ def UpdateSocietyView(request, society_name):
 
     return Response(serializer.errors, status=400)
 
-
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getAllSocieties(request):
+    societies = Society.objects.all()  # Get all societies
+    serializer = GetSocietySerializer(societies, many=True)  # Serialize multiple objects
+    return Response(serializer.data, status=200)
 
 # Get society Details
 @api_view(['GET'])
@@ -109,7 +114,8 @@ def DeleteSocietyView(request, society_name):
         return Response({"success": "Society deleted successfully"}, status=200)
     except Society.DoesNotExist:
         return Response({"error": "Society does not exist or already deleted"}, status=404)
-    
+
+
 
 # Serializers
 
