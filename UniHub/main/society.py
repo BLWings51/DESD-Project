@@ -73,8 +73,8 @@ def UpdateSocietyView(request, society_name):
     new_name = request.data.get("name")
 
     # Check if the new name is the same as the current one
-    if new_name and new_name == society.name:
-        return Response({"UpdateError": "Society is already up to date, no changes made"}, status=400)
+    # if new_name and new_name == society.name:
+    #     return Response({"UpdateError": "Society is already up to date, no changes made"}, status=400)
 
     # Check if the new name is already in use by another society
     if new_name and Society.objects.filter(name=new_name).exclude(id=society.id).exists():
