@@ -9,6 +9,7 @@ urlpatterns = [
     path('authenticated/', views.is_authenticated),
     path('signup/', signup.SignupView),
     path('Profile/Settings/', Profile.UpdateProfileView),
+    path('Profile/Delete/', Profile.deleteProfile),
     path('admin_check/', views.is_admin),
     path('Profile/', Profile.getAccountDetails),
     path('Profile/<str:account_ID>/', Profile.getAccountDetails),

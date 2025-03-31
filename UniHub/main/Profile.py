@@ -65,9 +65,11 @@ class SocietyRelationSerializer(serializers.ModelSerializer):
 # Displaying the Events the person is apart of
 # Serializers
 class GetEventSerializer(serializers.ModelSerializer):
-     class Meta:
+    society = GetSocietySerializer(read_only=True)
+    
+    class Meta:
         model = Event
-        fields = ['name']
+        fields = ['name', 'society']
         
 class EventRelationSerializer(serializers.ModelSerializer):
     society = GetSocietySerializer(read_only=True)
@@ -104,7 +106,9 @@ class GetAccountSerializer(serializers.ModelSerializer):
         return [relation.society.name for relation in account.societyrelation_set.all()]
     
     def get_events(self, account):
-        return [relation.event.name for relation in account.eventrelation_set.all()]
+        events = [relation.event for relation in account.eventrelation_set.all()]
+        return GetEventSerializer(events, many=True, context=self.context).data
+
 
 # Views
 @api_view(['GET'])
@@ -113,3 +117,11 @@ def getAccountDetails(request, account_ID):
     account = get_object_or_404(Account, accountID=account_ID)
     serializer = GetAccountSerializer(account, context={'request': request})
     return Response(serializer.data)
+
+# Deleting account
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def deleteProfile(request):
+    account = request.user
+    account.delete()
+    return Response({"message": "Account deleted successfully."}, status=204)
