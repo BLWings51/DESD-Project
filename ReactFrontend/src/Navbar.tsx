@@ -6,6 +6,10 @@ import apiRequest from "./api/apiRequest";
 import { useDisclosure } from "@mantine/hooks";
 import { IconChevronDown } from "@tabler/icons-react";
 
+interface Is_Admin {
+    admin: boolean;
+}
+
 const Navbar: React.FC = () => {
     const { isAuthenticated, logout, loggedAccountID } = useAuth();
     const [isAdmin, setIsAdmin] = useState(true);
@@ -17,11 +21,11 @@ const Navbar: React.FC = () => {
         const checkAdminStatus = async () => {
             if (!isAuthenticated) return;
             try {
-                // const response = await apiRequest({
-                //     endpoint: '/admin_check/',
-                //     method: 'GET',
-                // });
-                // setIsAdmin(response.data?.is_admin || false);
+                const response = await apiRequest<Is_Admin>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                setIsAdmin(response.data?.admin || false);
             } catch (error) {
                 console.error("Failed to check admin status:", error);
             }
@@ -50,31 +54,31 @@ const Navbar: React.FC = () => {
 
                     {/* Desktop Navigation */}
                     <Group gap="lg" visibleFrom="sm">
-                        <Button variant="subtle" component={Link} to="/home">
-                            Home
-                        </Button>
-
-                        {/* Societies Dropdown */}
-                        <Menu trigger="hover" transitionProps={{ exitDuration: 0 }}>
-                            <Menu.Target>
-                                <Button variant="subtle" rightSection={<IconChevronDown size={14} />}>
-                                    Societies
-                                </Button>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                                <Menu.Item component={Link} to="/Societies">
-                                    All Societies
-                                </Menu.Item>
-                                {isAdmin && (
-                                    <Menu.Item component={Link} to="/Societies/CreateSociety">
-                                        Create Society
-                                    </Menu.Item>
-                                )}
-                            </Menu.Dropdown>
-                        </Menu>
 
                         {isAuthenticated ? (
                             <>
+                                <Button variant="subtle" component={Link} to="/home">
+                                    Home
+                                </Button>
+
+                                {/* Societies Dropdown */}
+                                <Menu trigger="hover" transitionProps={{ exitDuration: 0 }}>
+                                    <Menu.Target>
+                                        <Button variant="subtle" rightSection={<IconChevronDown size={14} />}>
+                                            Societies
+                                        </Button>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                        <Menu.Item component={Link} to="/Societies">
+                                            All Societies
+                                        </Menu.Item>
+                                        {isAdmin && (
+                                            <Menu.Item component={Link} to="/Societies/CreateSociety">
+                                                Create Society
+                                            </Menu.Item>
+                                        )}
+                                    </Menu.Dropdown>
+                                </Menu>
                                 <Button variant="subtle" component={Link} to="/profile">
                                     Profile
                                 </Button>

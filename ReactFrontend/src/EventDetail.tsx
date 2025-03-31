@@ -1,5 +1,5 @@
-// EventDetail.tsx
 import { useEffect, useState } from "react";
+import { useAuth } from './authContext';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import {
@@ -11,14 +11,20 @@ import { IconEdit, IconTrash } from "@tabler/icons-react";
 interface EventDetail {
     id: number;
     name: string;
-    description: string;
-    date: string;
+    details: string;
+    startTime: string;
+    endTime: string;
     location: string;
-    is_admin: boolean;
-    is_attending: boolean;
+    status: string;
+}
+
+interface Is_Admin {
+    admin: boolean;
 }
 
 const EventDetail = () => {
+    const { isAuthenticated, isLoading: authLoading, loggedAccountID } = useAuth();
+    const [isAdmin, setIsAdmin] = useState(true);
     const { society_name, eventID } = useParams();
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -26,15 +32,40 @@ const EventDetail = () => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const navigate = useNavigate();
 
+    // Check if user is admin
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            if (!isAuthenticated) return;
+            try {
+                const response = await apiRequest<Is_Admin>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                setIsAdmin(response.data?.admin || false);
+            } catch (error) {
+                console.error("Failed to check admin status:", error);
+            }
+        };
+        checkAdminStatus();
+    }, [isAuthenticated, loggedAccountID]);
+
     useEffect(() => {
         const fetchEvent = async () => {
             try {
-                const response = await apiRequest<EventDetail>({
-                    endpoint: `/Societies/${society_name}/${eventID}/`,
+                // First get all events for the society
+                const allEventsResponse = await apiRequest<EventDetail[]>({
+                    endpoint: `/Societies/${society_name}/Events/`,
                     method: 'GET',
                 });
-                if (response.data) {
-                    setEvent(response.data);
+
+                if (allEventsResponse.data) {
+                    // Find the specific event by ID
+                    const foundEvent = allEventsResponse.data.find(e => e.id.toString() === eventID);
+                    if (foundEvent) {
+                        setEvent(foundEvent);
+                    } else {
+                        setError("Event not found");
+                    }
                 }
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load event");
@@ -46,32 +77,24 @@ const EventDetail = () => {
         fetchEvent();
     }, [society_name, eventID]);
 
-    const handleAttend = async () => {
-        if (!event) return;
+    const formatDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "Invalid date";
 
-        try {
-            await apiRequest({
-                endpoint: `/Societies/${society_name}/${eventID}/${event.is_attending ? 'leave' : 'join'}/`,
-                method: 'POST',
-            });
-            // Refresh event data
-            const response = await apiRequest<EventDetail>({
-                endpoint: `/Societies/${society_name}/${eventID}/`,
-                method: 'GET',
-            });
-            if (response.data) {
-                setEvent(response.data);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Operation failed");
-        }
+        return date.toLocaleString([], {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const handleDelete = async () => {
         try {
             await apiRequest({
-                endpoint: `/Societies/${society_name}/${eventID}/`,
-                method: 'DELETE',
+                endpoint: `/Societies/${society_name}/Events/${eventID}/`,
+                method: 'POST',
             });
             navigate(`/Societies/${society_name}`);
         } catch (err) {
@@ -81,6 +104,10 @@ const EventDetail = () => {
 
     if (loading) {
         return <Loader size="xl" />;
+    }
+
+    if (error) {
+        return <Text color="red">{error}</Text>;
     }
 
     if (!event) {
@@ -93,12 +120,12 @@ const EventDetail = () => {
                 <Title order={2}>{event.name}</Title>
 
                 <Group>
-                    {event.is_admin && (
+                    {isAdmin && (
                         <>
                             <Button
                                 leftSection={<IconEdit size={16} />}
                                 component={Link}
-                                to={`/Societies/${society_name}/${eventID}/UpdateEvent`}
+                                to={`/Societies/${society_name}/Events/${eventID}/UpdateEvent`}
                             >
                                 Edit
                             </Button>
@@ -111,32 +138,30 @@ const EventDetail = () => {
                             </ActionIcon>
                         </>
                     )}
-                    <Button
-                        color={event.is_attending ? 'red' : 'blue'}
-                        onClick={handleAttend}
-                    >
-                        {event.is_attending ? 'Cancel Attendance' : 'Attend Event'}
-                    </Button>
                 </Group>
             </Group>
 
-            {error && <Text color="red">{error}</Text>}
-
             <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
                 <Text size="lg" mb="sm">
-                    <strong>Date:</strong> {new Date(event.date).toLocaleString()}
+                    <strong>Start:</strong> {formatDateTime(event.startTime)}
+                </Text>
+                <Text size="lg" mb="sm">
+                    <strong>End:</strong> {formatDateTime(event.endTime)}
                 </Text>
                 <Text size="lg" mb="sm">
                     <strong>Location:</strong> {event.location}
                 </Text>
                 <Text mb="sm">
                     <strong>Status:</strong>
-                    <Badge color={new Date(event.date) > new Date() ? 'blue' : 'gray'} ml="sm">
-                        {new Date(event.date) > new Date() ? 'Upcoming' : 'Past'}
+                    <Badge
+                        color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
+                        ml="sm"
+                    >
+                        {event.status}
                     </Badge>
                 </Text>
                 <Text>
-                    <strong>Description:</strong> {event.description}
+                    <strong>Details:</strong> {event.details}
                 </Text>
             </Card>
 
