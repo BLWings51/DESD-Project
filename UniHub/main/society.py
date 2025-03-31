@@ -13,8 +13,6 @@ from rest_framework.decorators import api_view, permission_classes
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def join_society(request, society_name):
-    societySerialiser = JoinSocietySerializer(data=request.data)
-    
     try:
         society = Society.objects.get(name=society_name)
     except Society.DoesNotExist:
@@ -23,43 +21,22 @@ def join_society(request, society_name):
     user = request.user
     full_name = f"{user.firstName} {user.lastName}"
 
-    if user in society.members.all():
+    # Check if the user is already a member
+    if SocietyRelation.objects.filter(society_id=society.id, account_id=user.id).exists():
         return Response({"UserError": f"{full_name} is already a member"}, status=400)
-    
-    society_data = {
-        'society_id': society, 
-        'account_id': user,     
-        'adminStatus': False  
-    }
-    
-    
-    
-    if societySerialiser.is_valid():
-        societySerialiser.save()
-    else:
-        return Response(societySerialiser.errors, status=400)
 
-    # society.members.add(user)  # Add user to members list
-    # society.numOfInterestedPeople += 1  # Increase count
-    # society.save()
+    # Saving it into SocietyRelation
+    society_relation = SocietyRelation(society_id=society.id, account_id=user.id, adminStatus=False)
+    society_relation.save()
 
-    return Response({"message": f"{full_name} joined the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
+    # Increment count
+    society.numOfInterestedPeople += 1
+    society.save()
 
-
-class JoinSocietySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SocietyRelation
-        fields = ['society_id', 'account_id', 'adminStatus']
-        
-    def joinSociety(self, validated_data):
-        accountID = self.context.get('account_id')
-        
-        society = SocietyRelation(accountID=accountID, societyID=validated_data['society_id'], adminStatus=validated_data['adminStatus'])
-        society.save()
-        
-
-        return society
-    
+    return Response({
+        "message": f"{full_name} joined the society",
+        "numOfInterestedPeople": society.numOfInterestedPeople
+    }, status=200)
 
 # Leave society
 @api_view(['POST'])
@@ -73,14 +50,25 @@ def leave_society(request, society_name):
     user = request.user
     full_name = f"{user.firstName} {user.lastName}"
 
-    if user not in society.members.all():
-        return Response({"UserError": f"{full_name} is not a member"}, status=400)
+    # Check if the user is a member
+    society_relation = SocietyRelation.objects.filter(society_id=society.id, account_id=user.id).first()
+    if not society_relation:
+        return Response({"UserError": f"{full_name} is not a member of this society"}, status=400)
 
-    society.members.remove(user)  # Remove user from members list
-    society.numOfInterestedPeople = max(0, society.numOfInterestedPeople - 1)  # Decrease count, prevent negative numbers
-    society.save()
+    # Remove user from the society
+    society_relation.delete()
 
-    return Response({"message": f"{full_name} left the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
+    # Decrement count (ensure it doesn’t go negative)
+    if society.numOfInterestedPeople > 0:
+        society.numOfInterestedPeople -= 1
+        society.save()
+
+    return Response({
+        "message": f"{full_name} left the society",
+        "numOfInterestedPeople": society.numOfInterestedPeople
+    }, status=200)
+
+
 
 # Create society
 @api_view(['POST'])
@@ -151,6 +139,20 @@ def DeleteSocietyView(request, society_name):
 
 
 # Serializers
+
+class LeaveSocietySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SocietyRelation
+        fields = ['society_id', 'account_id', 'adminStatus']
+        
+    def leaveSociety(self, validated_data):
+        accountID = self.context.get('account_id')
+        
+        society = SocietyRelation(accountID=accountID, societyID=validated_data['society_id'], adminStatus=validated_data['adminStatus'])
+        society.save()
+        
+
+        return society
 
 class CreateSocietySerializer(serializers.ModelSerializer):
     class Meta:
