@@ -58,7 +58,6 @@ class Society(models.Model):
     name = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
     description = models.CharField(max_length=2000)
-    members = models.ManyToManyField(Account, related_name='societies', blank=True)  # Track members
 
     def __str__(self):
         return self.name
