@@ -3,6 +3,10 @@ import { useAuth } from './authContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, Flex, Title, TextInput, Button, Text, Alert } from "@mantine/core";
 
+import "./static/stylesheet.css";
+
+import styles from "./static/login.module.css";
+
 const Login = () => {
   const [accountID, setAccountID] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +41,7 @@ const Login = () => {
 
   return (
     <Flex justify="center" align="center" h="100vh" direction="column">
-      <Card p={50} withBorder radius="lg" w={400}>
+      <Card className = {styles.cardDecorator} p={50} withBorder radius="lg" w={400}>
         <Card.Section p="md">
           <Title order={2}>Login</Title>
         </Card.Section>

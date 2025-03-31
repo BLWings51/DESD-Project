@@ -4,7 +4,7 @@ import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
 import {
     Card, Title, Text, Loader, Flex, Button, Image,
-    Tabs, Badge, Group, ActionIcon, Modal, Textarea
+    Tabs, Badge, Group, ActionIcon, Modal, Textarea, Box
 } from "@mantine/core";
 import { IconEdit, IconTrash, IconCalendarEvent } from "@tabler/icons-react";
 
@@ -168,17 +168,26 @@ const SocietyDetail = () => {
     }
 
     return (
-        <div>
-            <Flex justify="space-between" align="center" mb="md">
+        <Box p="md">
+            {/* Header Section with Responsive Flex */}
+            <Flex 
+                justify="space-between" 
+                align="center" 
+                mb="md"
+                wrap="wrap"
+                gap="md"
+                pr={{ base: 'md', xs: 0 }} // Prevent scrollbar overlap
+            >
                 <Title order={2}>{society.name}</Title>
 
-                <Group>
+                <Group wrap="nowrap">
                     {isAdmin && (
                         <>
                             <Button
                                 leftSection={<IconEdit size={16} />}
                                 component={Link}
                                 to={`/Societies/${society_name}/UpdateSociety/`}
+                                size="compact-md"
                             >
                                 Edit
                             </Button>
@@ -186,43 +195,54 @@ const SocietyDetail = () => {
                                 color="red"
                                 variant="outline"
                                 onClick={() => setDeleteModalOpen(true)}
+                                size="lg"
                             >
                                 <IconTrash size={16} />
                             </ActionIcon>
                         </>
                     )}
                     {isAuthenticated && (
-                        <>
+                        <Group wrap="nowrap">
                             <Button
-                                color={'blue'}
+                                color="blue"
                                 onClick={handleJoin}
+                                size="compact-md"
                             >
-                                {'Join'} ({society.numOfInterestedPeople})
+                                Join ({society.numOfInterestedPeople})
                             </Button>
                             <Button
-                                color={'red'}
+                                color="red"
                                 onClick={handleLeave}
+                                size="compact-md"
                             >
-                                {'Leave'} ({society.numOfInterestedPeople})
+                                Leave
                             </Button>
-                        </>
+                        </Group>
                     )}
                 </Group>
             </Flex>
 
-            {error && <Text color="red">{error}</Text>}
-
-            <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
+            {/* Society Details Card */}
+            <Card 
+                shadow="sm" 
+                p="lg" 
+                radius="md" 
+                withBorder 
+                mb="md"
+                style={{ overflow: 'hidden' }}
+            >
                 <Card.Section>
                     <Image
                         src={society.logo || '/default-society-logo.png'}
                         height={300}
                         alt={society.name}
+                        fit="cover"
                     />
                 </Card.Section>
                 <Text mt="md">{society.description}</Text>
             </Card>
 
+            {/* Events Section */}
             <Tabs defaultValue="events">
                 <Tabs.List>
                     <Tabs.Tab value="events" leftSection={<IconCalendarEvent size={16} />}>
@@ -230,54 +250,71 @@ const SocietyDetail = () => {
                     </Tabs.Tab>
                 </Tabs.List>
 
-                <Tabs.Panel value="events">
-                    {isAdmin && (
-                        <Button
-                            component={Link}
-                            to={`/Societies/${society_name}/CreateEvent/`}
-                            mb="md"
-                        >
-                            Create Event
-                        </Button>
-                    )}
+                <Tabs.Panel value="events" pt="md">
+                    <Flex direction="column" gap="md">
+                        {isAdmin && (
+                            <Button
+                                component={Link}
+                                to={`/Societies/${society_name}/CreateEvent/`}
+                                w={{ base: '100%', sm: 'fit-content' }}
+                            >
+                                Create Event
+                            </Button>
+                        )}
 
-                    {events.length > 0 ? (
-                        events.map((event) => (
-                            <Card key={event.id} shadow="sm" padding="lg" radius="md" withBorder mb="sm">
-                                <Group justify="space-between">
-                                    <div>
-                                        <Title order={4}>{event.name}</Title>
-                                        <Text>
-                                            {formatDateTime(event.startTime)} - {formatDateTime(event.endTime)}
-                                        </Text>
-                                        <Text>{event.location}</Text>
-                                        <Badge
-                                            color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
-                                            mt="sm"
-                                        >
-                                            {event.status}
-                                        </Badge>
-                                    </div>
-                                    <Button
-                                        component={Link}
-                                        to={`/Societies/${society_name}/${event.id}`}
-                                        variant="outline"
+                        {events.length > 0 ? (
+                            events.map((event) => (
+                                <Card 
+                                    key={event.id} 
+                                    shadow="sm" 
+                                    p="lg" 
+                                    radius="md" 
+                                    withBorder
+                                >
+                                    <Flex 
+                                        justify="space-between" 
+                                        align={{ base: 'flex-start', sm: 'center' }}
+                                        direction={{ base: 'column', sm: 'row' }}
+                                        gap="md"
                                     >
-                                        View Details
-                                    </Button>
-                                </Group>
-                            </Card>
-                        ))
-                    ) : (
-                        <Text>No events scheduled</Text>
-                    )}
+                                        <div>
+                                            <Title order={4}>{event.name}</Title>
+                                            <Text>
+                                                {formatDateTime(event.startTime)} - {formatDateTime(event.endTime)}
+                                            </Text>
+                                            <Text>{event.location}</Text>
+                                            <Badge
+                                                color={event.status === 'upcoming' ? 'blue' : 'green'}
+                                                mt="sm"
+                                            >
+                                                {event.status}
+                                            </Badge>
+                                        </div>
+                                        <Button
+                                            component={Link}
+                                            to={`/Societies/${society_name}/${event.id}`}
+                                            variant="outline"
+                                            w={{ base: '100%', sm: 'fit-content' }}
+                                        >
+                                            View Details
+                                        </Button>
+                                    </Flex>
+                                </Card>
+                            ))
+                        ) : (
+                            <Text>No events scheduled</Text>
+                        )}
+                    </Flex>
                 </Tabs.Panel>
             </Tabs>
 
+            {/* Delete Modal (keep existing) */}
             <Modal
                 opened={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
                 title="Delete Society"
+                centered
+
             >
                 <Text>Are you sure you want to delete this society?</Text>
                 <Group justify="flex-end" mt="md">
@@ -289,7 +326,7 @@ const SocietyDetail = () => {
                     </Button>
                 </Group>
             </Modal>
-        </div>
+        </Box>
     );
 };
 
