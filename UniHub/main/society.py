@@ -19,15 +19,16 @@ def join_society(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
 
     if user in society.members.all():
-        return Response({"UserError": "User already a member"}, status=400)
+        return Response({"UserError": f"{full_name} is already a member"}, status=400)
 
     society.members.add(user)  # Add user to members list
     society.numOfInterestedPeople += 1  # Increase count
     society.save()
 
-    return Response({"message": "User joined the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
+    return Response({"message": f"{full_name} joined the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
 
 # Leave society
 @api_view(['POST'])
@@ -39,15 +40,16 @@ def leave_society(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
 
     if user not in society.members.all():
-        return Response({"UserError": "User is not a member"}, status=400)
+        return Response({"UserError": f"{full_name} is not a member"}, status=400)
 
     society.members.remove(user)  # Remove user from members list
     society.numOfInterestedPeople = max(0, society.numOfInterestedPeople - 1)  # Decrease count, prevent negative numbers
     society.save()
 
-    return Response({"message": "User left the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
+    return Response({"message": f"{full_name} left the society", "numOfInterestedPeople": society.numOfInterestedPeople}, status=200)
 
 # Create society
 @api_view(['POST'])
@@ -71,8 +73,8 @@ def UpdateSocietyView(request, society_name):
     new_name = request.data.get("name")
 
     # Check if the new name is the same as the current one
-    if new_name and new_name == society.name:
-        return Response({"UpdateError": "Society is already up to date, no changes made"}, status=400)
+    # if new_name and new_name == society.name:
+    #     return Response({"UpdateError": "Society is already up to date, no changes made"}, status=400)
 
     # Check if the new name is already in use by another society
     if new_name and Society.objects.filter(name=new_name).exclude(id=society.id).exists():
@@ -86,7 +88,12 @@ def UpdateSocietyView(request, society_name):
 
     return Response(serializer.errors, status=400)
 
-
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getAllSocieties(request):
+    societies = Society.objects.all()  # Get all societies
+    serializer = GetSocietySerializer(societies, many=True)  # Serialize multiple objects
+    return Response(serializer.data, status=200)
 
 # Get society Details
 @api_view(['GET'])
@@ -109,7 +116,8 @@ def DeleteSocietyView(request, society_name):
         return Response({"success": "Society deleted successfully"}, status=200)
     except Society.DoesNotExist:
         return Response({"error": "Society does not exist or already deleted"}, status=404)
-    
+
+
 
 # Serializers
 
