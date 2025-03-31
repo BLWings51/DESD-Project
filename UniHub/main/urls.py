@@ -11,7 +11,6 @@ urlpatterns = [
     path('Profile/Settings/', Profile.UpdateProfileView),
     path('Profile/Delete/', Profile.deleteProfile),
     path('admin_check/', views.is_admin),
-    path('Profile/', Profile.getAccountDetails),
     path('Profile/<str:account_ID>/', Profile.getAccountDetails),
     path('Societies/', society.getAllSocieties, name='society-list-create'),
     path('Societies/CreateSociety', society.society_create, name='society-list-create'),
