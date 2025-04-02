@@ -21,4 +21,8 @@ urlpatterns = [
     path('Societies/<str:society_name>/leave/', society.leave_society, name='leave-society'),
     path('Societies/<str:society_name>/CreateEvent/', Events.CreateEvent),
     path('Societies/<str:society_name>/Events/', Events.getAllEvents),
+    path('Societies/<str:society_name>/IsSocietyAdmin/', views.is_society_admin),
+    path('Societies/<str:society_name>/<int:eventID>/DeleteEvent/', Events.deleteEvent),
+    path('Societies/<str:society_name>/<int:eventID>/UpdateEvent/', Events.UpdateEvent),
+    path('Societies/<str:society_name>/<int:eventID>/', Events.getSingleEvent)
 ]
