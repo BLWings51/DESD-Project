@@ -16,6 +16,9 @@ import UpdateEvent from "./UpdateEvent";
 import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
 
+import "./static/stylesheet.css";
+
+
 
 import { MantineProvider, createTheme } from '@mantine/core';
 import { theme } from './theme';
@@ -24,7 +27,7 @@ import '@mantine/core/styles.css';
 
 const App = () => {
   return (
-    <MantineProvider theme={theme}>
+    <MantineProvider defaultColorScheme = "dark">
       <Router>
         <AuthProvider>
           <CustomNavbar />
