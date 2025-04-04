@@ -3,6 +3,8 @@ import { useAuth } from './authContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, Flex, Title, TextInput, Button, Text, Alert } from "@mantine/core";
 
+import Sidebar from "./Sidebar";
+
 import "./static/stylesheet.css";
 
 // import styles from "./static/login.module.css";
@@ -40,6 +42,9 @@ const Login = () => {
   };
 
   return (
+
+    <Sidebar> 
+
     <Flex justify="center" align="center" h="90vh" direction="column">
         <Card p={50} withBorder radius="lg" w={400}>
           <Card.Section p="md">
@@ -104,6 +109,8 @@ const Login = () => {
         </Card.Section>
       </Card>
     </Flex>
+
+    </Sidebar>
   );
 };
 
