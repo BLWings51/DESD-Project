@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      
+
   backend:
     build:
       context: ./UniHub # Build context is the UniHub directory
@@ -27,6 +27,7 @@ services:
       - DATABASE_PORT=5432
     volumes:
       - ./UniHub:/app
+    command: ["./waitForDB.sh", "db", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
 
   frontend:
     build: ./ReactFrontend

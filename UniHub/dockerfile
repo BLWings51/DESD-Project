@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+COPY waitForDB.sh ./waitForDB.sh
+RUN chmod +x ./waitForDB.sh
 
 # Setting up psql with postgreSQL client
 RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
