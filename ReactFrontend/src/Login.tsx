@@ -43,7 +43,6 @@ const Login = () => {
 
   return (
 
-    <Sidebar> 
 
     <Flex justify="center" align="center" h="90vh" direction="column">
         <Card p={50} withBorder radius="lg" w={400}>
@@ -109,8 +108,6 @@ const Login = () => {
         </Card.Section>
       </Card>
     </Flex>
-
-    </Sidebar>
   );
 };
 
