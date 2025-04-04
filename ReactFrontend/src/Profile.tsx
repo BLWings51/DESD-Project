@@ -180,158 +180,205 @@ const Profile = () => {
     const privateFields = ['email', 'accountID', 'societies', 'events'];
 
     return (
-        <Flex justify="center" align="center" direction="column" py="xl">
-            <Card p={30} shadow="md" radius="lg" w={400}>
-                <Group justify="space-between" mb="md">
-                    <Title order={2}>Profile</Title>
-                    {!editing && user?.is_owner && (
-                        <Group gap="xs">
-                            <ActionIcon
-                                color="blue"
-                                onClick={() => setEditing(true)}
-                                title="Edit profile"
-                            >
-                                <IconEdit size={18} />
-                            </ActionIcon>
-                            <ActionIcon
-                                color="red"
-                                onClick={() => setDeleteModalOpen(true)}
-                                title="Delete profile"
-                            >
-                                <IconTrash size={18} />
-                            </ActionIcon>
-                        </Group>
-                    )}
+        <Flex
+          justify="center"
+          align="center"
+          direction="column"
+          py="xl"
+          px="md" // Horizontal padding for smaller screens
+        >
+          <Card
+            p="xl"
+            shadow="md"
+            radius="lg"
+            w="100%"      // Full width on mobile
+            maw={450}     // Max width for desktop/tablet
+          >
+            <Group justify="space-between" mb="md" wrap="wrap">
+              <Title order={2}>Profile</Title>
+              {!editing && user?.is_owner && (
+                <Group gap="xs">
+                  <ActionIcon
+                    color="blue"
+                    onClick={() => setEditing(true)}
+                    title="Edit profile"
+                  >
+                    <IconEdit size={18} />
+                  </ActionIcon>
+                  <ActionIcon
+                    color="red"
+                    onClick={() => setDeleteModalOpen(true)}
+                    title="Delete profile"
+                  >
+                    <IconTrash size={18} />
+                  </ActionIcon>
                 </Group>
-
-                {error && (
-                    <Alert color="red" mb="md">
-                        {error}
-                    </Alert>
-                )}
-
-                {editing ? (
-                    <form onSubmit={form.onSubmit(handleSubmit)}>
-                        <TextInput
-                            label="First Name"
-                            placeholder="Your name"
-                            {...form.getInputProps('firstName')}
-                            mb="sm"
-                            required
-                        />
-
-                        <TextInput
-                            label="Last Name"
-                            placeholder="Your name"
-                            {...form.getInputProps('lastName')}
-                            mb="sm"
-                            required
-                        />
-
-                        <TextInput
-                            label="Email"
-                            placeholder="your@email.com"
-                            {...form.getInputProps('email')}
-                            mb="sm"
-                            required
-                            disabled={!user?.is_owner}
-                        />
-
-                        <Textarea
-                            label="Bio"
-                            placeholder="Tell us about yourself"
-                            {...form.getInputProps('bio')}
-                            minRows={4}
-                            mb="sm"
-                        />
-
-                        <Group justify="flex-end">
-                            <Button
-                                variant="default"
-                                onClick={() => {
-                                    setEditing(false);
-                                    if (user) form.setValues(user);
-                                }}
-                                leftSection={<IconX size={16} />}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                loading={loading}
-                                leftSection={<IconCheck size={16} />}
-                            >
-                                Save
-                            </Button>
+              )}
+            </Group>
+      
+            {error && (
+              <Alert color="red" mb="md">
+                {error}
+              </Alert>
+            )}
+      
+            {editing ? (
+              <form onSubmit={form.onSubmit(handleSubmit)}>
+                <TextInput
+                  label="First Name"
+                  placeholder="Your name"
+                  {...form.getInputProps("firstName")}
+                  mb="sm"
+                  required
+                />
+      
+                <TextInput
+                  label="Last Name"
+                  placeholder="Your name"
+                  {...form.getInputProps("lastName")}
+                  mb="sm"
+                  required
+                />
+      
+                <TextInput
+                  label="Email"
+                  placeholder="your@email.com"
+                  {...form.getInputProps("email")}
+                  mb="sm"
+                  required
+                  disabled={!user?.is_owner}
+                />
+      
+                <Textarea
+                  label="Bio"
+                  placeholder="Tell us about yourself"
+                  {...form.getInputProps("bio")}
+                  minRows={4}
+                  mb="sm"
+                />
+      
+                <Group justify="flex-end" mt="md" wrap="wrap">
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setEditing(false);
+                      if (user) form.setValues(user);
+                    }}
+                    leftSection={<IconX size={16} />}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    loading={loading}
+                    leftSection={<IconCheck size={16} />}
+                  >
+                    Save
+                  </Button>
+                </Group>
+              </form>
+            ) : user ? (
+              <Box>
+                <Flex justify="center" mb="md">
+                  <Avatar
+                    src={user.pfp}
+                    size={120}
+                    radius="50%"
+                    alt="Profile picture"
+                  />
+                </Flex>
+      
+                {/* Centered Name */}
+                <Flex justify="center" gap="md" mt="sm" wrap="wrap">
+                  <Text fw={500}>{user.firstName}</Text>
+                  <Text fw={500}>{user.lastName}</Text>
+                </Flex>
+      
+                {/* Centered Email */}
+                <Flex justify="center">
+                  <Text mt="xs">{user.email}</Text>
+                </Flex>
+      
+                {/* Centered ID */}
+                <Flex justify="center">
+                  <Text mt="xs">
+                    <strong>ID:</strong> {user.accountID}
+                  </Text>
+                </Flex>
+      
+                {/* Bio box */}
+                <Box
+                    mt="sm"
+                    p="sm"
+                    bg="dark.6"
+                    style={{
+                        borderRadius: '8px',
+                        minHeight: '80px',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word', // 💡 this line fixes the overflow
+                    }}
+                    >
+                    <Text size="sm" c="dimmed">
+                        {user.bio || 'No bio provided.'}
+                    </Text>
+                    </Box>
+                        
+                {/* Owner-only section */}
+                {user.is_owner && (
+                  <>
+                    {/* Societies */}
+                    <Box mt="md">
+                      <Flex align="center" gap="sm" mb="xs">
+                        <IconUsers size={18} />
+                        <Text fw={500}>societies:</Text>
+                      </Flex>
+                      {user.societies.length > 0 ? (
+                        <Group gap="sm" wrap="wrap">
+                          {user.societies.map((item: string) => (
+                            <Badge key={item} variant="light">
+                              {item}
+                            </Badge>
+                          ))}
                         </Group>
-                    </form>
-                ) : user ? (
-                    <Box>
-                        <Flex justify="center" mb="md">
-                            <Avatar
-                                src={user.pfp}
-                                size={120}
-                                radius="50%"
-                                alt="Profile picture"
-                            />
-                        </Flex>
-
-                        {/* Always show public fields */}
-                        {publicFields.map((key) => (
-                            <Text key={key} mt="xs">
-                                <strong>{key}:</strong> {user[key] || 'Not specified'}
-                            </Text>
-                        ))}
-
-                        {/* Show private fields only to owner */}
-                        {user.is_owner && (
-                            <>
-                                {privateFields.map((key) => {
-                                    if (key === 'societies' || key === 'events') {
-                                        return (
-                                            <Box key={key} mt="md">
-                                                <Flex align="center" gap="sm" mb="xs">
-                                                    {key === 'societies' ? (
-                                                        <IconUsers size={18} />
-                                                    ) : (
-                                                        <IconCalendarEvent size={18} />
-                                                    )}
-                                                    <Text fw={500}>{key}:</Text>
-                                                </Flex>
-                                                {user[key].length > 0 ? (
-                                                    <Group gap="sm">
-                                                        {user[key].map((item: string) => (
-                                                            <Badge key={item} variant="light">
-                                                                {item}
-                                                            </Badge>
-                                                        ))}
-                                                    </Group>
-                                                ) : (
-                                                    <Text fs="italic" c="dimmed">No {key}</Text>
-                                                )}
-                                            </Box>
-                                        );
-                                    }
-                                    return (
-                                        <Text key={key} mt="xs">
-                                            <strong>{key}:</strong> {user[key]}
-                                        </Text>
-                                    );
-                                })}
-                            </>
-                        )}
+                      ) : (
+                        <Text fs="italic" c="dimmed">
+                          No societies
+                        </Text>
+                      )}
                     </Box>
-                ) : (
-                    <Box>
-                        <Text mb="md">No profile found.</Text>
-                        {user && (user as UserProfile).is_owner && (
-                            <Button onClick={() => setEditing(true)}>
-                                Create Profile
-                            </Button>
-                        )}
+      
+                    {/* Events */}
+                    <Box mt="md">
+                      <Flex align="center" gap="sm" mb="xs">
+                        <IconCalendarEvent size={18} />
+                        <Text fw={500}>events:</Text>
+                      </Flex>
+                      {user.events.length > 0 ? (
+                        <Group gap="sm" wrap="wrap">
+                          {user.events.map((item: string) => (
+                            <Badge key={item} variant="light">
+                              {item}
+                            </Badge>
+                          ))}
+                        </Group>
+                      ) : (
+                        <Text fs="italic" c="dimmed">
+                          No events
+                        </Text>
+                      )}
                     </Box>
+                  </>
                 )}
-            </Card>
+              </Box>
+            ) : (
+              <Box>
+                <Text mb="md">No profile found.</Text>
+                {user && (user as UserProfile).is_owner && (
+                  <Button onClick={() => setEditing(true)}>Create Profile</Button>
+                )}
+              </Box>
+            )}
+          </Card>
 
             {user?.is_owner && (
                 <Modal
