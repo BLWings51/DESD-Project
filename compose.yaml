@@ -1,5 +1,17 @@
 version: '3.8'
 services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      
   backend:
     build:
       context: ./UniHub # Build context is the UniHub directory
@@ -8,9 +20,12 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=1
-      - SQLITE_PATH=/app/db.sqlite3 # Path within the container
+      - DATABASE_NAME=mydatabase
+      - DATABASE_USER=myuser
+      - DATABASE_PASSWORD=mypassword
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
     volumes:
-      #- sqlite_data:/app  # Mount volume at /app
       - ./UniHub:/app
 
   frontend:
@@ -23,4 +38,4 @@ services:
       - backend
 
 volumes:
-  sqlite_data:
+  pgdata:
