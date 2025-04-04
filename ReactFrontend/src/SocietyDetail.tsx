@@ -4,9 +4,10 @@ import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
 import {
     Card, Title, Text, Loader, Flex, Button, Image,
-    Tabs, Badge, Group, ActionIcon, Modal, Textarea
+    Tabs, Badge, Group, ActionIcon, Modal, Textarea, Box
 } from "@mantine/core";
 import { IconEdit, IconTrash, IconCalendarEvent } from "@tabler/icons-react";
+import Sidebar from "./Sidebar";
 
 interface SocietyDetail {
     name: string;
@@ -168,129 +169,180 @@ const SocietyDetail = () => {
     }
 
     return (
-        <div>
-            <Flex justify="space-between" align="center" mb="md">
-                <Title order={2}>{society.name}</Title>
 
-                <Group>
-                    {isAdmin && (
-                        <>
-                            <Button
-                                leftSection={<IconEdit size={16} />}
-                                component={Link}
-                                to={`/Societies/${society_name}/UpdateSociety/`}
-                            >
-                                Edit
-                            </Button>
-                            <ActionIcon
-                                color="red"
-                                variant="outline"
-                                onClick={() => setDeleteModalOpen(true)}
-                            >
-                                <IconTrash size={16} />
-                            </ActionIcon>
-                        </>
-                    )}
-                    {isAuthenticated && (
-                        <>
-                            <Button
-                                color={'blue'}
-                                onClick={handleJoin}
-                            >
-                                {'Join'} ({society.numOfInterestedPeople})
-                            </Button>
-                            <Button
-                                color={'red'}
-                                onClick={handleLeave}
-                            >
-                                {'Leave'} ({society.numOfInterestedPeople})
-                            </Button>
-                        </>
-                    )}
-                </Group>
-            </Flex>
+        <Sidebar>
 
-            {error && <Text color="red">{error}</Text>}
-
-            <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
-                <Card.Section>
-                    <Image
-                        src={society.logo || '/default-society-logo.png'}
-                        height={300}
-                        alt={society.name}
-                    />
-                </Card.Section>
-                <Text mt="md">{society.description}</Text>
-            </Card>
-
-            <Tabs defaultValue="events">
-                <Tabs.List>
-                    <Tabs.Tab value="events" leftSection={<IconCalendarEvent size={16} />}>
-                        Events
-                    </Tabs.Tab>
-                </Tabs.List>
-
-                <Tabs.Panel value="events">
-                    {isAdmin && (
-                        <Button
-                            component={Link}
-                            to={`/Societies/${society_name}/CreateEvent/`}
-                            mb="md"
-                        >
-                            Create Event
-                        </Button>
-                    )}
-
-                    {events.length > 0 ? (
-                        events.map((event) => (
-                            <Card key={event.id} shadow="sm" padding="lg" radius="md" withBorder mb="sm">
-                                <Group justify="space-between">
-                                    <div>
-                                        <Title order={4}>{event.name}</Title>
-                                        <Text>
-                                            {formatDateTime(event.startTime)} - {formatDateTime(event.endTime)}
-                                        </Text>
-                                        <Text>{event.location}</Text>
-                                        <Badge
-                                            color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
-                                            mt="sm"
-                                        >
-                                            {event.status}
-                                        </Badge>
-                                    </div>
-                                    <Button
-                                        component={Link}
-                                        to={`/Societies/${society_name}/${event.id}`}
-                                        variant="outline"
+        <Flex justify="center" align="flex-start" gap="md" px="md">
+            {/* Left Sidebar Placeholder */}
+            <div style={{ width: "200px" }} />
+    
+            {/* Main Content */}
+            <Box style={{ flex: 1, maxWidth: "900px" }} p="md">
+                {/* Header Section with Responsive Flex */}
+                <Flex 
+                    justify="space-between" 
+                    align="center" 
+                    mb="md"
+                    wrap="wrap"
+                    gap="md"
+                    pr={{ base: 'md', xs: 0 }}
+                >
+                    <Title order={2}>{society.name}</Title>
+    
+                    <Group wrap="nowrap">
+                        {isAdmin && (
+                            <>
+                                <Button
+                                    leftSection={<IconEdit size={16} />}
+                                    component={Link}
+                                    to={`/Societies/${society_name}/UpdateSociety/`}
+                                    size="compact-md"
+                                >
+                                    Edit
+                                </Button>
+                                <ActionIcon
+                                    color="red"
+                                    variant="outline"
+                                    onClick={() => setDeleteModalOpen(true)}
+                                    size="lg"
+                                >
+                                    <IconTrash size={16} />
+                                </ActionIcon>
+                            </>
+                        )}
+                        {isAuthenticated && (
+                            <Group wrap="nowrap">
+                                <Button
+                                    color="blue"
+                                    onClick={handleJoin}
+                                    size="compact-md"
+                                >
+                                    Join ({society.numOfInterestedPeople})
+                                </Button>
+                                <Button
+                                    color="red"
+                                    onClick={handleLeave}
+                                    size="compact-md"
+                                >
+                                    Leave
+                                </Button>
+                            </Group>
+                        )}
+                    </Group>
+                </Flex>
+    
+                {/* Society Details Card */}
+                <Card 
+                    shadow="sm" 
+                    p="lg" 
+                    radius="md" 
+                    withBorder 
+                    mb="md"
+                    style={{ overflow: 'hidden' }}
+                >
+                    <Card.Section>
+                        <Image
+                            src={society.logo || '/default-society-logo.png'}
+                            height={300}
+                            alt={society.name}
+                            fit="cover"
+                        />
+                    </Card.Section>
+                    <Text mt="md">{society.description}</Text>
+                </Card>
+    
+                {/* Events Section */}
+                <Tabs defaultValue="events">
+                    <Tabs.List>
+                        <Tabs.Tab value="events" leftSection={<IconCalendarEvent size={16} />}>
+                            Events
+                        </Tabs.Tab>
+                    </Tabs.List>
+    
+                    <Tabs.Panel value="events" pt="md">
+                        <Flex direction="column" gap="md">
+                            {isAdmin && (
+                                <Button
+                                    component={Link}
+                                    to={`/Societies/${society_name}/CreateEvent/`}
+                                    w={{ base: '100%', sm: 'fit-content' }}
+                                >
+                                    Create Event
+                                </Button>
+                            )}
+    
+                            {events.length > 0 ? (
+                                events.map((event) => (
+                                    <Card 
+                                        key={event.id} 
+                                        shadow="sm" 
+                                        p="lg" 
+                                        radius="md" 
+                                        withBorder
                                     >
-                                        View Details
-                                    </Button>
-                                </Group>
-                            </Card>
-                        ))
-                    ) : (
-                        <Text>No events scheduled</Text>
-                    )}
-                </Tabs.Panel>
-            </Tabs>
+                                        <Flex 
+                                            justify="space-between" 
+                                            align={{ base: 'flex-start', sm: 'center' }}
+                                            direction={{ base: 'column', sm: 'row' }}
+                                            gap="md"
+                                        >
+                                            <div>
+                                                <Title order={4}>{event.name}</Title>
+                                                <Text>
+                                                    {formatDateTime(event.startTime)} - {formatDateTime(event.endTime)}
+                                                </Text>
+                                                <Text>{event.location}</Text>
+                                                <Badge
+                                                    color={event.status === 'upcoming' ? 'blue' : 'green'}
+                                                    mt="sm"
+                                                >
+                                                    {event.status}
+                                                </Badge>
+                                            </div>
+                                            <Button
+                                                component={Link}
+                                                to={`/Societies/${society_name}/${event.id}`}
+                                                variant="outline"
+                                                w={{ base: '100%', sm: 'fit-content' }}
+                                            >
+                                                View Details
+                                            </Button>
+                                        </Flex>
+                                    </Card>
+                                ))
+                            ) : (
+                                <Text>No events scheduled</Text>
+                            )}
+                        </Flex>
+                    </Tabs.Panel>
+                </Tabs>
+    
+                {/* Delete Modal */}
+                <Modal
+                    opened={deleteModalOpen}
+                    onClose={() => setDeleteModalOpen(false)}
+                    title="Delete Society"
+                    centered
+                >
+                    <Text>Are you sure you want to delete this society?</Text>
+                    <Group justify="flex-end" mt="md">
+                        <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button color="red" onClick={handleDeleteSociety}>
+                            Delete
+                        </Button>
+                    </Group>
+                </Modal>
+            </Box>
+    
+            {/* Right Sidebar Placeholder */}
+            <div style={{ width: "200px" }} />
+        </Flex>
 
-            <Modal
-                opened={deleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                title="Delete Society"
-            >
-                <Text>Are you sure you want to delete this society?</Text>
-                <Group justify="flex-end" mt="md">
-                    <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
-                        Cancel
-                    </Button>
-                    <Button color="red" onClick={handleDeleteSociety}>
-                        Delete
-                    </Button>
-                </Group>
-            </Modal>
-        </div>
+        </Sidebar>
     );
+    
 };
 
 export default SocietyDetail;

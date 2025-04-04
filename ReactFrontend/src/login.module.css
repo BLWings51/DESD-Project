@@ -1,0 +1,7 @@
+.cardDecorator{
+    background-color: var(--mantine-color-primary-4);
+    border-radius: var(--mantine-radius-lg);
+    padding: 2rem;
+  
+  
+  }

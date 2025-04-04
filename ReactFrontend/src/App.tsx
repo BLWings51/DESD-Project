@@ -16,6 +16,9 @@ import UpdateEvent from "./UpdateEvent";
 import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
 
+import "./static/stylesheet.css";
+
+
 
 import { MantineProvider, createTheme } from '@mantine/core';
 import { theme } from './theme';
@@ -24,23 +27,24 @@ import '@mantine/core/styles.css';
 
 const App = () => {
   return (
-    <MantineProvider theme={theme}>
+    <MantineProvider defaultColorScheme = "dark">
       <Router>
         <AuthProvider>
           <CustomNavbar />
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/Societies" element={<Societies />} />
+            <Route path="/Societies/:society_name" element={<SocietyDetail />} />
+            <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
+            <Route path="/Societies/:society_name/UpdateSociety" element={<UpdateSociety />} />
+            <Route path="/Societies/:society_name/CreateEvent" element={<CreateEvent />} />
+            <Route path="/Societies/:society_name/:eventID" element={<EventDetail />} />
+            <Route path="/Societies/:society_name/:eventID/UpdateEvent" element={<UpdateEvent />} />
+
             <Route element={<ProtectedRoute />}>
-              <Route path="/home" element={<Home />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/Societies" element={<Societies />} />
-              <Route path="/Societies/:society_name" element={<SocietyDetail />} />
-              <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
-              <Route path="/Societies/:society_name/UpdateSociety" element={<UpdateSociety />} />
-              <Route path="/Societies/:society_name/CreateEvent" element={<CreateEvent />} />
-              <Route path="/Societies/:society_name/:eventID" element={<EventDetail />} />
-              <Route path="/Societies/:society_name/:eventID/UpdateEvent" element={<UpdateEvent />} />
             </Route>
           </Routes>
         </AuthProvider>
