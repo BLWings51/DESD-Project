@@ -1,5 +1,5 @@
 from rest_framework import generics
-from .models import Society, SocietyRelation
+from .models import Society, SocietyRelation, Account
 from .permissions import *
 from rest_framework import serializers
 from rest_framework.permissions import *
@@ -19,24 +19,25 @@ def join_society(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     user = request.user
+    data = {'society_id': society.id, 'account_id': user.id}
     full_name = f"{user.firstName} {user.lastName}"
 
-    # Check if the user is already a member
-    if SocietyRelation.objects.filter(society_id=society.id, account_id=user.id).exists():
+
+    society_relation = SocietyRelation.objects.filter(society=society.id, account=user.id)
+    if society_relation.exists():
         return Response({"UserError": f"{full_name} is already a member"}, status=400)
 
-    # Saving it into SocietyRelation
-    society_relation = SocietyRelation(society_id=society.id, account_id=user.id, adminStatus=False)
-    society_relation.save()
+    serializer = JoinSocietySerializer(data=data)
 
-    # Increment count
-    society.numOfInterestedPeople += 1
-    society.save()
+    if serializer.is_valid():
+        serializer.save()
+        updated_society = Society.objects.get(id=society.id)
+        return Response({
+            "message": f"{user.firstName} {user.lastName} joined the society",
+            "numOfInterestedPeople": updated_society.numOfInterestedPeople
+        }, status=200)
 
-    return Response({
-        "message": f"{full_name} joined the society",
-        "numOfInterestedPeople": society.numOfInterestedPeople
-    }, status=200)
+    return Response(serializer.errors, status=400)
 
 # Leave society
 @api_view(['POST'])
@@ -48,26 +49,20 @@ def leave_society(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     user = request.user
+    data = {'society_id': society.id, 'account_id': user.id}
     full_name = f"{user.firstName} {user.lastName}"
 
-    # Check if the user is a member
-    society_relation = SocietyRelation.objects.filter(society_id=society.id, account_id=user.id).first()
+    society_relation = SocietyRelation.objects.filter(society=society.id, account=user.id)
     if not society_relation:
         return Response({"UserError": f"{full_name} is not a member of this society"}, status=400)
 
-    # Remove user from the society
-    society_relation.delete()
+    serializer = LeaveSocietySerializer(data=data)
+    
+    if serializer.is_valid():
+        response_data = serializer.leaveSociety(serializer.validated_data)
+        return Response(response_data, status=200)
 
-    # Decrement count (ensure it doesn’t go negative)
-    if society.numOfInterestedPeople > 0:
-        society.numOfInterestedPeople -= 1
-        society.save()
-
-    return Response({
-        "message": f"{full_name} left the society",
-        "numOfInterestedPeople": society.numOfInterestedPeople
-    }, status=200)
-
+    return Response(serializer.errors, status=400)
 
 
 # Create society
@@ -107,6 +102,7 @@ def UpdateSocietyView(request, society_name):
 
     return Response(serializer.errors, status=400)
 
+# Return a list of societies
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def getAllSocieties(request):
@@ -137,22 +133,200 @@ def DeleteSocietyView(request, society_name):
         return Response({"error": "Society does not exist or already deleted"}, status=404)
 
 
+# Promote members to Society Admin
+@api_view(['POST'])
+@permission_classes([IsSocietyAdmin])  # Restrict to admins only
+def promote_member(request, society_name, member_id):
+    try:
+        society = Society.objects.get(name=society_name)
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
+
+    user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
+
+    try:
+        member_relation = SocietyRelation.objects.get(society=society, account_id=member_id)
+    except SocietyRelation.DoesNotExist:
+        return Response({"error": f"{full_name} is not a member of this society"}, status=400)
+
+    if member_relation.adminStatus:
+        return Response({"error": f"{full_name} is already promoted as admin"}, status=400)
+
+    # Use serializer to promote the user
+    serializer = PromoteMemberSerializer(member_relation, data={"adminStatus": True}, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": f"{full_name} has been promoted to admin"}, status=200)
+
+    return Response(serializer.errors, status=400)
+
+
+
+# Demote members
+@api_view(['POST'])
+@permission_classes([IsSocietyAdmin])
+def demote_member(request, society_name, member_id):
+    try:
+        society = Society.objects.get(name=society_name)
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
+
+    user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
+
+    try:
+        member_relation = SocietyRelation.objects.get(society=society, account_id=member_id)
+    except SocietyRelation.DoesNotExist:
+        return Response({"error": f"{full_name} is not a member of this society"}, status=400)
+
+    if not member_relation.adminStatus:
+        return Response({"error": f"{full_name} is already demoted as member"}, status=400)
+
+    # Use serializer to promote the user
+    serializer = DemoteMemberSerializer(member_relation, data={"adminStatus": False}, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"message": f"{full_name} has been demoted to member"}, status=200)
+
+    return Response(serializer.errors, status=400)
+
+# Kick members
+@api_view(['POST'])
+@permission_classes([IsSocietyAdmin])
+def kick_member(request, society_name, member_id):
+    try:
+        society = Society.objects.get(name=society_name)
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
+
+    user = request.user
+    full_name = f"{user.firstName} {user.lastName}"
+
+    try:
+        member_relation = SocietyRelation.objects.get(society=society, account_id=member_id)
+    except SocietyRelation.DoesNotExist:
+        return Response({"error": f"{full_name} is not a member of this society"}, status=400)
+
+    if member_relation.adminStatus:
+        return Response({"error": f"Cannot kick {full_name} as an admin"}, status=400)
+
+    # Directly call the kickMember method of the serializer
+    serializer = KickMemberSerializer(data={'society': society.id, 'account': member_id})  # Pass the necessary data
+    serializer.is_valid(raise_exception=True)  # Raise exception if invalid
+    response_data = serializer.kickMember(serializer.validated_data)
+    return Response(response_data, status=200)
+
+
 
 # Serializers
 
-class LeaveSocietySerializer(serializers.ModelSerializer):
+class KickMemberSerializer(serializers.Serializer):  # Use serializers.Serializer, not ModelSerializer
+    society = serializers.PrimaryKeyRelatedField(queryset=Society.objects.all())
+    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all())
+
+    def kickMember(self, validated_data):
+        society = validated_data['society']
+        account = validated_data['account']
+
+        print(f"Before kick: numOfInterestedPeople = {society.numOfInterestedPeople}")
+
+        try:
+            relation = SocietyRelation.objects.get(society=society, account=account)
+
+            # Remove the member
+            relation.delete()
+
+            # Ensure count doesn’t go below 0
+            society.numOfInterestedPeople = max(society.numOfInterestedPeople - 1, 0)
+            society.save(update_fields=['numOfInterestedPeople'])
+
+            print(f"After kick: numOfInterestedPeople = {society.numOfInterestedPeople}")
+
+            return {"message": f"{account.firstName} {account.lastName} has been kicked from society", "numOfInterestedPeople": society.numOfInterestedPeople}
+        except SocietyRelation.DoesNotExist:
+            return {"SocietyError": "Society relation not found"}
+
+        
+        
+
+class PromoteMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SocietyRelation
+        fields = ['adminStatus']  # Only updating adminStatus
+
+    def update(self, instance, validated_data):
+        instance.adminStatus = True  # Demote the user
+        instance.save()
+        return instance
+
+
+class DemoteMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SocietyRelation
+        fields = ['adminStatus']  # Only updating adminStatus
+
+    def update(self, instance, validated_data):
+        instance.adminStatus = False  # Demote the user
+        instance.save()
+        return instance
+
+
+class JoinSocietySerializer(serializers.ModelSerializer):
+    society_id = serializers.PrimaryKeyRelatedField(queryset=Society.objects.all(), source="society")
+    account_id = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), source="account")
     class Meta:
         model = SocietyRelation
         fields = ['society_id', 'account_id', 'adminStatus']
-        
-    def leaveSociety(self, validated_data):
-        accountID = self.context.get('account_id')
-        
-        society = SocietyRelation(accountID=accountID, societyID=validated_data['society_id'], adminStatus=validated_data['adminStatus'])
-        society.save()
-        
 
-        return society
+    def create(self, validated_data):
+        society = validated_data['society']
+        user = validated_data['account']
+
+        print(f"Before join: numOfInterestedPeople = {society.numOfInterestedPeople}")
+
+        # Create relation
+        relation = SocietyRelation.objects.create(society=society, account=user, adminStatus=False)
+
+        # Increment count safely
+        society.numOfInterestedPeople += 1
+        society.save(update_fields=['numOfInterestedPeople'])
+
+        print(f"After join: numOfInterestedPeople = {society.numOfInterestedPeople}")
+
+        return relation
+
+class LeaveSocietySerializer(serializers.ModelSerializer):
+    society_id = serializers.PrimaryKeyRelatedField(queryset=Society.objects.all(), source="society")
+    account_id = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), source="account")
+    class Meta:
+        model = SocietyRelation
+        fields = ['society_id', 'account_id', 'adminStatus']
+
+    def leaveSociety(self, validated_data):
+        society = validated_data['society']
+        user = validated_data['account']
+
+        print(f"Before leave: numOfInterestedPeople = {society.numOfInterestedPeople}")
+
+        try:
+            relation = SocietyRelation.objects.get(society=society, account=user)
+
+            # Remove the member
+            relation.delete()
+
+            # Ensure count doesn’t go below 0
+            society.numOfInterestedPeople = max(society.numOfInterestedPeople - 1, 0)
+            society.save(update_fields=['numOfInterestedPeople'])
+
+            print(f"After leave: numOfInterestedPeople = {society.numOfInterestedPeople}")
+
+            return {"message": f"{user.firstName} {user.lastName} left the society", "numOfInterestedPeople": society.numOfInterestedPeople}
+        except SocietyRelation.DoesNotExist:
+            return {"SocietyError": "Society relation not found"}
+
 
 class CreateSocietySerializer(serializers.ModelSerializer):
     class Meta:
