@@ -115,10 +115,14 @@ DATABASES = {
         'NAME': os.environ.get('DATABASE_NAME', 'mydatabase'),
         'USER': os.environ.get('DATABASE_USER', 'myuser'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'mypassword'),
-        'HOST': os.environ.get('DATABASE_HOST', 'localhost' if os.environ.get('USE_LOCAL_DB') else 'db'),
         'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
+
+if os.environ.get('RUNNING_IN_DOCKER') == 'true':
+    DATABASES['default']['HOST'] = os.environ.get('DATABASE_HOST', 'db')
+else:
+    DATABASES['default']['HOST'] = 'localhost'
 
 
 # Password validation
