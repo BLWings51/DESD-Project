@@ -79,3 +79,12 @@ class Event(models.Model):
 class EventRelation(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
+
+class Post(models.Model):
+    author = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='posts')
+    society = models.ForeignKey(Society, on_delete=models.CASCADE, null=True, blank=True, related_name='posts')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
