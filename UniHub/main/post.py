@@ -49,7 +49,7 @@ def create_post(request, society_name):
 # Update post
 @api_view(['PATCH'])
 @permission_classes([IsSocietyAdmin])
-def update_post(request, post_id):
+def update_post(request, society_name, post_id):
     try:
         post = Post.objects.get(id=post_id)
     except Post.DoesNotExist:
@@ -69,7 +69,7 @@ def update_post(request, post_id):
 # Delete a post
 @api_view(['DELETE'])
 @permission_classes([IsSocietyAdmin])
-def delete_post(request, post_id):
+def delete_post(request, society_name, post_id):
     try:
         post = Post.objects.get(id=post_id)
     except Post.DoesNotExist:
