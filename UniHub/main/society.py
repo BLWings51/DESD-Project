@@ -135,7 +135,7 @@ def DeleteSocietyView(request, society_name):
 
 # Promote members to Society Admin
 @api_view(['POST'])
-@permission_classes([IsSocietyAdmin])  # Restrict to admins only
+@permission_classes([IsAdmin])  # Restrict to admins only
 def promote_member(request, society_name, member_id):
     try:
         society = Society.objects.get(name=society_name)
@@ -166,7 +166,7 @@ def promote_member(request, society_name, member_id):
 
 # Demote members
 @api_view(['POST'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAdmin])
 def demote_member(request, society_name, member_id):
     try:
         society = Society.objects.get(name=society_name)
@@ -195,7 +195,7 @@ def demote_member(request, society_name, member_id):
 
 # Kick members
 @api_view(['POST'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAdmin])
 def kick_member(request, society_name, member_id):
     try:
         society = Society.objects.get(name=society_name)
