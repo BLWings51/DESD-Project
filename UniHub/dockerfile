@@ -24,6 +24,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copying the rest of the application code
 COPY . .
 
+COPY importDB.sh ./importDB.sh
+RUN chmod +x ./importDB.sh
+
 # Expose Django's default port
 EXPOSE 8000
 
