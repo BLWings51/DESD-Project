@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from rest_framework import serializers
-from .models import Event, Society, SocietyRelation
+from .models import Event, Society, SocietyRelation, EventRelation
 from .permissions import IsAdminOrSocietyAdmin
 
 # creating an event
@@ -270,3 +270,20 @@ def leave_event(request, society_name, eventID):
         return Response(response_data, status=200)
 
     return Response(serializer.errors, status=400)
+
+# retrieving the data for one event
+class GetSocietyFromEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Society
+        fields = ['name']
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getSocietyFromEvent(request, eventID):
+    event = get_object_or_404(Event, id=eventID)
+    event_check = Event.objects.filter(id=event.id)
+    if not event_check.exists():
+        return Response({"error": f"event {event.id} does not exist"})
+    society = Society.objects.filter(id=event.society_id).first()
+    serializer = GetSocietyFromEventSerializer(society)
+    return Response(serializer.data)
