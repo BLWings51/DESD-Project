@@ -4,7 +4,11 @@ FROM python:3.10-slim
 # Set the working directory
 WORKDIR /app
 
-# Installing any OS-level dependencies if needed
+# Explicitly create a new sources.list with HTTPS (This is for connection issues with apt-get update)
+RUN echo "deb https://deb.debian.org/debian bookworm main contrib non-free" > /etc/apt/sources.list
+RUN echo "deb https://deb.debian.org/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list
+RUN echo "deb https://deb.debian.org/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
