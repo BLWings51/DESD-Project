@@ -25,7 +25,7 @@ def search(request):
     # Search Events
     if search_type in ['', 'event']:
         events = Event.objects.filter(Q(name__icontains=query) | Q(details__icontains=query))
-        results['events'] = list(events.values('id', 'name', 'details', 'startTime', 'endTime', 'location'))
+        results['events'] = list(events.values('id', 'name', 'details', 'startTime', 'endTime', 'location', 'society_id'))
 
     # Search Users
     if search_type in ['', 'user']:
