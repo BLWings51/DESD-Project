@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from rest_framework import serializers
-from .models import Event, Society, SocietyRelation
+from .models import Event, Society, SocietyRelation, EventRelation
 from .permissions import IsAdminOrSocietyAdmin
 
 # creating an event
