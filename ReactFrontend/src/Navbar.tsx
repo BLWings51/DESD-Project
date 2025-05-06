@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from './authContext';
-import { Container, Group, Button, Text, Paper, Menu, Burger } from "@mantine/core";
+import { Container, Group, Button, Text, Paper, Menu, Burger, TextInput, Loader, List } from "@mantine/core";
 import { Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import { useDisclosure } from "@mantine/hooks";
-import { IconChevronDown } from "@tabler/icons-react";
+import { IconChevronDown, IconSearch } from "@tabler/icons-react";
 
 interface Is_Admin {
     admin: boolean;
@@ -15,6 +15,10 @@ const Navbar: React.FC = () => {
     const [isAdmin, setIsAdmin] = useState(true);
     const [opened, { toggle }] = useDisclosure(false);
     const navigate = useNavigate();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
 
     // Check if user is admin
     useEffect(() => {
@@ -44,6 +48,12 @@ const Navbar: React.FC = () => {
         }
     };
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchTerm.trim()) return;
+        navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+    };
+
     return (
         <Paper shadow="sm" p="md" style={{ position: "sticky", top: 0, zIndex: 1000 }}>
             <Container fluid>
@@ -51,6 +61,17 @@ const Navbar: React.FC = () => {
                     <Text size="xl" component={Link} to="/home" style={{ textDecoration: 'none' }}>
                         UWEhub
                     </Text>
+                    <form onSubmit={handleSearch} style={{ flex: 1, marginLeft: 24, marginRight: 24 }}>
+                        <TextInput
+                            leftSection={<IconSearch size={18} />}
+                            leftSectionPointerEvents="none"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                            rightSection={searchLoading ? <Loader size="xs" /> : null}
+                            style={{ minWidth: 300 }}
+                        />
+                    </form>
 
                     {/* Desktop Navigation */}
                     <Group gap="lg" visibleFrom="sm">
