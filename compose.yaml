@@ -19,7 +19,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./UniHub:/app_host:ro
-      - ./init_db.sh:/docker-entrypoint-initdb.d/init_db.sh:ro # Mount the script
     command: [ "postgres", "-c", "fsync=off" ] # Add any custom PostgreSQL commands here
 
   backend:
@@ -36,7 +35,7 @@ services:
       - RUNNING_IN_DOCKER=true
     depends_on:
       - db
-    command: ["./waitForDB.sh", "db", "sh", "-c", "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000" ]
+    command: ["./importDB.sh"]
 
   frontend:
     build: ./ReactFrontend
