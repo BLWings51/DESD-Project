@@ -18,5 +18,5 @@ else
   echo "Database already has data, skipping loaddata."
 fi
 
-# Start the server
+# Start the server!
 python manage.py runserver 0.0.0.0:8000
