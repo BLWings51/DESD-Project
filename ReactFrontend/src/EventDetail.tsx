@@ -4,9 +4,11 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import {
     Card, Title, Text, Loader, Button,
-    Group, ActionIcon, Modal, Badge
+    Group, ActionIcon, Modal, Badge, Flex
 } from "@mantine/core";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
+import Sidebar from "./Sidebar";
+import RightSidebar from "./RightSidebar";
 
 interface EventDetail {
     id: number;
@@ -115,72 +117,86 @@ const EventDetail = () => {
     }
 
     return (
-        <div>
-            <Group justify="space-between" mb="md">
-                <Title order={2}>{event.name}</Title>
+        <>
+            <Sidebar>
+                <Flex justify="center" align="flex-start" gap="md" px="md">
+                    {/* Left Sidebar Placeholder */}
+                    <div style={{ width: "200px" }} />
+        
+                    {/* Main Content */}
+                    <div style={{ flex: 1, maxWidth: "900px" }}>
+                        <Group justify="space-between" mb="md">
+                            <Title order={2}>{event.name}</Title>
 
-                <Group>
-                    {isAdmin && (
-                        <>
-                            <Button
-                                leftSection={<IconEdit size={16} />}
-                                component={Link}
-                                to={`/Societies/${society_name}/Events/${eventID}/UpdateEvent`}
-                            >
-                                Edit
-                            </Button>
-                            <ActionIcon
-                                color="red"
-                                variant="outline"
-                                onClick={() => setDeleteModalOpen(true)}
-                            >
-                                <IconTrash size={16} />
-                            </ActionIcon>
-                        </>
-                    )}
-                </Group>
-            </Group>
+                            <Group>
+                                {isAdmin && (
+                                    <>
+                                        <Button
+                                            leftSection={<IconEdit size={16} />}
+                                            component={Link}
+                                            to={`/Societies/${society_name}/Events/${eventID}/UpdateEvent`}
+                                        >
+                                            Edit
+                                        </Button>
+                                        <ActionIcon
+                                            color="red"
+                                            variant="outline"
+                                            onClick={() => setDeleteModalOpen(true)}
+                                        >
+                                            <IconTrash size={16} />
+                                        </ActionIcon>
+                                    </>
+                                )}
+                            </Group>
+                        </Group>
 
-            <Card shadow="sm" padding="lg" radius="md" withBorder mb="md">
-                <Text size="lg" mb="sm">
-                    <strong>Start:</strong> {formatDateTime(event.startTime)}
-                </Text>
-                <Text size="lg" mb="sm">
-                    <strong>End:</strong> {formatDateTime(event.endTime)}
-                </Text>
-                <Text size="lg" mb="sm">
-                    <strong>Location:</strong> {event.location}
-                </Text>
-                <Text mb="sm">
-                    <strong>Status:</strong>
-                    <Badge
-                        color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
-                        ml="sm"
-                    >
-                        {event.status}
-                    </Badge>
-                </Text>
-                <Text>
-                    <strong>Details:</strong> {event.details}
-                </Text>
-            </Card>
+                        <Card shadow="sm" p="lg" radius="md" withBorder>
+                            <Text size="lg" mb="sm">
+                                <strong>Start:</strong> {formatDateTime(event.startTime)}
+                            </Text>
+                            <Text size="lg" mb="sm">
+                                <strong>End:</strong> {formatDateTime(event.endTime)}
+                            </Text>
+                            <Text size="lg" mb="sm">
+                                <strong>Location:</strong> {event.location}
+                            </Text>
+                            <Text mb="sm">
+                                <strong>Status:</strong>
+                                <Badge
+                                    color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
+                                    ml="sm"
+                                >
+                                    {event.status}
+                                </Badge>
+                            </Text>
+                            <Text>
+                                <strong>Details:</strong> {event.details}
+                            </Text>
+                        </Card>
 
-            <Modal
-                opened={deleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                title="Delete Event"
-            >
-                <Text>Are you sure you want to delete this event?</Text>
-                <Group justify="flex-end" mt="md">
-                    <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
-                        Cancel
-                    </Button>
-                    <Button color="red" onClick={handleDelete}>
-                        Delete
-                    </Button>
-                </Group>
-            </Modal>
-        </div>
+                        <Modal
+                            opened={deleteModalOpen}
+                            onClose={() => setDeleteModalOpen(false)}
+                            title="Delete Event"
+                        >
+                            <Text>Are you sure you want to delete this event?</Text>
+                            <Group justify="flex-end" mt="md">
+                                <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button color="red" onClick={handleDelete}>
+                                    Delete
+                                </Button>
+                            </Group>
+                        </Modal>
+                    </div>
+        
+                    {/* Right Sidebar Placeholder */}
+                    <div style={{ width: "200px" }} />
+                </Flex>
+            </Sidebar>
+            <RightSidebar />
+        </>
     );
 };
 

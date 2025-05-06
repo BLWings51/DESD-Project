@@ -1,120 +1,214 @@
-import { Stack, Group, Grid, Center, Card, Image, Text, Title, Button, Container } from '@mantine/core';
+import { useEffect, useState } from "react";
+import { Stack, Group, Grid, Center, Card, Image, Text, Title, Button, Container, Flex, Loader } from '@mantine/core';
+import { Link } from "react-router-dom";
+import { useAuth } from "./authContext";
+import apiRequest from "./api/apiRequest";
 import "./App.css";
+import Sidebar from "./Sidebar";
+import RightSidebar from "./RightSidebar";
+
+interface Society {
+  id: number;
+  name: string;
+  description: string;
+  logo: string | null;
+  numOfInterestedPeople: number;
+}
+
+interface Event {
+  id: number;
+  name: string;
+  details: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  society: string;
+}
 
 const Home: React.FC = () => {
-  // Mock data - you'll replace this with your backend calls
-  const featuredSocieties = [
-    { id: 1, name: "Photography Club", members: 120, coverImage: "https://source.unsplash.com/random/300x200/?photography" },
-    { id: 2, name: "Debate Society", members: 85, coverImage: "https://source.unsplash.com/random/300x200/?debate" },
-    { id: 3, name: "Computer Science Society", members: 210, coverImage: "https://source.unsplash.com/random/300x200/?coding" },
-  ];
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [featuredSocieties, setFeaturedSocieties] = useState<Society[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const upcomingEvents = [
-    { id: 1, title: "Photography Exhibition", date: "Oct 15, 2023", society: "Photography Club", image: "https://source.unsplash.com/random/300x200/?exhibition" },
-    { id: 2, title: "Tech Talk: AI Future", date: "Oct 18, 2023", society: "Computer Science Society", image: "https://source.unsplash.com/random/300x200/?ai" },
-    { id: 3, title: "Debate Competition", date: "Oct 20, 2023", society: "Debate Society", image: "https://source.unsplash.com/random/300x200/?debate" },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch societies
+        const societiesResponse = await apiRequest<Society[]>({
+          endpoint: '/Societies/',
+          method: 'GET',
+        });
 
-  const recentPhotos = [
-    { id: 1, url: "https://source.unsplash.com/random/200x200/?university", caption: "Freshers Week 2023", likes: 42 },
-    { id: 2, url: "https://source.unsplash.com/random/200x200/?event", caption: "Society Fair", likes: 28 },
-    { id: 3, url: "https://source.unsplash.com/random/200x200/?party", caption: "End of Year Party", likes: 56 },
-    { id: 4, url: "https://source.unsplash.com/random/200x200/?meeting", caption: "Society Meeting", likes: 19 },
-  ];
+        if (societiesResponse.error) {
+          throw new Error(societiesResponse.message);
+        }
+
+        // Get top 3 societies by member count
+        const sortedSocieties = (societiesResponse.data || [])
+          .sort((a, b) => b.numOfInterestedPeople - a.numOfInterestedPeople)
+          .slice(0, 3);
+        setFeaturedSocieties(sortedSocieties);
+
+        // Fetch events from each society
+        const allEvents: Event[] = [];
+        for (const society of societiesResponse.data || []) {
+          try {
+            const eventsResponse = await apiRequest<Event[]>({
+              endpoint: `/Societies/${society.name}/Events/`,
+              method: 'GET',
+            });
+
+            if (!eventsResponse.error && eventsResponse.data) {
+              // Add society name to each event
+              const eventsWithSociety = eventsResponse.data.map(event => ({
+                ...event,
+                society: society.name
+              }));
+              allEvents.push(...eventsWithSociety);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch events for society ${society.name}:`, err);
+          }
+        }
+
+        // Filter and sort upcoming events
+        const now = new Date();
+        const upcoming = allEvents
+          .filter(event => new Date(event.startTime) > now)
+          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+          .slice(0, 3);
+        setUpcomingEvents(upcoming);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (authLoading || loading) {
+    return (
+      <Flex justify="center" align="center" h="100vh">
+        <Loader size="xl" />
+      </Flex>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Flex justify="center" align="center" h="100vh">
+        <Text>Please log in to view the home page</Text>
+      </Flex>
+    );
+  }
 
   return (
-    <Container size="xl" py="md">
-      {/* Hero Section */}
-      <Stack gap="xl" mb="xl">
-        <Center>
-          <Stack align="center" gap="xs">
-            <Title order={1} size="h2">Welcome to University Societies</Title>
-            <Text size="lg" c="dimmed">Discover, join, and engage with student communities</Text>
-            <Group mt="md">
-              <Button variant="filled">Browse Societies</Button>
-              <Button variant="outline">View Events</Button>
-            </Group>
-          </Stack>
-        </Center>
+    <>
+      <Sidebar>
+        <Flex justify="center" align="flex-start" gap="md" px="md">
+          {/* Left Sidebar Placeholder */}
+          <div style={{ width: "200px" }} />
 
-        {/* Featured Societies */}
-        <Stack gap="md">
-          <Title order={2} size="h4">Featured Societies</Title>
-          <Grid>
-            {featuredSocieties.map((society) => (
-              <Grid.Col key={society.id} span={{ base: 12, sm: 6, md: 4 }}>
-                <Card shadow="sm" padding="lg" radius="md" withBorder>
-                  <Card.Section>
-                    <Image
-                      src={society.coverImage}
-                      height={160}
-                      alt={society.name}
-                    />
-                  </Card.Section>
-                  <Stack gap="xs" mt="md">
-                    <Text fw={500}>{society.name}</Text>
-                    <Text size="sm" c="dimmed">{society.members} members</Text>
-                    <Button variant="light" fullWidth mt="md" radius="md">
-                      Learn More
-                    </Button>
-                  </Stack>
-                </Card>
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Stack>
-
-        {/* Upcoming Events */}
-        <Stack gap="md">
-          <Title order={2} size="h4">Upcoming Events</Title>
-          <Grid>
-            {upcomingEvents.map((event) => (
-              <Grid.Col key={event.id} span={{ base: 12, sm: 6, md: 4 }}>
-                <Card shadow="sm" padding="lg" radius="md" withBorder>
-                  <Card.Section>
-                    <Image
-                      src={event.image}
-                      height={160}
-                      alt={event.title}
-                    />
-                  </Card.Section>
-                  <Stack gap="xs" mt="md">
-                    <Text fw={500}>{event.title}</Text>
-                    <Text size="sm" c="dimmed">{event.date}</Text>
-                    <Text size="sm">Hosted by: {event.society}</Text>
-                    <Button variant="light" fullWidth mt="md" radius="md">
-                      View Details
-                    </Button>
-                  </Stack>
-                </Card>
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Stack>
-
-        {/* Recent Photos */}
-        <Stack gap="md">
-          <Title order={2} size="h4">Recent Photos</Title>
-          <Group gap="md">
-            {recentPhotos.map((photo) => (
-              <Card key={photo.id} shadow="sm" padding="sm" radius="md" withBorder>
-                <Image
-                  src={photo.url}
-                  height={200}
-                  width={200}
-                  alt={photo.caption}
-                  radius="md"
-                />
-                <Stack gap={0} mt="sm">
-                  <Text size="sm">{photo.caption}</Text>
-                  <Text size="xs" c="dimmed">{photo.likes} likes</Text>
+          {/* Main Content */}
+          <Container size="xl" py="md" style={{ flex: 1, maxWidth: "900px" }}>
+            {/* Hero Section */}
+            <Stack gap="xl" mb="xl">
+              <Center>
+                <Stack align="center" gap="xs">
+                  <Title order={1} size="h2">Welcome to University Societies</Title>
+                  <Text size="lg" c="dimmed">Discover, join, and engage with student communities</Text>
+                  <Group mt="md">
+                    <Button variant="filled" component={Link} to="/Societies">Browse Societies</Button>
+                    <Button variant="outline" component={Link} to="/Events">View Events</Button>
+                  </Group>
                 </Stack>
-              </Card>
-            ))}
-          </Group>
-        </Stack>
-      </Stack>
-    </Container>
+              </Center>
+
+              {/* Featured Societies */}
+              <Stack gap="md">
+                <Title order={2} size="h4">Featured Societies</Title>
+                {error && <Text color="red">{error}</Text>}
+                <Grid>
+                  {featuredSocieties.map((society) => (
+                    <Grid.Col key={society.id} span={{ base: 12, sm: 6, md: 4 }}>
+                      <Card shadow="sm" padding="lg" radius="md" withBorder>
+                        <Card.Section>
+                          <Image
+                            src={society.logo || '/default-society-logo.png'}
+                            height={160}
+                            alt={society.name}
+                          />
+                        </Card.Section>
+                        <Stack gap="xs" mt="md">
+                          <Text fw={500}>{society.name}</Text>
+                          <Text size="sm" c="dimmed">{society.numOfInterestedPeople} members</Text>
+                          <Button 
+                            variant="light" 
+                            fullWidth 
+                            mt="md" 
+                            radius="md"
+                            component={Link}
+                            to={`/Societies/${society.name}`}
+                          >
+                            Learn More
+                          </Button>
+                        </Stack>
+                      </Card>
+                    </Grid.Col>
+                  ))}
+                </Grid>
+              </Stack>
+
+              {/* Upcoming Events */}
+              <Stack gap="md">
+                <Title order={2} size="h4">Upcoming Events</Title>
+                <Grid>
+                  {upcomingEvents.length > 0 ? (
+                    upcomingEvents.map((event) => (
+                      <Grid.Col key={event.id} span={{ base: 12, sm: 6, md: 4 }}>
+                        <Card shadow="sm" padding="lg" radius="md" withBorder>
+                          <Stack gap="xs">
+                            <Text fw={500}>{event.name}</Text>
+                            <Text size="sm" c="dimmed">
+                              {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString()}
+                            </Text>
+                            <Text size="sm">{event.society}</Text>
+                            <Text size="sm" lineClamp={2}>{event.details}</Text>
+                            <Button 
+                              variant="light" 
+                              fullWidth 
+                              mt="md" 
+                              radius="md"
+                              component={Link}
+                              to={`/Societies/${event.society}/${event.id}`}
+                            >
+                              View Details
+                            </Button>
+                          </Stack>
+                        </Card>
+                      </Grid.Col>
+                    ))
+                  ) : (
+                    <Grid.Col span={12}>
+                      <Text c="dimmed" ta="center">No upcoming events</Text>
+                    </Grid.Col>
+                  )}
+                </Grid>
+              </Stack>
+            </Stack>
+          </Container>
+
+          {/* Right Sidebar Placeholder */}
+          <div style={{ width: "200px" }} />
+        </Flex>
+      </Sidebar>
+      <RightSidebar />
+    </>
   );
 };
 

@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from rest_framework import serializers
 from .models import Event, Society, SocietyRelation
-from .permissions import IsSocietyAdmin
+from .permissions import IsAdminOrSocietyAdmin
 
 # creating an event
 class CreateEventSerializer(serializers.ModelSerializer):
@@ -27,7 +27,7 @@ class CreateEventSerializer(serializers.ModelSerializer):
         return event
     
 @api_view(['POST'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAdminOrSocietyAdmin])
 def CreateEvent(request, society_name):
     society = get_object_or_404(Society, name=society_name)
     serializer = CreateEventSerializer(data=request.data, context={'society': society})
@@ -74,7 +74,7 @@ def getAllEvents(request, society_name):
 
 # deleting an event
 @api_view(['DELETE'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAdminOrSocietyAdmin])
 def deleteEvent(request, society_name, eventID):
     try:
         event = get_object_or_404(Event, id=eventID)
@@ -101,7 +101,7 @@ class UpdateEventSerializer(serializers.ModelSerializer):
 
 
 @api_view(['POST'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAdminOrSocietyAdmin])
 def UpdateEvent(request, society_name, eventID):
     event = get_object_or_404(Event, id=eventID)
     datetime_parser = DateTimeField()

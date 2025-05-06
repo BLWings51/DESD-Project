@@ -9,6 +9,7 @@ import {
   Drawer,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { Link, useLocation } from "react-router-dom";
 
 interface SidebarProps {
   children: ReactNode;
@@ -16,25 +17,26 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ children }) => {
   const [opened, { toggle, close }] = useDisclosure(false);
+  const location = useLocation();
 
   const links = (
-    <Stack gap="sm" mt="xl"> {/* Add top margin to push down a bit */}
+    <Stack gap="sm" mt="xl">
       <NavLink
         label="Home"
+        component={Link}
+        to="/home"
+        active={location.pathname === "/home"}
         onClick={close}
         styles={{
           label: { fontSize: '1.2rem', padding: '12px 0' },
         }}
       />
-      <NavLink
-        label="Explore"
-        onClick={close}
-        styles={{
-          label: { fontSize: '1.2rem', padding: '12px 0' },
-        }}
-      />
+
       <NavLink
         label="Societies"
+        component={Link}
+        to="/Societies"
+        active={location.pathname.startsWith("/Societies")}
         onClick={close}
         styles={{
           label: { fontSize: '1.2rem', padding: '12px 0' },
@@ -42,6 +44,9 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
       />
       <NavLink
         label="Events"
+        component={Link}
+        to="/events"
+        active={location.pathname === "/events"}
         onClick={close}
         styles={{
           label: { fontSize: '1.2rem', padding: '12px 0' },
@@ -49,6 +54,9 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
       />
       <NavLink
         label="Profile"
+        component={Link}
+        to="/profile"
+        active={location.pathname === "/profile"}
         onClick={close}
         styles={{
           label: { fontSize: '1.2rem', padding: '12px 0' },
@@ -56,23 +64,24 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
       />
     </Stack>
   );
+
   return (
     <>
       <Flex>
         {/* Sidebar for desktop */}
         <Box
-            w={250}
-            h="100vh"
-            p="md"
-            visibleFrom="sm"
-            style={{
-                position: "fixed",            // 🔒 sidebar stays in place
-                top: 80,
-                left: 0,
-                borderRight: "1px solid #333",
-                zIndex: 100,                  // makes sure it's above main content
-            }}
-            >
+          w={250}
+          h="100vh"
+          p="md"
+          visibleFrom="sm"
+          style={{
+            position: "fixed",
+            top: 80,
+            left: 0,
+            borderRight: "1px solid #333",
+            zIndex: 100,
+          }}
+        >
           {links}
         </Box>
 

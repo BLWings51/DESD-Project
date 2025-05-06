@@ -13,12 +13,11 @@ import UpdateSociety from "./UpdateSociety";
 import CreateEvent from "./CreateEvent";
 import EventDetail from "./EventDetail";
 import UpdateEvent from "./UpdateEvent";
+import Events from "./Events";
 import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
 
 import "./static/stylesheet.css";
-
-
 
 import { MantineProvider, createTheme } from '@mantine/core';
 import { theme } from './theme';
@@ -37,6 +36,7 @@ const App = () => {
             <Route path="/home" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/Societies" element={<Societies />} />
+            <Route path="/events" element={<Events />} />
             <Route path="/Societies/:society_name" element={<SocietyDetail />} />
             <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
             <Route path="/Societies/:society_name/UpdateSociety" element={<UpdateSociety />} />
@@ -52,6 +52,5 @@ const App = () => {
     </MantineProvider>
   );
 };
-
 
 export default App;

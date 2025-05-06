@@ -5,6 +5,7 @@ import apiRequest from "./api/apiRequest";
 import { Card, Title, Text, Loader, Flex, Button, SimpleGrid, Image } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import Sidebar from "./Sidebar";
+import RightSidebar from "./RightSidebar";
 
 interface Society {
     id: number;
@@ -63,60 +64,60 @@ const Societies = () => {
     }
 
     return (
-
-        <Sidebar> 
-
-        <Flex justify="center" align="flex-start" gap="md" px="md">
-            {/* Left Sidebar Placeholder */}
-            <div style={{ width: "200px" }} />
-    
-            {/* Main Content */}
-            <div style={{ flex: 1, maxWidth: "900px" }}>
-                <Flex justify="space-between" align="center" mb="md">
-                    <Title order={2}>Societies</Title>
-                    {isAdmin && (
-                        <Button
-                            leftSection={<IconPlus size={16} />}
-                            component={Link}
-                            to="/Societies/CreateSociety"
-                        >
-                            Create Society
-                        </Button>
-                    )}
+        <>
+            <Sidebar>
+                <Flex justify="center" align="flex-start" gap="md" px="md">
+                    {/* Left Sidebar Placeholder */}
+                    <div style={{ width: "200px" }} />
+        
+                    {/* Main Content */}
+                    <div style={{ flex: 1, maxWidth: "900px" }}>
+                        <Flex justify="space-between" align="center" mb="md">
+                            <Title order={2}>Societies</Title>
+                            {isAdmin && (
+                                <Button
+                                    leftSection={<IconPlus size={16} />}
+                                    component={Link}
+                                    to="/Societies/CreateSociety"
+                                >
+                                    Create Society
+                                </Button>
+                            )}
+                        </Flex>
+        
+                        {error && <Text color="red">{error}</Text>}
+        
+                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
+                            {societies.map((society) => (
+                                <Card
+                                    key={society.id}
+                                    component={Link}
+                                    to={`/Societies/${society.name}`}
+                                    shadow="sm"
+                                    padding="lg"
+                                    radius="md"
+                                    withBorder
+                                >
+                                    <Card.Section>
+                                        <Image
+                                            src={society.logo || '/default-society-logo.png'}
+                                            height={160}
+                                            alt={society.name}
+                                        />
+                                    </Card.Section>
+                                    <Title order={4} mt="sm">{society.name}</Title>
+                                    <Text lineClamp={3} mt="xs">{society.description}</Text>
+                                </Card>
+                            ))}
+                        </SimpleGrid>
+                    </div>
+        
+                    {/* Right Sidebar Placeholder */}
+                    <div style={{ width: "200px" }} />
                 </Flex>
-    
-                {error && <Text color="red">{error}</Text>}
-    
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
-                    {societies.map((society) => (
-                        <Card
-                            key={society.id}
-                            component={Link}
-                            to={`/Societies/${society.name}`}
-                            shadow="sm"
-                            padding="lg"
-                            radius="md"
-                            withBorder
-                        >
-                            <Card.Section>
-                                <Image
-                                    src={society.logo || '/default-society-logo.png'}
-                                    height={160}
-                                    alt={society.name}
-                                />
-                            </Card.Section>
-                            <Title order={4} mt="sm">{society.name}</Title>
-                            <Text lineClamp={3} mt="xs">{society.description}</Text>
-                        </Card>
-                    ))}
-                </SimpleGrid>
-            </div>
-    
-            {/* Right Sidebar Placeholder */}
-            <div style={{ width: "200px" }} />
-        </Flex>
-
-        </Sidebar>
+            </Sidebar>
+            <RightSidebar />
+        </>
     );
 };
 
