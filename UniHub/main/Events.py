@@ -78,6 +78,10 @@ def getAllEvents(request, society_name):
 def deleteEvent(request, society_name, eventID):
     try:
         event = get_object_or_404(Event, id=eventID)
+        society = get_object_or_404(Society, name=society_name)
+        event_check = Event.objects.filter(id=event.id, society=society)
+        if not event_check.exists():
+            return Response({"error": f"{society.name} does not have this event"})
         event.delete()
         return Response({"success":"true"}, status=200)
     except Exception as e:
@@ -103,11 +107,16 @@ class UpdateEventSerializer(serializers.ModelSerializer):
 @api_view(['POST'])
 @permission_classes([IsAdminOrSocietyAdmin])
 def UpdateEvent(request, society_name, eventID):
+    society = get_object_or_404(Society, name=society_name)
     event = get_object_or_404(Event, id=eventID)
     datetime_parser = DateTimeField()
     
     startTime = request.data.get("startTime", event.startTime)
     endTime = request.data.get("endTime", event.endTime)
+
+    event_check = Event.objects.filter(id=event.id, society=society)
+    if not event_check.exists():
+        return Response({"error": f"{society.name} does not have this event"})
 
     try:
         if isinstance(startTime, str):
@@ -132,12 +141,132 @@ class GetSingleEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
         fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
-    
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def getSingleEvent(request, society_name, eventID):
     society = get_object_or_404(Society, name=society_name)
     event = get_object_or_404(Event, id=eventID)
+    event_check = Event.objects.filter(id=event.id, society=society)
+    if not event_check.exists():
+        return Response({"error": f"{society.name} does not have this event"})
     serializer = GetSingleEventSerializer(event)
     return Response(serializer.data)
+
+
+
+class JoinEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventRelation
+        fields = ['event', 'account']
+
+    def create(self, validated_data):
+        event = validated_data['event']
+        user = validated_data['account']
+
+        print(f"Before join: numOfInterestedPeople = {event.numOfInterestedPeople}")
+
+        # Create relation
+        relation = EventRelation.objects.create(event=event, account=user)
+
+        # Increment count safely
+        event.numOfInterestedPeople += 1
+        event.save(update_fields=['numOfInterestedPeople'])
+
+        print(f"After join: numOfInterestedPeople = {event.numOfInterestedPeople}")
+
+        return relation
+
+class LeaveEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventRelation
+        fields = ['event', 'account']
+
+    def leaveEvent(self, validated_data):
+        event = validated_data['event']
+        user = validated_data['account']
+
+        print(f"Before leave: numOfInterestedPeople = {event.numOfInterestedPeople}")
+
+        try:
+            relation = EventRelation.objects.get(event=event, account=user)
+
+            # Remove the member
+            relation.delete()
+
+            # Ensure count doesn’t go below 0
+            event.numOfInterestedPeople = max(event.numOfInterestedPeople - 1, 0)
+            event.save(update_fields=['numOfInterestedPeople'])
+
+            print(f"After leave: numOfInterestedPeople = {event.numOfInterestedPeople}")
+
+            return {"message": f"{user.firstName} {user.lastName} opted out of the event", "numOfInterestedPeople": event.numOfInterestedPeople}
+        except EventRelation.DoesNotExist:
+            return {"error": "Event relation not found"}
+
+# Opt In To Event
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def join_event(request, society_name, eventID):
+    society = get_object_or_404(Society, name=society_name)
+
+    event = get_object_or_404(Event, id=eventID)
+
+
+    user = request.user
+    data = {'event': event.id, 'account': user.id}
+    full_name = f"{user.firstName} {user.lastName}"
+
+    society_relation = SocietyRelation.objects.filter(society=society, account=user)
+    if not society_relation.exists():
+        return Response({"error": f"{full_name} is not signed up to this society"}, status=400)
+    
+    event_check = Event.objects.filter(id=event.id, society=society)
+    if not event_check.exists():
+        return Response({"error": f"{society.name} does not have this event"})
+
+    event_relation = EventRelation.objects.filter(event=event, account=user)
+    if event_relation.exists():
+        return Response({"error": f"{full_name} is already registered to this event"}, status=400)
+
+    serializer = JoinEventSerializer(data=data)
+
+    if serializer.is_valid():
+        serializer.save()
+        updated_event = Event.objects.get(id=event.id)
+        return Response({
+            "message": f"{user.firstName} {user.lastName} opted in to the event",
+            "numOfInterestedPeople": updated_event.numOfInterestedPeople
+        }, status=200)
+
+    return Response(serializer.errors, status=400)
+
+# Leave event
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def leave_event(request, society_name, eventID):
+    society = get_object_or_404(Society, name=society_name)
+    try:
+        event = Event.objects.get(id=eventID)
+    except Event.DoesNotExist:
+        return Response({"error": "Event not found"}, status=404)
+    
+    event_check = Event.objects.filter(id=event.id, society=society)
+    if not event_check.exists():
+        return Response({"error": f"{society.name} does not have this event"})
+
+    user = request.user
+    data = {'event': event.id, 'account': user.id}
+    full_name = f"{user.firstName} {user.lastName}"
+
+    event_relation = EventRelation.objects.filter(event=event.id, account=user.id)
+    if not event_relation:
+        return Response({"error": f"{full_name} is not signed up to this event"}, status=400)
+
+    serializer = LeaveEventSerializer(data=data)
+    
+    if serializer.is_valid():
+        response_data = serializer.leaveEvent(serializer.validated_data)
+        return Response(response_data, status=200)
+
+    return Response(serializer.errors, status=400)

@@ -28,6 +28,8 @@ urlpatterns = [
     path('Societies/<str:society_name>/<int:eventID>/DeleteEvent/', Events.deleteEvent),
     path('Societies/<str:society_name>/<int:eventID>/UpdateEvent/', Events.UpdateEvent),
     path('Societies/<str:society_name>/<int:eventID>/', Events.getSingleEvent),
+    path('Societies/<str:society_name>/<int:eventID>/Join/', Events.join_event),
+    path('Societies/<str:society_name>/<int:eventID>/Leave/', Events.leave_event),
     path('Societies/<str:society_name>/posts/', post.get_society_posts, name="get_society_posts"),
     path('Societies/<str:society_name>/posts/create/', post.create_post, name="create_post"),
     path('Societies/<str:society_name>/posts/update/<int:post_id>/', post.update_post, name="update-post"),

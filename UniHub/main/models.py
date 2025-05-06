@@ -30,6 +30,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
     pfp = models.ImageField(max_length=500, upload_to="profile_pics", default="default.webp")
     bio = models.CharField(max_length=3000, blank=True)
     adminStatus = models.BooleanField(default=False)
+    confirmed = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True)  # Required for Django user model
     is_staff = models.BooleanField(default=False)  # Required for admin access
