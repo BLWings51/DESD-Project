@@ -16,6 +16,7 @@ import UpdateEvent from "./UpdateEvent";
 import Events from "./Events";
 import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
+import SearchPage from "./SearchPage";
 
 import "./static/stylesheet.css";
 
@@ -26,7 +27,7 @@ import '@mantine/core/styles.css';
 
 const App = () => {
   return (
-    <MantineProvider defaultColorScheme = "dark">
+    <MantineProvider defaultColorScheme="dark">
       <Router>
         <AuthProvider>
           <CustomNavbar />
@@ -43,6 +44,7 @@ const App = () => {
             <Route path="/Societies/:society_name/CreateEvent" element={<CreateEvent />} />
             <Route path="/Societies/:society_name/:eventID" element={<EventDetail />} />
             <Route path="/Societies/:society_name/:eventID/UpdateEvent" element={<UpdateEvent />} />
+            <Route path="/search" element={<SearchPage />} />
 
             <Route element={<ProtectedRoute />}>
             </Route>
