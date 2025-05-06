@@ -48,7 +48,7 @@ def create_post(request, society_name):
 
 # Update post
 @api_view(['PATCH'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAuthenticated])
 def update_post(request, society_name, post_id):
     try:
         post = Post.objects.get(id=post_id)
@@ -68,7 +68,7 @@ def update_post(request, society_name, post_id):
 
 # Delete a post
 @api_view(['DELETE'])
-@permission_classes([IsSocietyAdmin])
+@permission_classes([IsAuthenticated])
 def delete_post(request, society_name, post_id):
     try:
         post = Post.objects.get(id=post_id)
