@@ -19,65 +19,71 @@ import {
   Textarea,
   Container,
 } from "@mantine/core";
-import {
-  IconEdit,
-  IconTrash,
-  IconCalendarEvent,
-  IconMessageCircle,
-  IconPlus,
-} from "@tabler/icons-react";
+import { IconEdit, IconTrash, IconCalendarEvent } from "@tabler/icons-react";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
 interface SocietyDetail {
-  name: string;
-  description: string;
-  numOfInterestedPeople: number;
-  logo?: string | null;
-  is_member?: boolean;
+    name: string;
+    description: string;
+    numOfInterestedPeople: number;
+    logo?: string | null;
+    is_member?: boolean;
 }
 
 interface Event {
-  id: number;
-  name: string;
-  details: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  status: string;
-}
-
-interface Post {
-  id: number;
-  content: string;
-  created_at: string;
-  author_name: string;
-  author: number | { id: number; [key: string]: any };
+    id: number;
+    name: string;
+    details: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    status: string;
 }
 
 const SocietyDetail = () => {
-  const { society_name } = useParams<{ society_name: string }>();
-  const { isAuthenticated, loggedAccountID, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+    const { society_name } = useParams<{ society_name: string }>();
+    const { isAuthenticated, loggedAccountID } = useAuth();
+    const [society, setSociety] = useState<SocietyDetail | null>(null);
+    const [events, setEvents] = useState<Event[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(true);
+    const navigate = useNavigate();
 
-  const [society, setSociety] = useState<SocietyDetail | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [postsLoading, setPostsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [postsError, setPostsError] = useState<string | null>(null);
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            if (!isAuthenticated) return;
+            try {
+                const response = await apiRequest<Is_Admin>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                setIsAdmin(response.data?.admin || false);
+                console.log("iouaerhgioAWHGOIHWEGIOHGEORFIH")
+                console.log(response.data?.admin)
+            } catch (error) {
+                console.error("Failed to check admin status:", error);
+            }
+        };
+        checkAdminStatus();
+    }, [isAuthenticated, loggedAccountID]);
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deletePostModalOpen, setDeletePostModalOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch society details using the number (society_name in URL)
+                const societyResponse = await apiRequest<SocietyDetail>({
+                    endpoint: `/Societies/${society_name}/`,
+                    method: 'GET',
+                });
 
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSocietyAdmin, setIsSocietyAdmin] = useState(false);
-  const [newPostContent, setNewPostContent] = useState("");
-  const [isCreatingPost, setIsCreatingPost] = useState(false);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [postPermissions, setPostPermissions] = useState<{ [key: number]: boolean }>({});
+                if (societyResponse.data) {
+                    setSociety({
+                        ...societyResponse.data,
+                    });
+                }
 
   // Check admin status and get user ID
   useEffect(() => {
@@ -178,7 +184,6 @@ const SocietyDetail = () => {
     } catch {
       setError('Operation failed');
     }
-  };
 
   const handleLeave = async () => {
     if (!society) return;
@@ -192,7 +197,6 @@ const SocietyDetail = () => {
     } catch {
       setError('Operation failed');
     }
-  };
 
   const handleDeleteSociety = async () => {
     try {

@@ -20,7 +20,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
             if not account:
                 return Response({"message": "Invalid accountID or password"}, status=400)
-            
+
             response = super().post(request, *args, **kwargs)
             tokens = response.data
             access_token = tokens['access']

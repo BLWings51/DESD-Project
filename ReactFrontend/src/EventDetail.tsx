@@ -6,7 +6,7 @@ import {
     Card, Title, Text, Loader, Button,
     Group, ActionIcon, Modal, Badge, Flex, Container
 } from "@mantine/core";
-import { IconEdit, IconTrash, IconBell } from "@tabler/icons-react";
+import { IconEdit, IconTrash } from "@tabler/icons-react";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -18,38 +18,10 @@ interface EventDetail {
     endTime: string;
     location: string;
     status: string;
-    numOfInterestedPeople: number;
 }
 
 interface Is_Admin {
     admin: boolean;
-}
-
-interface UserEvent {
-    id: number;
-    name: string;
-    society: string;
-}
-
-interface UserProfile {
-    accountID: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    bio: string;
-    pfp: string | null;
-    is_owner: boolean;
-    societies: string[];
-    events: UserEvent[];
-}
-
-interface InterestResponse {
-    message: string;
-    numOfInterestedPeople: number;
-}
-
-interface EventRelation {
-    is_registered: boolean;
 }
 
 const EventDetail = () => {
@@ -61,7 +33,6 @@ const EventDetail = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [isInterested, setIsInterested] = useState(false);
     const navigate = useNavigate();
 
     // Check admin status and get user ID
@@ -96,20 +67,6 @@ const EventDetail = () => {
                     const foundEvent = allEventsResponse.data.find(e => e.id.toString() === eventID);
                     if (foundEvent) {
                         setEvent(foundEvent);
-                        // Check if user is interested in this event
-                        if (isAuthenticated) {
-                            try {
-                                // Check if user is interested using the EventRelation endpoint
-                                const response = await apiRequest<EventRelation>({
-                                    endpoint: `/Societies/${society_name}/${eventID}/CheckInterest/`,
-                                    method: 'GET',
-                                });
-                                setIsInterested(response.data?.is_registered || false);
-                            } catch (err) {
-                                console.error("Failed to check interest status:", err);
-                                setIsInterested(false);
-                            }
-                        }
                     } else {
                         setError("Event not found");
                     }
@@ -122,7 +79,7 @@ const EventDetail = () => {
         };
 
         fetchEvent();
-    }, [society_name, eventID, isAuthenticated, loggedAccountID]);
+    }, [society_name, eventID]);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -146,29 +103,6 @@ const EventDetail = () => {
             navigate(`/Societies/${society_name}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to delete event");
-        }
-    };
-
-    const handleInterestToggle = async () => {
-        if (!event) return;
-
-        try {
-            const endpoint = isInterested ? 'Leave' : 'Join';
-            const response = await apiRequest<InterestResponse>({
-                endpoint: `/Societies/${society_name}/${eventID}/${endpoint}/`,
-                method: 'POST',
-            });
-
-            if (response.data?.numOfInterestedPeople !== undefined) {
-                setIsInterested(!isInterested);
-                // Update the event with new interested people count
-                setEvent(prev => prev ? {
-                    ...prev,
-                    numOfInterestedPeople: response.data.numOfInterestedPeople
-                } : null);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to update interest status");
         }
     };
 
@@ -235,7 +169,7 @@ const EventDetail = () => {
                             <Text size="lg" mb="sm">
                                 <strong>Location:</strong> {event.location}
                             </Text>
-                            <Text mb="sm" component="div">
+                            <Text mb="sm">
                                 <strong>Status:</strong>
                                 <Badge
                                     color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
@@ -243,9 +177,6 @@ const EventDetail = () => {
                                 >
                                     {event.status}
                                 </Badge>
-                            </Text>
-                            <Text mb="sm">
-                                <strong>Interested:</strong> {event.numOfInterestedPeople} people
                             </Text>
                             <Text>
                                 <strong>Details:</strong> {event.details}
