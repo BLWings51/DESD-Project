@@ -1,5 +1,5 @@
 from rest_framework.generics import get_object_or_404
-
+from rest_framework import status
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes
@@ -10,6 +10,7 @@ from .models import Account, SocietyRelation, Society, Event, EventRelation
 from rest_framework import serializers
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
+    
     class Meta:
         
         model=Account
@@ -36,6 +37,17 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class UpdateProfilePictureSerializer(serializers.ModelSerializer):
+    pfp = serializers.ImageField(required=True)  # Make the image field required
+
+    class Meta:
+        model = Account
+        fields = ['pfp']
+
+    def update(self, instance, validated_data):
+        instance.pfp = validated_data.get('pfp', instance.pfp)
+        instance.save()
+        return instance
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -85,15 +97,11 @@ class GetAccountSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
     societies = serializers.SerializerMethodField()
     events = serializers.SerializerMethodField()
-    
+
     class Meta:
         model=Account
         fields = ['bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies", "events"]
 
-    def getAccountDetails(self, account):
-        accountDetails = {'bio':account.bio, 'accountID':account.accountID, 'firstName':account.firstName, 'lastName':account.lastName, 'email':account.email, 'pfp':account.pfp, 'is_owner':account.is_owner}
-        return accountDetails
-    
     def get_is_owner(self, account):
         request = self.context.get('request')
         is_owner = False
@@ -101,14 +109,13 @@ class GetAccountSerializer(serializers.ModelSerializer):
             if account.accountID == request.user.accountID:
                 is_owner = True
         return is_owner
-        
+
     def get_societies(self, account):
         return [relation.society.name for relation in account.societyrelation_set.all()]
-    
+
     def get_events(self, account):
         events = [relation.event for relation in account.eventrelation_set.all()]
         return GetEventSerializer(events, many=True, context=self.context).data
-
 
 # Views
 @api_view(['GET'])
@@ -125,3 +132,12 @@ def deleteProfile(request):
     account = request.user
     account.delete()
     return Response({"message": "Account deleted successfully."}, status=204)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def upload_profile_picture(request, account_ID):
+    serializer = UpdateProfilePictureSerializer(request.user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

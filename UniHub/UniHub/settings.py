@@ -59,6 +59,24 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'main.views': {  # Replace 'main' with the name of your app
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # You can add more loggers for other parts of your app if needed
+    },
+}
+
 # Allow requests from localhost:5173
 # CORS_ALLOWED_ORIGINS = [
 #     "https://localhost:5173",
@@ -72,8 +90,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["Authorization", "Content-Type"]
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': (
