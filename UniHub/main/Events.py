@@ -3,21 +3,21 @@ from rest_framework.generics import get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from rest_framework.fields import DateTimeField 
-
+from rest_framework.fields import DateTimeField
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+import datetime
 
 from rest_framework import serializers
-from .models import Event, Society, SocietyRelation, EventRelation
+from .models import Event, Society, SocietyRelation, EventRelation, Notification, Account
 from .permissions import IsAdminOrSocietyAdmin
 
 # creating an event
 class CreateEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
-        fields = ['name', 'details', 'startTime', 'endTime', 'location']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
 
 
     def create(self, validated_data):
@@ -25,6 +25,7 @@ class CreateEventSerializer(serializers.ModelSerializer):
         event = Event(society=society, name=validated_data['name'], details=validated_data['details'], startTime=validated_data['startTime'], endTime=validated_data['endTime'], location=validated_data['location'])
         event.save()
         return event
+    
     
 @api_view(['POST'])
 @permission_classes([IsAdminOrSocietyAdmin])
@@ -37,6 +38,10 @@ def CreateEvent(request, society_name):
         return Response({"error": "End date cannot be equal to or before the start date"}, status=400)
     if serializer.is_valid():
         serializer.save()
+        members_list = SocietyRelation.objects.filter(society=society).values_list('account', flat=True)
+        members = Account.objects.filter(id__in=members_list)
+        for member in members:
+            Notification.objects.create(recipient=member, message=f"{request.data.get('name')} was just created in {society.name}")
         return Response(serializer.data)
     return Response(serializer.data)
     
