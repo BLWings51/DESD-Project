@@ -118,3 +118,4 @@ def is_admin(request):
 def is_society_admin(request, society_name):
     society = get_object_or_404(Society, name=society_name)
     return Response({"Society Admin":True})
+
