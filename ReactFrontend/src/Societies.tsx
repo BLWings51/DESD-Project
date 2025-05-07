@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
 import { Card, Title, Text, Loader, Flex, Button, SimpleGrid, Image } from "@mantine/core";
-import { IconPlus } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import plus from '@iconify-icons/tabler/plus';
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -69,14 +70,14 @@ const Societies = () => {
                 <Flex justify="center" align="flex-start" gap="md" px="md">
                     {/* Left Sidebar Placeholder */}
                     <div style={{ width: "200px" }} />
-        
+
                     {/* Main Content */}
                     <div style={{ flex: 1, maxWidth: "900px" }}>
                         <Flex justify="space-between" align="center" mb="md">
                             <Title order={2}>Societies</Title>
                             {isAdmin && (
                                 <Button
-                                    leftSection={<IconPlus size={16} />}
+                                    leftSection={<Icon icon={plus} width={16} height={16} />}
                                     component={Link}
                                     to="/Societies/CreateSociety"
                                 >
@@ -84,9 +85,9 @@ const Societies = () => {
                                 </Button>
                             )}
                         </Flex>
-        
+
                         {error && <Text color="red">{error}</Text>}
-        
+
                         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                             {societies.map((society) => (
                                 <Card
@@ -111,7 +112,7 @@ const Societies = () => {
                             ))}
                         </SimpleGrid>
                     </div>
-        
+
                     {/* Right Sidebar Placeholder */}
                     <div style={{ width: "200px" }} />
                 </Flex>

@@ -19,14 +19,21 @@ import {
     Avatar
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import {
-    IconEdit,
-    IconTrash,
-    IconCheck,
-    IconX,
-    IconCalendarEvent,
-    IconUsers
-} from "@tabler/icons-react";
+// import {
+//     IconEdit,
+//     IconTrash,
+//     IconCheck,
+//     IconX,
+//     IconCalendarEvent,
+//     IconUsers
+// } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import edit from '@iconify-icons/tabler/edit';
+import trash from '@iconify-icons/tabler/trash';
+import check from '@iconify-icons/tabler/check';
+import x from '@iconify-icons/tabler/x';
+import calendarEvent from '@iconify-icons/tabler/calendar-event';
+import users from '@iconify-icons/tabler/users';
 import apiRequest from "./api/apiRequest";
 import { useAuth } from "./authContext";
 import Sidebar from "./Sidebar";
@@ -212,14 +219,14 @@ const Profile = () => {
                                                 onClick={() => setEditing(true)}
                                                 title="Edit profile"
                                             >
-                                                <IconEdit size={18} />
+                                                <Icon icon={edit} width={18} height={18} />
                                             </ActionIcon>
                                             <ActionIcon
                                                 color="red"
                                                 onClick={() => setDeleteModalOpen(true)}
                                                 title="Delete profile"
                                             >
-                                                <IconTrash size={18} />
+                                                <Icon icon={trash} width={18} height={18} />
                                             </ActionIcon>
                                         </Group>
                                     )}
@@ -265,14 +272,14 @@ const Profile = () => {
                                                     setEditing(false);
                                                     if (user) form.setValues(user);
                                                 }}
-                                                leftSection={<IconX size={16} />}
+                                                leftSection={<Icon icon={x} width={16} height={16} />}
                                             >
                                                 Cancel
                                             </Button>
                                             <Button
                                                 type="submit"
                                                 loading={loading}
-                                                leftSection={<IconCheck size={16} />}
+                                                leftSection={<Icon icon={check} width={16} height={16} />}
                                             >
                                                 Save
                                             </Button>
@@ -320,7 +327,7 @@ const Profile = () => {
                                             <>
                                                 <Box mt="md">
                                                     <Flex align="center" gap="sm" mb="xs">
-                                                        <IconUsers size={18} />
+                                                        <Icon icon={users} width={18} height={18} />
                                                         <Text fw={500}>Societies:</Text>
                                                     </Flex>
                                                     {user.societies.length > 0 ? (
@@ -339,7 +346,7 @@ const Profile = () => {
                                                 </Box>
                                                 <Box mt="md">
                                                     <Flex align="center" gap="sm" mb="xs">
-                                                        <IconCalendarEvent size={18} />
+                                                        <Icon icon={calendarEvent} width={18} height={18} />
                                                         <Text fw={500}>Events:</Text>
                                                     </Flex>
                                                     {user.events.length > 0 ? (

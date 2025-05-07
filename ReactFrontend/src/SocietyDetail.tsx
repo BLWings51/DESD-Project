@@ -19,73 +19,82 @@ import {
   Textarea,
   Container,
 } from "@mantine/core";
-import { IconEdit, IconTrash, IconCalendarEvent } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import edit from '@iconify-icons/tabler/edit';
+import trash from '@iconify-icons/tabler/trash';
+import calendarEvent from '@iconify-icons/tabler/calendar-event';
+import messageCircle from '@iconify-icons/tabler/message-circle';
+import plus from '@iconify-icons/tabler/plus';
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
 interface SocietyDetail {
-    name: string;
-    description: string;
-    numOfInterestedPeople: number;
-    logo?: string | null;
-    is_member?: boolean;
+  name: string;
+  description: string;
+  numOfInterestedPeople: number;
+  logo?: string | null;
+  is_member?: boolean;
 }
 
 interface Event {
-    id: number;
-    name: string;
-    details: string;
-    startTime: string;
-    endTime: string;
-    location: string;
-    status: string;
+  id: number;
+  name: string;
+  details: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  status: string;
+}
+
+interface Post {
+  id: number;
+  content: string;
+  author_name: string;
+  created_at: string;
+}
+
+interface Is_Admin {
+  admin: boolean;
 }
 
 const SocietyDetail = () => {
-    const { society_name } = useParams<{ society_name: string }>();
-    const { isAuthenticated, loggedAccountID } = useAuth();
-    const [society, setSociety] = useState<SocietyDetail | null>(null);
-    const [events, setEvents] = useState<Event[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(true);
-    const navigate = useNavigate();
+  const { society_name } = useParams<{ society_name: string }>();
+  const { isAuthenticated, loggedAccountID } = useAuth();
+  const [society, setSociety] = useState<SocietyDetail | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSocietyAdmin, setIsSocietyAdmin] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [postPermissions, setPostPermissions] = useState<{ [key: number]: boolean }>({});
+  const [newPostContent, setNewPostContent] = useState("");
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
+  const [deletePostModalOpen, setDeletePostModalOpen] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const checkAdminStatus = async () => {
-            if (!isAuthenticated) return;
-            try {
-                const response = await apiRequest<Is_Admin>({
-                    endpoint: '/admin_check/',
-                    method: 'POST',
-                });
-                setIsAdmin(response.data?.admin || false);
-                console.log("iouaerhgioAWHGOIHWEGIOHGEORFIH")
-                console.log(response.data?.admin)
-            } catch (error) {
-                console.error("Failed to check admin status:", error);
-            }
-        };
-        checkAdminStatus();
-    }, [isAuthenticated, loggedAccountID]);
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const response = await apiRequest<Is_Admin>({
+          endpoint: '/admin_check/',
+          method: 'POST',
+        });
+        setIsAdmin(response.data?.admin || false);
+      } catch (error) {
+        console.error("Failed to check admin status:", error);
+      }
+    };
+    checkAdminStatus();
+  }, [isAuthenticated, loggedAccountID]);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Fetch society details using the number (society_name in URL)
-                const societyResponse = await apiRequest<SocietyDetail>({
-                    endpoint: `/Societies/${society_name}/`,
-                    method: 'GET',
-                });
-
-                if (societyResponse.data) {
-                    setSociety({
-                        ...societyResponse.data,
-                    });
-                }
-
-  // Check admin status and get user ID
   useEffect(() => {
     if (!isAuthenticated || !loggedAccountID) return;
 
@@ -111,7 +120,6 @@ const SocietyDetail = () => {
       .catch(err => console.error("Failed to check society admin status:", err));
   }, [isAuthenticated, loggedAccountID, society_name]);
 
-  // Check post delete permissions
   useEffect(() => {
     if (!isAuthenticated || !society_name) return;
     (async () => {
@@ -131,7 +139,6 @@ const SocietyDetail = () => {
     })();
   }, [isAuthenticated, society_name, posts]);
 
-  // Fetch society details & events
   useEffect(() => {
     (async () => {
       try {
@@ -155,7 +162,6 @@ const SocietyDetail = () => {
     })();
   }, [society_name]);
 
-  // Fetch society posts
   useEffect(() => {
     (async () => {
       try {
@@ -184,6 +190,7 @@ const SocietyDetail = () => {
     } catch {
       setError('Operation failed');
     }
+  };
 
   const handleLeave = async () => {
     if (!society) return;
@@ -197,6 +204,7 @@ const SocietyDetail = () => {
     } catch {
       setError('Operation failed');
     }
+  };
 
   const handleDeleteSociety = async () => {
     try {
@@ -268,12 +276,12 @@ const SocietyDetail = () => {
               <Title order={2}>{society.name}</Title>
               {(isAdmin || isSocietyAdmin) && (
                 <Group>
-                  <Button leftSection={<IconEdit size={16} />} component={Link} to={`/Societies/${society_name}/UpdateSociety`}>
+                  <Button leftSection={<Icon icon={edit} width={16} height={16} />} component={Link} to={`/Societies/${society_name}/UpdateSociety`}>
                     Edit
                   </Button>
                   {isAdmin && (
                     <ActionIcon color="red" variant="outline" onClick={() => setDeleteModalOpen(true)}>
-                      <IconTrash size={16} />
+                      <Icon icon={trash} width={16} height={16} />
                     </ActionIcon>
                   )}
                 </Group>
@@ -296,8 +304,8 @@ const SocietyDetail = () => {
 
             <Tabs defaultValue="events">
               <Tabs.List>
-                <Tabs.Tab value="events" leftSection={<IconCalendarEvent size={16} />}>Events</Tabs.Tab>
-                <Tabs.Tab value="posts" leftSection={<IconMessageCircle size={16} />}>Posts</Tabs.Tab>
+                <Tabs.Tab value="events" leftSection={<Icon icon={calendarEvent} width={16} height={16} />}>Events</Tabs.Tab>
+                <Tabs.Tab value="posts" leftSection={<Icon icon={messageCircle} width={16} height={16} />}>Posts</Tabs.Tab>
               </Tabs.List>
 
               <Tabs.Panel value="events" pt="md">
@@ -305,10 +313,10 @@ const SocietyDetail = () => {
                   <Group>
                     {(isAdmin || isSocietyAdmin) && (
                       <>
-                        <Button variant="outline" component={Link} to={`/Societies/${society_name}/CreateEvent`} leftSection={<IconPlus size={16} />}>
+                        <Button variant="outline" component={Link} to={`/Societies/${society_name}/CreateEvent`} leftSection={<Icon icon={plus} width={16} height={16} />}>
                           Create Event
                         </Button>
-                        <Button variant="outline" component={Link} to={`/Societies/${society_name}/UpdateSociety`} leftSection={<IconEdit size={16} />}>
+                        <Button variant="outline" component={Link} to={`/Societies/${society_name}/UpdateSociety`} leftSection={<Icon icon={edit} width={16} height={16} />}>
                           Edit Society
                         </Button>
                       </>
@@ -338,13 +346,13 @@ const SocietyDetail = () => {
                 {isAuthenticated && (
                   <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
                     <Textarea placeholder="What's on your mind?" value={newPostContent} onChange={e => setNewPostContent(e.target.value)} minRows={3} mb="md" />
-                    <Button leftSection={<IconPlus size={16} />} onClick={handleCreatePost} loading={isCreatingPost} disabled={!newPostContent.trim()}>Create Post</Button>
+                    <Button leftSection={<Icon icon={plus} width={16} height={16} />} onClick={handleCreatePost} loading={isCreatingPost} disabled={!newPostContent.trim()}>Create Post</Button>
                   </Card>
                 )}
                 {postsLoading ? (
                   <Loader size="sm" />
                 ) : postsError ? (
-                  <Text color="red">{postsError}</Text>  
+                  <Text color="red">{postsError}</Text>
                 ) : posts.length ? (
                   <Flex direction="column" gap="md">
                     {posts.map(post => (
@@ -356,7 +364,7 @@ const SocietyDetail = () => {
                           </Box>
                           {canDeletePost(post) && (
                             <ActionIcon color="red" variant="subtle" onClick={() => { setPostToDelete(post); setDeletePostModalOpen(true); }}>
-                              <IconTrash size={16} />
+                              <Icon icon={trash} width={16} height={16} />
                             </ActionIcon>
                           )}
                         </Flex>

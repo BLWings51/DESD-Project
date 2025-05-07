@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
 import { useEffect, useState } from "react";
-import { IconUsers } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import users from '@iconify-icons/tabler/users';
 
 interface UserProfile {
   accountID: number;
@@ -70,7 +71,7 @@ const RightSidebar: React.FC = () => {
       >
         <Stack gap="xs">
           <Title order={4} size="h5">
-            <IconUsers size={18} style={{ marginRight: "8px" }} />
+            <Icon icon={users} width={18} height={18} style={{ marginRight: "8px" }} />
             My Societies
           </Title>
           <Text size="sm" c="dimmed">Loading...</Text>
@@ -99,7 +100,7 @@ const RightSidebar: React.FC = () => {
     >
       <Stack gap="xs">
         <Title order={4} size="h5">
-          <IconUsers size={18} style={{ marginRight: "8px" }} />
+          <Icon icon={users} width={18} height={18} style={{ marginRight: "8px" }} />
           My Societies
         </Title>
 
