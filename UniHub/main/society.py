@@ -77,7 +77,7 @@ def society_create(request):
 
 # Update society
 @api_view(['POST'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAdminOrSocietyAdmin])
 def UpdateSocietyView(request, society_name):  
     try:
         society = Society.objects.get(name=society_name)  # Fetch the society by name
@@ -85,10 +85,6 @@ def UpdateSocietyView(request, society_name):
         return Response({"SocietyError": "Society not found"}, status=404)
 
     new_name = request.data.get("name")
-
-    # Check if the new name is the same as the current one
-    # if new_name and new_name == society.name:
-    #     return Response({"UpdateError": "Society is already up to date, no changes made"}, status=400)
 
     # Check if the new name is already in use by another society
     if new_name and Society.objects.filter(name=new_name).exclude(id=society.id).exists():
@@ -239,7 +235,7 @@ class KickMemberSerializer(serializers.Serializer):  # Use serializers.Serialize
             # Remove the member
             relation.delete()
 
-            # Ensure count doesn’t go below 0
+            # Ensure count doesn't go below 0
             society.numOfInterestedPeople = max(society.numOfInterestedPeople - 1, 0)
             society.save(update_fields=['numOfInterestedPeople'])
 
@@ -317,7 +313,7 @@ class LeaveSocietySerializer(serializers.ModelSerializer):
             # Remove the member
             relation.delete()
 
-            # Ensure count doesn’t go below 0
+            # Ensure count doesn't go below 0
             society.numOfInterestedPeople = max(society.numOfInterestedPeople - 1, 0)
             society.save(update_fields=['numOfInterestedPeople'])
 

@@ -4,7 +4,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import {
     Card, Title, Text, Loader, Button,
-    Group, ActionIcon, Modal, Badge, Flex
+    Group, ActionIcon, Modal, Badge, Flex, Container
 } from "@mantine/core";
 import { IconEdit, IconTrash, IconBell } from "@tabler/icons-react";
 import Sidebar from "./Sidebar";
@@ -54,7 +54,8 @@ interface EventRelation {
 
 const EventDetail = () => {
     const { isAuthenticated, isLoading: authLoading, loggedAccountID } = useAuth();
-    const [isAdmin, setIsAdmin] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [userId, setUserId] = useState<number | null>(null);
     const { society_name, eventID } = useParams();
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -63,21 +64,22 @@ const EventDetail = () => {
     const [isInterested, setIsInterested] = useState(false);
     const navigate = useNavigate();
 
-    // Check if user is admin
+    // Check admin status and get user ID
     useEffect(() => {
-        const checkAdminStatus = async () => {
-            if (!isAuthenticated) return;
-            try {
-                const response = await apiRequest<Is_Admin>({
-                    endpoint: '/admin_check/',
-                    method: 'POST',
-                });
-                setIsAdmin(response.data?.admin || false);
-            } catch (error) {
-                console.error("Failed to check admin status:", error);
-            }
-        };
-        checkAdminStatus();
+        if (!isAuthenticated || !loggedAccountID) return;
+        
+        // Get user profile to get database ID and admin status
+        apiRequest<{ id: number; adminStatus: boolean }>({ 
+            endpoint: `/Profile/${loggedAccountID}/`, 
+            method: 'GET' 
+        })
+            .then(res => {
+                if (res.data) {
+                    setUserId(res.data.id);
+                    setIsAdmin(res.data.adminStatus);
+                }
+            })
+            .catch(err => console.error("Failed to get user details:", err));
     }, [isAuthenticated, loggedAccountID]);
 
     useEffect(() => {
@@ -190,40 +192,38 @@ const EventDetail = () => {
                     <div style={{ width: "200px" }} />
         
                     {/* Main Content */}
-                    <div style={{ flex: 1, maxWidth: "900px" }}>
-                        <Group justify="space-between" mb="md">
-                            <Title order={2}>{event.name}</Title>
-
-                            <Group>
-                                {isAuthenticated && (
-                                    <Button
-                                        leftSection={<IconBell size={16} />}
-                                        variant={isInterested ? "filled" : "outline"}
-                                        onClick={handleInterestToggle}
-                                    >
-                                        {isInterested ? "Opt Out" : "Get Notified"}
-                                    </Button>
-                                )}
+                    <Container size="xl" py="md" style={{ flex: 1, maxWidth: "900px" }}>
+                        {/* Event Header */}
+                        <Card shadow="sm" p="lg" radius="md" withBorder mb="xl">
+                            <Group justify="space-between" align="flex-start">
+                                <div>
+                                    <Title order={2}>{event.name}</Title>
+                                    <Text c="dimmed" size="sm">
+                                        {event.location}
+                                    </Text>
+                                </div>
                                 {isAdmin && (
-                                    <>
+                                    <Group>
                                         <Button
-                                            leftSection={<IconEdit size={16} />}
-                                            component={Link}
-                                            to={`/Societies/${society_name}/Events/${eventID}/UpdateEvent`}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <ActionIcon
-                                            color="red"
                                             variant="outline"
-                                            onClick={() => setDeleteModalOpen(true)}
+                                            component={Link}
+                                            to={`/Societies/${society_name}/${eventID}/UpdateEvent`}
+                                            leftSection={<IconEdit size={16} />}
                                         >
-                                            <IconTrash size={16} />
-                                        </ActionIcon>
-                                    </>
+                                            Edit Event
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            color="red"
+                                            onClick={() => setDeleteModalOpen(true)}
+                                            leftSection={<IconTrash size={16} />}
+                                        >
+                                            Delete Event
+                                        </Button>
+                                    </Group>
                                 )}
                             </Group>
-                        </Group>
+                        </Card>
 
                         <Card shadow="sm" p="lg" radius="md" withBorder>
                             <Text size="lg" mb="sm">
@@ -267,7 +267,7 @@ const EventDetail = () => {
                                 </Button>
                             </Group>
                         </Modal>
-                    </div>
+                    </Container>
         
                     {/* Right Sidebar Placeholder */}
                     <div style={{ width: "200px" }} />

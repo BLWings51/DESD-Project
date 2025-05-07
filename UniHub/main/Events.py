@@ -17,15 +17,13 @@ from .permissions import IsAdminOrSocietyAdmin
 class CreateEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
-
+        fields = ['name', 'details', 'startTime', 'endTime', 'location']
 
     def create(self, validated_data):
         society = self.context.get('society')
         event = Event(society=society, name=validated_data['name'], details=validated_data['details'], startTime=validated_data['startTime'], endTime=validated_data['endTime'], location=validated_data['location'])
         event.save()
         return event
-    
     
 @api_view(['POST'])
 @permission_classes([IsAdminOrSocietyAdmin])
@@ -38,12 +36,8 @@ def CreateEvent(request, society_name):
         return Response({"error": "End date cannot be equal to or before the start date"}, status=400)
     if serializer.is_valid():
         serializer.save()
-        members_list = SocietyRelation.objects.filter(society=society).values_list('account', flat=True)
-        members = Account.objects.filter(id__in=members_list)
-        for member in members:
-            Notification.objects.create(recipient=member, message=f"{request.data.get('name')} was just created in {society.name}")
         return Response(serializer.data)
-    return Response(serializer.data)
+    return Response(serializer.errors, status=400)
     
 
 # retreiving data for every event within a society
