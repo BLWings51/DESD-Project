@@ -11,6 +11,10 @@ interface Society {
     numOfInterestedPeople: number;
 }
 
+interface EventSocietyName {
+    name: string;
+}
+
 interface Event {
     id: number;
     name: string;
@@ -54,9 +58,34 @@ const SearchPage = () => {
             endpoint: `/search/?q=${encodeURIComponent(query)}`,
             method: "GET",
         })
-            .then((response) => {
+            .then(async (response) => {
                 if (!response.error) {
-                    setResults(response.data || null);
+                    const searchResults = response.data;
+                    if (searchResults) {
+                        // Fetch society information for each event
+                        const eventsWithSociety = await Promise.all(
+                            searchResults.events.map(async (event) => {
+                                try {
+                                    const societyResponse = await apiRequest<EventSocietyName>({
+                                        endpoint: `/GetSocietyFromEvent/${event.id}/`,
+                                        method: 'GET',
+                                    });
+                                    return {
+                                        ...event,
+                                        society: societyResponse.data?.name
+                                    };
+                                } catch (err) {
+                                    console.error(`Failed to fetch society for event ${event.id}:`, err);
+                                    return event;
+                                }
+                            })
+                        );
+
+                        setResults({
+                            ...searchResults,
+                            events: eventsWithSociety
+                        });
+                    }
                 } else {
                     setError(response.message || "Search failed");
                 }
@@ -66,6 +95,10 @@ const SearchPage = () => {
             })
             .finally(() => setLoading(false));
     }, [query]);
+
+    useEffect(() => {
+        console.log(results);
+    }, [results]);
 
     return (
         <Container size="md" py="xl">
@@ -116,7 +149,7 @@ const SearchPage = () => {
                         <Stack gap="sm">
                             {results.users.map((user) => (
                                 <Card key={user.accountID} shadow="sm" p="md" radius="md" withBorder>
-                                    <Anchor component={Link} to={`/profile?accountID=${user.accountID}`} underline="always">
+                                    <Anchor component={Link} to={`/profile/${user.accountID}`} underline="always">
                                         <Title order={4}>{user.firstName} {user.lastName}</Title>
                                     </Anchor>
                                     <Text size="sm" color="dimmed">ID: {user.accountID}</Text>
