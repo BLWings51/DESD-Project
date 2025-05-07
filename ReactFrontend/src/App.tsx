@@ -35,7 +35,10 @@ const App = () => {
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/Profile" element={<Profile />} />
+            <Route path="/Profile/:accountID" element={<Profile />} />
+            {/* <Route path="/Profile/Settings" element={<ProfileSettings />} /> */}
+            {/* <Route path="/Profile/Delete" element={<ProfileDelete />} /> */}
             <Route path="/Societies" element={<Societies />} />
             <Route path="/events" element={<Events />} />
             <Route path="/Societies/:society_name" element={<SocietyDetail />} />
@@ -45,6 +48,14 @@ const App = () => {
             <Route path="/Societies/:society_name/:eventID" element={<EventDetail />} />
             <Route path="/Societies/:society_name/:eventID/UpdateEvent" element={<UpdateEvent />} />
             <Route path="/search" element={<SearchPage />} />
+            {/* <Route path="/Societies/:society_name/DeleteSociety" element={<DeleteSociety />} />
+            <Route path="/Societies/:society_name/Events" element={<SocietyEvents />} />
+            <Route path="/Societies/:society_name/posts" element={<SocietyPosts />} />
+            <Route path="/Societies/:society_name/posts/create" element={<CreatePost />} />
+            <Route path="/Societies/:society_name/posts/update/:post_id" element={<UpdatePost />} />
+            <Route path="/Societies/:society_name/posts/delete/:post_id" element={<DeletePost />} />
+            <Route path="/posts/friends" element={<FriendsPosts />} />
+            <Route path="/search" element={<SearchPage />} /> */}
 
             <Route element={<ProtectedRoute />}>
             </Route>

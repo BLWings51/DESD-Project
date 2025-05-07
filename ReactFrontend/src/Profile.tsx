@@ -1,4 +1,6 @@
+// Profile.tsx
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
     Card,
     Title,
@@ -17,9 +19,16 @@ import {
     Avatar
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconEdit, IconTrash, IconCheck, IconX, IconCalendarEvent, IconUsers } from "@tabler/icons-react";
+import {
+    IconEdit,
+    IconTrash,
+    IconCheck,
+    IconX,
+    IconCalendarEvent,
+    IconUsers
+} from "@tabler/icons-react";
 import apiRequest from "./api/apiRequest";
-import { useAuth } from './authContext';
+import { useAuth } from "./authContext";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -37,7 +46,18 @@ interface UserProfile {
 }
 
 const Profile = () => {
-    const { isAuthenticated, isLoading: authLoading, loggedAccountID } = useAuth();
+    const { accountID: paramID } = useParams<{ accountID: string }>();
+    const {
+        isAuthenticated,
+        isLoading: authLoading,
+        loggedAccountID
+    } = useAuth();
+
+    // Determine which ID to fetch: URL param or own
+    const profileID = paramID
+        ? parseInt(paramID, 10)
+        : loggedAccountID;
+
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -46,19 +66,19 @@ const Profile = () => {
 
     const form = useForm<UserProfile>({
         initialValues: {
-            accountID: 0,
-            firstName: '',
-            lastName: '',
-            email: '',
-            bio: '',
-            pfp: '../../UniHub/media/profile_pics/default.webp',
+            accountID: profileID || 0,
+            firstName: "",
+            lastName: "",
+            email: "",
+            bio: "",
+            pfp: "../../UniHub/media/profile_pics/default.webp",
             is_owner: false,
             societies: [],
             events: []
-        },
+        }
     });
 
-    // Add loading state for auth
+    // Wait for auth context to settle
     if (authLoading) {
         return (
             <Flex justify="center" align="center" h="100vh">
@@ -67,8 +87,8 @@ const Profile = () => {
         );
     }
 
-    // Redirect or show message if not authenticated
-    if (!isAuthenticated || !loggedAccountID) {
+    // If no param AND not logged in, force login
+    if (!paramID && (!isAuthenticated || !loggedAccountID)) {
         return (
             <Flex justify="center" align="center" h="100vh">
                 <Text>Please log in to view your profile</Text>
@@ -78,10 +98,12 @@ const Profile = () => {
 
     const fetchUserProfile = async () => {
         setLoading(true);
+        setError(null);
+
         try {
             const response = await apiRequest<UserProfile>({
-                endpoint: `/Profile/${loggedAccountID}/`,
-                method: "GET",
+                endpoint: `/Profile/${profileID}/`,
+                method: "GET"
             });
 
             if (response.error) {
@@ -89,15 +111,19 @@ const Profile = () => {
             }
 
             if (response.data) {
+                // Determine ownership
+                const isOwner = profileID === loggedAccountID;
                 const profileData = {
                     ...response.data,
-                    pfp: response.data.pfp || '../../UniHub/media/profile_pics/default.webp'
+                    is_owner: isOwner,
+                    pfp: response.data.pfp || "../../UniHub/media/profile_pics/default.webp"
                 };
                 form.setValues(profileData);
                 setUser(profileData);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load profile");
+            setUser(null);
         } finally {
             setLoading(false);
         }
@@ -105,14 +131,9 @@ const Profile = () => {
 
     useEffect(() => {
         fetchUserProfile();
-    }, [loggedAccountID]);
+    }, [profileID, loggedAccountID]);
 
     const handleSubmit = async (values: UserProfile) => {
-        if (!loggedAccountID) {
-            setError("No account ID available");
-            return;
-        }
-
         setLoading(true);
         setError(null);
 
@@ -121,16 +142,16 @@ const Profile = () => {
             const response = await apiRequest<UserProfile>({
                 endpoint: "/Profile/Settings/",
                 method: "POST",
-                data: dataToSend,
+                data: dataToSend
             });
 
             if (response.error) {
                 throw new Error(response.message);
             }
 
-            setUser(response.data || null);
-            setEditing(false);
+            // Refresh after save
             await fetchUserProfile();
+            setEditing(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to save profile");
         } finally {
@@ -139,24 +160,14 @@ const Profile = () => {
     };
 
     const handleDelete = async () => {
-        if (!loggedAccountID) {
-            setError("No account ID available");
-            return;
-        }
-
         setLoading(true);
         setError(null);
 
         try {
-            const response = await apiRequest({
-                endpoint: `/profile/${loggedAccountID}/`,
-                method: "DELETE",
+            await apiRequest({
+                endpoint: `/Profile/${profileID}/`,
+                method: "DELETE"
             });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
             setUser(null);
             setDeleteModalOpen(false);
             form.reset();
@@ -175,20 +186,12 @@ const Profile = () => {
         );
     }
 
-    // Fields to always show
-    const publicFields = ['firstName', 'lastName', 'bio'];
-
-    // Fields to show only to owner
-    const privateFields = ['email', 'accountID', 'societies', 'events'];
-
     return (
         <>
             <Sidebar>
                 <Flex justify="center" align="flex-start" gap="md" px="md">
-                    {/* Left Sidebar Placeholder */}
                     <div style={{ width: "200px" }} />
-        
-                    {/* Main Content */}
+
                     <div style={{ flex: 1, maxWidth: "900px" }}>
                         <Flex
                             justify="center"
@@ -197,15 +200,11 @@ const Profile = () => {
                             py="xl"
                             px="md"
                         >
-                            <Card
-                                p="xl"
-                                shadow="md"
-                                radius="lg"
-                                w="100%"
-                                maw={450}
-                            >
+                            <Card p="xl" shadow="md" radius="lg" w="100%" maw={450}>
                                 <Group justify="space-between" mb="md" wrap="wrap">
-                                    <Title order={2}>Profile</Title>
+                                    <Title order={2}>
+                                        {paramID ? "User Profile" : "My Profile"}
+                                    </Title>
                                     {!editing && user?.is_owner && (
                                         <Group gap="xs">
                                             <ActionIcon
@@ -236,37 +235,29 @@ const Profile = () => {
                                     <form onSubmit={form.onSubmit(handleSubmit)}>
                                         <TextInput
                                             label="First Name"
-                                            placeholder="Your name"
                                             {...form.getInputProps("firstName")}
                                             mb="sm"
                                             required
                                         />
-
                                         <TextInput
                                             label="Last Name"
-                                            placeholder="Your name"
                                             {...form.getInputProps("lastName")}
                                             mb="sm"
                                             required
                                         />
-
                                         <TextInput
                                             label="Email"
-                                            placeholder="your@email.com"
                                             {...form.getInputProps("email")}
                                             mb="sm"
                                             required
                                             disabled={!user?.is_owner}
                                         />
-
                                         <Textarea
                                             label="Bio"
-                                            placeholder="Tell us about yourself"
                                             {...form.getInputProps("bio")}
                                             minRows={4}
                                             mb="sm"
                                         />
-
                                         <Group justify="flex-end" mt="md" wrap="wrap">
                                             <Button
                                                 variant="default"
@@ -297,35 +288,31 @@ const Profile = () => {
                                                 alt="Profile picture"
                                             />
                                         </Flex>
-
-                                        <Flex justify="center" gap="md" mt="sm" wrap="wrap">
+                                        <Flex justify="center" gap="md" wrap="wrap">
                                             <Text fw={500}>{user.firstName}</Text>
                                             <Text fw={500}>{user.lastName}</Text>
                                         </Flex>
-
                                         <Flex justify="center">
                                             <Text mt="xs">{user.email}</Text>
                                         </Flex>
-
                                         <Flex justify="center">
                                             <Text mt="xs">
                                                 <strong>ID:</strong> {user.accountID}
                                             </Text>
                                         </Flex>
-
                                         <Box
                                             mt="sm"
                                             p="sm"
                                             bg="dark.6"
                                             style={{
-                                                borderRadius: '8px',
-                                                minHeight: '80px',
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-word',
+                                                borderRadius: "8px",
+                                                minHeight: "80px",
+                                                whiteSpace: "pre-wrap",
+                                                wordBreak: "break-word"
                                             }}
                                         >
                                             <Text size="sm" c="dimmed">
-                                                {user.bio || 'No bio provided.'}
+                                                {user.bio || "No bio provided."}
                                             </Text>
                                         </Box>
 
@@ -350,7 +337,6 @@ const Profile = () => {
                                                         </Text>
                                                     )}
                                                 </Box>
-
                                                 <Box mt="md">
                                                     <Flex align="center" gap="sm" mb="xs">
                                                         <IconCalendarEvent size={18} />
@@ -376,13 +362,11 @@ const Profile = () => {
                                 ) : (
                                     <Box>
                                         <Text mb="md">No profile found.</Text>
-                                        {user && (user as UserProfile).is_owner && (
-                                            <Button onClick={() => setEditing(true)}>Create Profile</Button>
-                                        )}
                                     </Box>
                                 )}
                             </Card>
 
+                            {/* Delete Confirmation */}
                             {user?.is_owner && (
                                 <Modal
                                     opened={deleteModalOpen}
@@ -390,9 +374,15 @@ const Profile = () => {
                                     title="Delete Profile"
                                     centered
                                 >
-                                    <Text>Are you sure you want to delete your profile? This action cannot be undone.</Text>
+                                    <Text>
+                                        Are you sure you want to delete your profile? This
+                                        action cannot be undone.
+                                    </Text>
                                     <Group mt="xl" justify="flex-end">
-                                        <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+                                        <Button
+                                            variant="default"
+                                            onClick={() => setDeleteModalOpen(false)}
+                                        >
                                             Cancel
                                         </Button>
                                         <Button
@@ -407,8 +397,7 @@ const Profile = () => {
                             )}
                         </Flex>
                     </div>
-        
-                    {/* Right Sidebar Placeholder */}
+
                     <div style={{ width: "200px" }} />
                 </Flex>
             </Sidebar>

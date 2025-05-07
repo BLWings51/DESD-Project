@@ -25,7 +25,7 @@ async function apiRequest<T>({ endpoint, method = "GET", data }: RequestOptions)
     const options: RequestInit = {
         method,
         headers,
-        credentials: "include", // Important: send cookies with requests
+        credentials: "include",
     };
 
     if (data) {

@@ -1,5 +1,19 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import apiRequest from './api/apiRequest';
+import { refreshAccessToken } from './api/auth';
+
+interface UserProfile {
+    accountID: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    bio: string;
+    pfp: string | null;
+    is_owner: boolean;
+    societies: string[];
+    events: string[];
+    [key: string]: any;
+}
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -16,6 +30,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [loggedAccountID, setLoggedAccountID] = useState<string | null>(null);
+
+    useEffect(() => {
+        // try to refresh immediately on startup
+        refreshAccessToken()
+            .then(ok => {
+                if (ok) {
+                    // fetch /api/profile/ or decode the cookie-backed access token
+                    apiRequest<{ user: UserProfile }>({ endpoint: '/Profile/' })
+                        .then(res => {
+                            if (!res.error && res.data) {
+                                setLoggedAccountID(res.data.user.accountID.toString());
+                            }
+                        });
+                }
+            });
+    }, []);
 
     const checkAuth = async () => {
         setIsLoading(true);
