@@ -14,7 +14,8 @@ import { DateTimePicker } from '@mantine/dates';
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { IconCalendar } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import calendarEvent from '@iconify-icons/tabler/calendar-event';
 
 interface EventData {
     id: number;

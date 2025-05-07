@@ -5,19 +5,26 @@ from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Account, SocietyRelation, Society, Event, EventRelation
+from .models import Account, SocietyRelation, Society, Event, EventRelation, InterestTag, FriendRelation
 from rest_framework import serializers
 
+
 class UpdateProfileSerializer(serializers.ModelSerializer):
-    
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+
     class Meta:
-        
-        model=Account
-        fields = ['bio', 'firstName', 'lastName', 'email', 'pfp', 'password']
+        model = Account
+        fields = [
+            'bio', 'firstName', 'lastName', 'email', 'pfp', 'password',
+            'address', 'dob', 'course', 'year_of_course', 'interests'
+        ]
         extra_kwargs = {'password': {'write_only': True}}
 
-    def validateEmail(self, value):
+    def validate_email(self, value):
         user = self.context['request'].user
         
         if Account.objects.exclude(pk=user.account.pk).filter(email=value).exists():
@@ -25,15 +32,25 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return value
     
     def update(self, instance, validated_data):
-        instance.bio = validated_data.get('bio', instance.bio)
-        instance.firstName = validated_data.get('firstName', instance.firstName)
-        instance.lastName = validated_data.get('lastName', instance.lastName)
-        instance.email = validated_data.get('email', instance.email)
-        instance.pfp = validated_data.get('pfp', instance.pfp)
+        # Handle fields
+        for field in ['bio', 'firstName', 'lastName', 'email', 'pfp', 'address', 'dob', 'course', 'year_of_course']:
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
+
+        # Handle password
         password = validated_data.get('password', None)
-        
         if password:
             instance.set_password(password)
+
+        # Handle interests (tags)
+        if 'interests' in validated_data:
+            tag_names = validated_data['interests']
+            tags = []
+            for name in tag_names:
+                tag, _ = InterestTag.objects.get_or_create(name=name)
+                tags.append(tag)
+            instance.interests.set(tags)
+
         instance.save()
         return instance
 
@@ -57,7 +74,18 @@ def UpdateProfileView(request):
     
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data)
+
+        # Logout if password was changed
+        if 'password' in request.data:
+            res = Response({'message': 'Password updated. Please login again.'})
+            res.delete_cookie('access_token', path="/", samesite='None')
+            res.delete_cookie('refresh_token', path="/", samesite='None')
+            return res
+        
+        updated_account = Account.objects.get(pk=account.pk)
+        response_serializer = GetAccountSerializer(updated_account, context={'request': request})
+        
+        return Response(response_serializer.data)
     return Response(serializer.errors, status=400)
 
 # Displaying the societies the person is apart of
@@ -90,18 +118,32 @@ class EventRelationSerializer(serializers.ModelSerializer):
         model = EventRelation
         fields = ['event']        
         
+# Serializer for Interest Tags
+class InterestTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InterestTag
+        fields = ['name']
 
 # Displaying profile details
 # Serializer
 class GetAccountSerializer(serializers.ModelSerializer):
+    interests = InterestTagSerializer(many=True)
     is_owner = serializers.SerializerMethodField()
     societies = serializers.SerializerMethodField()
     events = serializers.SerializerMethodField()
-
+    is_admin = serializers.SerializerMethodField()
+    
     class Meta:
         model=Account
-        fields = ['bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', 'is_owner', "societies", "events"]
-
+        fields = [
+            'bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', "societies", "events",
+            'is_owner', 'is_admin', 'address', 'dob', 'course', 'year_of_course', 'interests'
+        ]
+        
+    def get_is_admin(self, account):
+        request = self.context.get('request')
+        return request.user.is_authenticated and getattr(request.user, 'adminStatus', False)
+        
     def get_is_owner(self, account):
         request = self.context.get('request')
         is_owner = False
@@ -109,21 +151,53 @@ class GetAccountSerializer(serializers.ModelSerializer):
             if account.accountID == request.user.accountID:
                 is_owner = True
         return is_owner
+        
+    def is_friend(self, account):
+        request = self.context.get('request')
+        
+        return request.user.is_authenticated and FriendRelation.are_friends(account, request.user)
+
 
     def get_societies(self, account):
-        return [relation.society.name for relation in account.societyrelation_set.all()]
+        request = self.context.get('request')
+        is_owner = self.get_is_owner(account)
+        is_admin = self.get_is_admin(account)
+        is_friend = self.is_friend(account)
+
+        if is_owner or is_admin or is_friend:
+            return [relation.society.name for relation in account.societyrelation_set.all()]
+        return []
 
     def get_events(self, account):
-        events = [relation.event for relation in account.eventrelation_set.all()]
-        return GetEventSerializer(events, many=True, context=self.context).data
+        request = self.context.get('request')
+        is_owner = self.get_is_owner(account)
+        is_admin = self.get_is_admin(account)
+        is_friend = self.is_friend(account)
+
+        if is_owner or is_admin or is_friend:
+            events = [relation.event for relation in account.eventrelation_set.all()]
+            return GetEventSerializer(events, many=True, context=self.context).data
+        return []
+
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        is_owner = self.get_is_owner(instance)
+        is_admin = self.get_is_admin(instance)
+        if not (is_owner or is_admin):
+            data.pop('dob', None)
+            data.pop('address', None)
+        return data
 
 # Views
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def getAccountDetails(request, account_ID):
     account = get_object_or_404(Account, accountID=account_ID)
     serializer = GetAccountSerializer(account, context={'request': request})
     return Response(serializer.data)
+
 
 # Deleting account
 @api_view(['DELETE'])

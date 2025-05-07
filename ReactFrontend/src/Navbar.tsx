@@ -4,7 +4,9 @@ import { Container, Group, Button, Text, Paper, Menu, Burger, TextInput, Loader,
 import { Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import { useDisclosure } from "@mantine/hooks";
-import { IconChevronDown, IconSearch } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import chevronDown from '@iconify-icons/tabler/chevron-down';
+import search from '@iconify-icons/tabler/search';
 
 interface Is_Admin {
     admin: boolean;
@@ -63,7 +65,7 @@ const Navbar: React.FC = () => {
                     </Text>
                     <form onSubmit={handleSearch} style={{ flex: 1, marginLeft: 24, marginRight: 24 }}>
                         <TextInput
-                            leftSection={<IconSearch size={18} />}
+                            leftSection={<Icon icon={search} width={18} height={18} />}
                             leftSectionPointerEvents="none"
                             placeholder="Search..."
                             value={searchTerm}
@@ -85,7 +87,7 @@ const Navbar: React.FC = () => {
                                 {/* Societies Dropdown */}
                                 <Menu trigger="hover" transitionProps={{ exitDuration: 0 }}>
                                     <Menu.Target>
-                                        <Button variant="subtle" rightSection={<IconChevronDown size={14} />}>
+                                        <Button variant="subtle" rightSection={<Icon icon={chevronDown} width={14} height={14} />}>
                                             Societies
                                         </Button>
                                     </Menu.Target>
@@ -141,7 +143,7 @@ const Navbar: React.FC = () => {
 
                                 <Menu>
                                     <Menu.Target>
-                                        <Button fullWidth variant="subtle" rightSection={<IconChevronDown size={14} />}>
+                                        <Button fullWidth variant="subtle" rightSection={<Icon icon={chevronDown} width={14} height={14} />}>
                                             Societies
                                         </Button>
                                     </Menu.Target>

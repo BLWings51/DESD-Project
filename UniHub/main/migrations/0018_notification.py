@@ -22,4 +22,9 @@ class Migration(migrations.Migration):
                 ('recipient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to=settings.AUTH_USER_MODEL)),
             ],
         ),
+        migrations.AddField(
+            model_name='society',
+            name='members',
+            field=models.ManyToManyField(related_name='societies', to=settings.AUTH_USER_MODEL),
+        ),
     ]

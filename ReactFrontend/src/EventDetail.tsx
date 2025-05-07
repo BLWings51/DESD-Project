@@ -6,7 +6,9 @@ import {
     Card, Title, Text, Loader, Button,
     Group, ActionIcon, Modal, Badge, Flex, Container
 } from "@mantine/core";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
+import { Icon } from '@iconify/react';
+import edit from '@iconify-icons/tabler/edit';
+import trash from '@iconify-icons/tabler/trash';
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -38,11 +40,11 @@ const EventDetail = () => {
     // Check admin status and get user ID
     useEffect(() => {
         if (!isAuthenticated || !loggedAccountID) return;
-        
+
         // Get user profile to get database ID and admin status
-        apiRequest<{ id: number; adminStatus: boolean }>({ 
-            endpoint: `/Profile/${loggedAccountID}/`, 
-            method: 'GET' 
+        apiRequest<{ id: number; adminStatus: boolean }>({
+            endpoint: `/Profile/${loggedAccountID}/`,
+            method: 'GET'
         })
             .then(res => {
                 if (res.data) {
@@ -124,7 +126,7 @@ const EventDetail = () => {
                 <Flex justify="center" align="flex-start" gap="md" px="md">
                     {/* Left Sidebar Placeholder */}
                     <div style={{ width: "200px" }} />
-        
+
                     {/* Main Content */}
                     <Container size="xl" py="md" style={{ flex: 1, maxWidth: "900px" }}>
                         {/* Event Header */}
@@ -142,7 +144,7 @@ const EventDetail = () => {
                                             variant="outline"
                                             component={Link}
                                             to={`/Societies/${society_name}/${eventID}/UpdateEvent`}
-                                            leftSection={<IconEdit size={16} />}
+                                            leftSection={<Icon icon={edit} width={16} height={16} />}
                                         >
                                             Edit Event
                                         </Button>
@@ -150,7 +152,7 @@ const EventDetail = () => {
                                             variant="outline"
                                             color="red"
                                             onClick={() => setDeleteModalOpen(true)}
-                                            leftSection={<IconTrash size={16} />}
+                                            leftSection={<Icon icon={trash} width={16} height={16} />}
                                         >
                                             Delete Event
                                         </Button>
@@ -199,7 +201,7 @@ const EventDetail = () => {
                             </Group>
                         </Modal>
                     </Container>
-        
+
                     {/* Right Sidebar Placeholder */}
                     <div style={{ width: "200px" }} />
                 </Flex>
