@@ -31,6 +31,7 @@ urlpatterns = [
     path('GetSocietyFromEvent/<int:eventID>/', Events.getSocietyFromEvent),
     path('Societies/<str:society_name>/<int:eventID>/Join/', Events.join_event),
     path('Societies/<str:society_name>/<int:eventID>/Leave/', Events.leave_event),
+    path('Societies/<str:society_name>/members/', society.getmembers, name='society-members'),
     path('Societies/<str:society_name>/posts/', post.get_society_posts, name="get_society_posts"),
     path('Societies/<str:society_name>/posts/create/', post.create_post, name="create_post"),
     path('Societies/<str:society_name>/posts/update/<int:post_id>/', post.update_post, name="update-post"),
