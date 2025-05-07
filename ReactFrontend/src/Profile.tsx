@@ -41,7 +41,7 @@ interface UserProfile {
     pfp: string | null;
     is_owner: boolean;
     societies: string[];
-    events: string[];
+    events: Array<{ name: string; society: { name: string } }>;
     [key: string]: any;
 }
 
@@ -344,9 +344,9 @@ const Profile = () => {
                                                     </Flex>
                                                     {user.events.length > 0 ? (
                                                         <Group gap="sm" wrap="wrap">
-                                                            {user.events.map((item: string) => (
-                                                                <Badge key={item} variant="light">
-                                                                    {item}
+                                                            {user.events.map((event, index) => (
+                                                                <Badge key={`${event.name}-${index}`} variant="light">
+                                                                    {event.name} ({event.society.name})
                                                                 </Badge>
                                                             ))}
                                                         </Group>
