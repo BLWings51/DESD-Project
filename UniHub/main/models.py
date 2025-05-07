@@ -3,6 +3,27 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db.models import Q
+
+COURSE_CHOICES = [
+    ('CS', 'Computer Science'),
+    ('ENG', 'Engineering'),
+    ('BUS', 'Business'),
+]
+
+YEAR_CHOICES = [
+    ('1', 'Year 1'),
+    ('2', 'Year 2'),
+    ('3', 'Year 3'),
+    ('4', 'Year 4'),
+    ('PG', 'Postgraduate'),
+]
+
+class InterestTag(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
 
 class AccountManager(BaseUserManager):
     def create_user(self, accountID, password=None, **extra_fields):
@@ -31,7 +52,13 @@ class Account(AbstractBaseUser, PermissionsMixin):
     bio = models.CharField(max_length=3000, blank=True)
     adminStatus = models.BooleanField(default=False)
     confirmed = models.BooleanField(default=False)
-
+    
+    address = models.CharField(max_length=500, blank=True)
+    dob = models.DateField(null=True, blank=True)
+    
+    course = models.CharField(max_length=50, choices=COURSE_CHOICES, blank=True)
+    year_of_course = models.CharField(max_length=10, choices=YEAR_CHOICES, blank=True)
+    
     is_active = models.BooleanField(default=True)  # Required for Django user model
     is_staff = models.BooleanField(default=False)  # Required for admin access
 
@@ -50,11 +77,33 @@ class Account(AbstractBaseUser, PermissionsMixin):
         related_name="account_users",
         blank=True,
     )
+    interests = models.ManyToManyField(
+        InterestTag, 
+        related_name='accounts',
+        blank=True,
+        )
 
     def __str__(self):
         return self.accountID
 
+class FriendRelation(models.Model):
+    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='friends_sent')
+    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='friends_received')
+    confirmed = models.BooleanField(default=False)
     
+    class Meta:
+        unique_together = ('from_account', 'to_account')
+        
+    @staticmethod
+    def are_friends(account1, account2):
+        return FriendRelation.objects.filter(
+            ((Q(from_account=account1) & Q(to_account=account2)) |
+            (Q(from_account=account2) & Q(to_account=account1))) & Q(confirmed=True)).exists()
+
+    def __str__(self):
+        return f"{self.from_account} -> {self.to_account} ({'Confirmed' if self.confirmed else 'Pending'})"
+
+
 class Society(models.Model):
     name = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
