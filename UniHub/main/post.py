@@ -2,9 +2,9 @@ from rest_framework import serializers, status
 from .models import Post
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .permissions import IsSocietyAdmin
+from .permissions import IsSocietyAdmin, IsAdminOrSocietyAdmin
 from rest_framework.response import Response
-from .models import Post, Society
+from .models import Post, Society, SocietyRelation
 
 # Get posts from user's friends
 @api_view(['GET'])
@@ -65,22 +65,52 @@ def update_post(request, society_name, post_id):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# Check if user can delete a post
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def can_delete_post(request, society_name, post_id):
+    try:
+        # Get the post and join with Account table to check author
+        post = Post.objects.select_related('author').get(id=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if user is the author by comparing accountID
+    is_author = request.user.accountID == post.author.accountID
+    is_admin = getattr(request.user, 'adminStatus', False)
+    is_society_admin = SocietyRelation.objects.filter(
+        society__name=society_name,
+        account=request.user,
+        adminStatus=True
+    ).exists()
+
+    can_delete = is_author or is_admin or is_society_admin
+    return Response({"can_delete": can_delete}, status=status.HTTP_200_OK)
 
 # Delete a post
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_post(request, society_name, post_id):
     try:
-        post = Post.objects.get(id=post_id)
+        # Get the post and join with Account table to check author
+        post = Post.objects.select_related('author').get(id=post_id)
     except Post.DoesNotExist:
         return Response({"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.user != post.author:
+    # Check if user is the author by comparing accountID
+    is_author = request.user.accountID == post.author.accountID
+    is_admin = getattr(request.user, 'adminStatus', False)
+    is_society_admin = SocietyRelation.objects.filter(
+        society__name=society_name,
+        account=request.user,
+        adminStatus=True
+    ).exists()
+
+    if not (is_author or is_admin or is_society_admin):
         return Response({"error": "You are not allowed to delete this post."}, status=status.HTTP_403_FORBIDDEN)
 
     post.delete()
     return Response({"message": "Post deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
-
 
 # serialisers
 

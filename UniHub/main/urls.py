@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.urls import path
-from main import signup, views, Profile, society, Events, post, searchBar
+from main import signup, views, Profile, society, Events, post, searchBar, notifications
 
 urlpatterns = [
     path('signup/', signup.SignupView, name='signup'),
@@ -31,10 +31,16 @@ urlpatterns = [
     path('GetSocietyFromEvent/<int:eventID>/', Events.getSocietyFromEvent),
     path('Societies/<str:society_name>/<int:eventID>/Join/', Events.join_event),
     path('Societies/<str:society_name>/<int:eventID>/Leave/', Events.leave_event),
+    path('Societies/<str:society_name>/<int:eventID>/CheckInterest/', Events.check_interest),
+    path('Societies/<str:society_name>/members/', society.getmembers, name='get-society-name'),
     path('Societies/<str:society_name>/posts/', post.get_society_posts, name="get_society_posts"),
     path('Societies/<str:society_name>/posts/create/', post.create_post, name="create_post"),
     path('Societies/<str:society_name>/posts/update/<int:post_id>/', post.update_post, name="update-post"),
     path('Societies/<str:society_name>/posts/delete/<int:post_id>/', post.delete_post, name="delete-post"),
+    path('Societies/<str:society_name>/posts/can_delete/<int:post_id>/', post.can_delete_post),
     path('posts/friends/', post.get_friends_posts, name="get_friends_posts"),
+    path('notifications/', notifications.get_notifications),
+    path('notificationBell/', notifications.get_unread_notification_quantity),
+    path('notifications/<int:notificationID>/', notifications.mark_notification_as_read),
     path('search/', searchBar.search, name='search'),
 ]

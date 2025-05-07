@@ -3,8 +3,21 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
 import {
-    Card, Title, Text, Loader, Flex, Button, Image,
-    Tabs, Badge, Group, ActionIcon, Modal, Textarea, Box
+  Card,
+  Title,
+  Text,
+  Loader,
+  Flex,
+  Button,
+  Image,
+  Tabs,
+  Badge,
+  Group,
+  ActionIcon,
+  Modal,
+  Box,
+  Textarea,
+  Container,
 } from "@mantine/core";
 import { IconEdit, IconTrash, IconCalendarEvent } from "@tabler/icons-react";
 import Sidebar from "./Sidebar";
@@ -26,10 +39,6 @@ interface Event {
     endTime: string;
     location: string;
     status: string;
-}
-
-interface Is_Admin {
-    admin: boolean;
 }
 
 const SocietyDetail = () => {
@@ -76,261 +85,312 @@ const SocietyDetail = () => {
                     });
                 }
 
-                // Fetch society events using the actual name from response
-                if (societyResponse.data?.name) {
-                    const eventsResponse = await apiRequest<Event[]>({
-                        endpoint: `/Societies/${societyResponse.data.name}/Events/`,
-                        method: 'GET',
-                    });
-                    setEvents(eventsResponse.data || []);
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load society");
-            } finally {
-                setLoading(false);
-            }
-        };
+  // Check admin status and get user ID
+  useEffect(() => {
+    if (!isAuthenticated || !loggedAccountID) return;
 
-        fetchData();
-    }, [society_name]);
-
-    const handleJoin = async () => {
-        if (!society) return;
-
-        try {
-            await apiRequest({
-                endpoint: `/Societies/${society_name}/join/`,
-                method: 'POST',
-            });
-            // Refresh society data
-            const response = await apiRequest<SocietyDetail>({
-                endpoint: `/Societies/${society_name}/`,
-                method: 'GET',
-            });
-            if (response.data) {
-                setSociety(response.data);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Operation failed");
+    apiRequest<{ id: number; adminStatus: boolean }>({
+      endpoint: `/Profile/${loggedAccountID}/`,
+      method: 'GET',
+    })
+      .then(res => {
+        if (res.data) {
+          setUserId(res.data.id);
+          setIsAdmin(res.data.adminStatus);
         }
-    };
+      })
+      .catch(err => console.error("Failed to get user details:", err));
 
-    const handleLeave = async () => {
-        if (!society) return;
+    apiRequest<{ "Society Admin": boolean }>({
+      endpoint: `/Societies/${society_name}/IsSocietyAdmin/`,
+      method: 'POST',
+    })
+      .then(res => {
+        if (res.data) setIsSocietyAdmin(res.data["Society Admin"]);
+      })
+      .catch(err => console.error("Failed to check society admin status:", err));
+  }, [isAuthenticated, loggedAccountID, society_name]);
 
+  // Check post delete permissions
+  useEffect(() => {
+    if (!isAuthenticated || !society_name) return;
+    (async () => {
+      const perms: { [key: number]: boolean } = {};
+      for (const post of posts) {
         try {
-            await apiRequest({
-                endpoint: `/Societies/${society_name}/leave/`,
-                method: 'POST',
-            });
-            // Refresh society data
-            const response = await apiRequest<SocietyDetail>({
-                endpoint: `/Societies/${society_name}/`,
-                method: 'GET',
-            });
-            if (response.data) {
-                setSociety(response.data);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Operation failed");
+          const resp = await apiRequest<{ can_delete: boolean }>({
+            endpoint: `/Societies/${society_name}/posts/can_delete/${post.id}/`,
+            method: 'GET',
+          });
+          perms[post.id] = resp.data?.can_delete ?? false;
+        } catch {
+          perms[post.id] = false;
         }
-    };
+      }
+      setPostPermissions(perms);
+    })();
+  }, [isAuthenticated, society_name, posts]);
 
-    const handleDeleteSociety = async () => {
-        try {
-            await apiRequest({
-                endpoint: `/Societies/${society_name}/DeleteSociety/`,
-                method: 'DELETE',
-            });
-            navigate('/Societies');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to delete society");
-        }
-    };
-
-    const formatDateTime = (dateString: string) => {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return "Invalid date";
-
-        return date.toLocaleString([], {
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+  // Fetch society details & events
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await apiRequest<SocietyDetail>({
+          endpoint: `/Societies/${society_name}/`,
+          method: 'GET',
         });
-    };
+        if (resp.data) {
+          setSociety(resp.data);
+          const ev = await apiRequest<Event[]>({
+            endpoint: `/Societies/${resp.data.name}/Events/`,
+            method: 'GET',
+          });
+          setEvents(ev.data || []);
+        }
+      } catch {
+        setError('Failed to load society');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [society_name]);
 
-    if (loading) {
-        return <Loader size="xl" />;
+  // Fetch society posts
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await apiRequest<Post[]>({
+          endpoint: `/Societies/${society_name}/posts/`,
+          method: 'GET',
+        });
+        setPosts(resp.data || []);
+      } catch {
+        setPostsError('Failed to load posts');
+      } finally {
+        setPostsLoading(false);
+      }
+    })();
+  }, [society_name]);
+
+  const handleJoin = async () => {
+    if (!society) return;
+    try {
+      await apiRequest({ endpoint: `/Societies/${society_name}/join/`, method: 'POST' });
+      const updated = await apiRequest<SocietyDetail>({
+        endpoint: `/Societies/${society_name}/`,
+        method: 'GET',
+      });
+      if (updated.data) setSociety(updated.data);
+    } catch {
+      setError('Operation failed');
     }
 
-    if (!society) {
-        return <Text>Society not found</Text>;
+  const handleLeave = async () => {
+    if (!society) return;
+    try {
+      await apiRequest({ endpoint: `/Societies/${society_name}/leave/`, method: 'POST' });
+      const updated = await apiRequest<SocietyDetail>({
+        endpoint: `/Societies/${society_name}/`,
+        method: 'GET',
+      });
+      if (updated.data) setSociety(updated.data);
+    } catch {
+      setError('Operation failed');
     }
 
-    return (
-        <>
-            <Sidebar>
-                <Flex justify="center" align="flex-start" gap="md" px="md">
-                    {/* Left Sidebar Placeholder */}
-                    <div style={{ width: "200px" }} />
-        
-                    {/* Main Content */}
-                    <Box style={{ flex: 1, maxWidth: "900px" }}>
-                        <Flex justify="space-between" align="center" mb="md">
-                            <Title order={2}>{society?.name}</Title>
-                            {isAdmin && (
-                                <Group>
-                                    <Button
-                                        leftSection={<IconEdit size={16} />}
-                                        component={Link}
-                                        to={`/Societies/${society_name}/UpdateSociety`}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <ActionIcon
-                                        color="red"
-                                        variant="outline"
-                                        onClick={() => setDeleteModalOpen(true)}
-                                    >
-                                        <IconTrash size={16} />
-                                    </ActionIcon>
-                                </Group>
-                            )}
+  const handleDeleteSociety = async () => {
+    try {
+      await apiRequest({ endpoint: `/Societies/${society_name}/DeleteSociety/`, method: 'DELETE' });
+      navigate('/Societies');
+    } catch {
+      setError('Failed to delete society');
+    }
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim()) return;
+    setIsCreatingPost(true);
+    try {
+      await apiRequest({
+        endpoint: `/Societies/${society_name}/posts/create/`,
+        method: 'POST',
+        data: { content: newPostContent },
+      });
+      const resp = await apiRequest<Post[]>({
+        endpoint: `/Societies/${society_name}/posts/`,
+        method: 'GET',
+      });
+      setPosts(resp.data || []);
+      setNewPostContent('');
+    } catch {
+      setPostsError('Failed to create post');
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+    try {
+      await apiRequest({ endpoint: `/Societies/${society_name}/posts/delete/${postToDelete.id}/`, method: 'DELETE' });
+      const resp = await apiRequest<Post[]>({
+        endpoint: `/Societies/${society_name}/posts/`,
+        method: 'GET',
+      });
+      setPosts(resp.data || []);
+    } catch {
+      setPostsError('Failed to delete post');
+    } finally {
+      setDeletePostModalOpen(false);
+      setPostToDelete(null);
+    }
+  };
+
+  const canDeletePost = (post: Post) => postPermissions[post.id] || false;
+
+  const formatDateTime = (str: string) => {
+    const d = new Date(str);
+    return isNaN(d.getTime())
+      ? 'Invalid date'
+      : d.toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (loading || authLoading) return <Loader size="xl" />;
+  if (!society) return <Text>Society not found</Text>;
+
+  return (
+    <>
+      <Sidebar>
+        <Flex justify="center" align="flex-start" gap="md" px="md">
+          <div style={{ width: 200 }} />
+          <Box style={{ flex: 1, maxWidth: 900 }}>
+            <Flex justify="space-between" align="center" mb="md">
+              <Title order={2}>{society.name}</Title>
+              {(isAdmin || isSocietyAdmin) && (
+                <Group>
+                  <Button leftSection={<IconEdit size={16} />} component={Link} to={`/Societies/${society_name}/UpdateSociety`}>
+                    Edit
+                  </Button>
+                  {isAdmin && (
+                    <ActionIcon color="red" variant="outline" onClick={() => setDeleteModalOpen(true)}>
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  )}
+                </Group>
+              )}
+            </Flex>
+
+            {isAuthenticated && (
+              <Group wrap="nowrap" mb="md">
+                <Button color="blue" onClick={handleJoin}>Join ({society.numOfInterestedPeople})</Button>
+                <Button color="red" onClick={handleLeave}>Leave</Button>
+              </Group>
+            )}
+
+            <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
+              <Card.Section>
+                <Image src={society.logo || "/default-society-logo.png"} height={300} alt={society.name} fit="cover" />
+              </Card.Section>
+              <Text mt="md">{society.description}</Text>
+            </Card>
+
+            <Tabs defaultValue="events">
+              <Tabs.List>
+                <Tabs.Tab value="events" leftSection={<IconCalendarEvent size={16} />}>Events</Tabs.Tab>
+                <Tabs.Tab value="posts" leftSection={<IconMessageCircle size={16} />}>Posts</Tabs.Tab>
+              </Tabs.List>
+
+              <Tabs.Panel value="events" pt="md">
+                <Flex direction="column" gap="md">
+                  <Group>
+                    {(isAdmin || isSocietyAdmin) && (
+                      <>
+                        <Button variant="outline" component={Link} to={`/Societies/${society_name}/CreateEvent`} leftSection={<IconPlus size={16} />}>
+                          Create Event
+                        </Button>
+                        <Button variant="outline" component={Link} to={`/Societies/${society_name}/UpdateSociety`} leftSection={<IconEdit size={16} />}>
+                          Edit Society
+                        </Button>
+                      </>
+                    )}
+                  </Group>
+                  {events.length ? (
+                    events.map(evt => (
+                      <Card key={evt.id} shadow="sm" p="lg" radius="md" withBorder>
+                        <Flex justify="space-between" align="center">
+                          <Box>
+                            <Title order={4}>{evt.name}</Title>
+                            <Text>{formatDateTime(evt.startTime)} – {formatDateTime(evt.endTime)}</Text>
+                            <Text>{evt.location}</Text>
+                            <Badge mt="sm">{evt.status}</Badge>
+                          </Box>
+                          <Button component={Link} to={`/Societies/${society_name}/${evt.id}`} variant="outline">View Details</Button>
                         </Flex>
-
-                        {isAuthenticated && (
-                            <Group wrap="nowrap">
-                                <Button
-                                    color="blue"
-                                    onClick={handleJoin}
-                                    size="compact-md"
-                                >
-                                    Join ({society?.numOfInterestedPeople})
-                                </Button>
-                                <Button
-                                    color="red"
-                                    onClick={handleLeave}
-                                    size="compact-md"
-                                >
-                                    Leave
-                                </Button>
-                            </Group>
-                        )}
-
-                        {/* Society Details Card */}
-                        <Card 
-                            shadow="sm" 
-                            p="lg" 
-                            radius="md" 
-                            withBorder 
-                            mb="md"
-                            style={{ overflow: 'hidden' }}
-                        >
-                            <Card.Section>
-                                <Image
-                                    src={society?.logo || '/default-society-logo.png'}
-                                    height={300}
-                                    alt={society?.name}
-                                    fit="cover"
-                                />
-                            </Card.Section>
-                            <Text mt="md">{society?.description}</Text>
-                        </Card>
-
-                        {/* Events Section */}
-                        <Tabs defaultValue="events">
-                            <Tabs.List>
-                                <Tabs.Tab value="events" leftSection={<IconCalendarEvent size={16} />}>
-                                    Events
-                                </Tabs.Tab>
-                            </Tabs.List>
-
-                            <Tabs.Panel value="events" pt="md">
-                                <Flex direction="column" gap="md">
-                                    {isAdmin && (
-                                        <Button
-                                            component={Link}
-                                            to={`/Societies/${society_name}/CreateEvent/`}
-                                            w={{ base: '100%', sm: 'fit-content' }}
-                                        >
-                                            Create Event
-                                        </Button>
-                                    )}
-
-                                    {events.length > 0 ? (
-                                        events.map((event) => (
-                                            <Card 
-                                                key={event.id} 
-                                                shadow="sm" 
-                                                p="lg" 
-                                                radius="md" 
-                                                withBorder
-                                            >
-                                                <Flex 
-                                                    justify="space-between" 
-                                                    align={{ base: 'flex-start', sm: 'center' }}
-                                                    direction={{ base: 'column', sm: 'row' }}
-                                                    gap="md"
-                                                >
-                                                    <div>
-                                                        <Title order={4}>{event.name}</Title>
-                                                        <Text>
-                                                            {formatDateTime(event.startTime)} - {formatDateTime(event.endTime)}
-                                                        </Text>
-                                                        <Text>{event.location}</Text>
-                                                        <Badge
-                                                            color={event.status === 'upcoming' ? 'blue' : 'green'}
-                                                            mt="sm"
-                                                        >
-                                                            {event.status}
-                                                        </Badge>
-                                                    </div>
-                                                    <Button
-                                                        component={Link}
-                                                        to={`/Societies/${society_name}/${event.id}`}
-                                                        variant="outline"
-                                                        w={{ base: '100%', sm: 'fit-content' }}
-                                                    >
-                                                        View Details
-                                                    </Button>
-                                                </Flex>
-                                            </Card>
-                                        ))
-                                    ) : (
-                                        <Text>No events scheduled</Text>
-                                    )}
-                                </Flex>
-                            </Tabs.Panel>
-                        </Tabs>
-
-                        {/* Delete Modal */}
-                        <Modal
-                            opened={deleteModalOpen}
-                            onClose={() => setDeleteModalOpen(false)}
-                            title="Delete Society"
-                            centered
-                        >
-                            <Text>Are you sure you want to delete this society?</Text>
-                            <Group justify="flex-end" mt="md">
-                                <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button color="red" onClick={handleDeleteSociety}>
-                                    Delete
-                                </Button>
-                            </Group>
-                        </Modal>
-                    </Box>
-        
-                    {/* Right Sidebar Placeholder */}
-                    <div style={{ width: "200px" }} />
+                      </Card>
+                    ))
+                  ) : (
+                    <Text>No events scheduled</Text>
+                  )}
                 </Flex>
-            </Sidebar>
-            <RightSidebar />
-        </>
-    );
+              </Tabs.Panel>
+
+              <Tabs.Panel value="posts" pt="md">
+                {isAuthenticated && (
+                  <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
+                    <Textarea placeholder="What's on your mind?" value={newPostContent} onChange={e => setNewPostContent(e.target.value)} minRows={3} mb="md" />
+                    <Button leftSection={<IconPlus size={16} />} onClick={handleCreatePost} loading={isCreatingPost} disabled={!newPostContent.trim()}>Create Post</Button>
+                  </Card>
+                )}
+                {postsLoading ? (
+                  <Loader size="sm" />
+                ) : postsError ? (
+                  <Text color="red">{postsError}</Text>  
+                ) : posts.length ? (
+                  <Flex direction="column" gap="md">
+                    {posts.map(post => (
+                      <Card key={post.id} shadow="xs" p="md" radius="md" withBorder>
+                        <Flex justify="space-between" align="flex-start">
+                          <Box>
+                            <Text size="sm" color="dimmed">{post.author_name} • {formatDateTime(post.created_at)}</Text>
+                            <Text mt="sm">{post.content}</Text>
+                          </Box>
+                          {canDeletePost(post) && (
+                            <ActionIcon color="red" variant="subtle" onClick={() => { setPostToDelete(post); setDeletePostModalOpen(true); }}>
+                              <IconTrash size={16} />
+                            </ActionIcon>
+                          )}
+                        </Flex>
+                      </Card>
+                    ))}
+                  </Flex>
+                ) : (
+                  <Text>No posts available</Text>
+                )}
+              </Tabs.Panel>
+            </Tabs>
+
+            <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Delete Society" centered>
+              <Text>Are you sure you want to delete this society?</Text>
+              <Group justify="flex-end" mt="md">
+                <Button variant="default" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+                <Button color="red" onClick={handleDeleteSociety}>Delete</Button>
+              </Group>
+            </Modal>
+
+            <Modal opened={deletePostModalOpen} onClose={() => setDeletePostModalOpen(false)} title="Delete Post" centered>
+              <Text>Are you sure you want to delete this post?</Text>
+              <Group justify="flex-end" mt="md">
+                <Button variant="default" onClick={() => setDeletePostModalOpen(false)}>Cancel</Button>
+                <Button color="red" onClick={handleDeletePost}>Delete</Button>
+              </Group>
+            </Modal>
+          </Box>
+          <div style={{ width: 200 }} />
+        </Flex>
+      </Sidebar>
+      <RightSidebar />
+    </>
+  );
 };
 
 export default SocietyDetail;

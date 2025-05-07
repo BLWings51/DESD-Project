@@ -84,7 +84,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
         )
 
     def __str__(self):
-        return self.accountID
+        return str(self.accountID)
 
 class FriendRelation(models.Model):
     from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='friends_sent')
@@ -108,6 +108,7 @@ class Society(models.Model):
     name = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
     description = models.CharField(max_length=2000)
+    members = models.ManyToManyField(Account, related_name='societies')
 
     def __str__(self):
         return self.name
@@ -138,3 +139,9 @@ class Post(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(Account, on_delete=models.CASCADE)
+    message = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)

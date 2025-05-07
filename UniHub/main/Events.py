@@ -3,14 +3,14 @@ from rest_framework.generics import get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from rest_framework.fields import DateTimeField 
-
+from rest_framework.fields import DateTimeField
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+import datetime
 
 from rest_framework import serializers
-from .models import Event, Society, SocietyRelation, EventRelation
+from .models import Event, Society, SocietyRelation, EventRelation, Notification, Account
 from .permissions import IsAdminOrSocietyAdmin
 
 # creating an event
@@ -18,7 +18,6 @@ class CreateEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
         fields = ['name', 'details', 'startTime', 'endTime', 'location']
-
 
     def create(self, validated_data):
         society = self.context.get('society')
@@ -38,7 +37,7 @@ def CreateEvent(request, society_name):
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
-    return Response(serializer.data)
+    return Response(serializer.errors, status=400)
     
 
 # retreiving data for every event within a society
@@ -142,6 +141,23 @@ class GetSingleEventSerializer(serializers.ModelSerializer):
         model=Event
         fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
 
+# retrieving the society from an event
+class GetSocietyFromEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Society
+        fields = ['name']
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getSocietyFromEvent(request, eventID):
+    event = get_object_or_404(Event, id=eventID)
+    event_check = Event.objects.filter(id=event.id)
+    if not event_check.exists():
+        return Response({"error": f"event {event.id} does not exist"})
+    society = Society.objects.filter(id=event.society_id).first()
+    serializer = GetSocietyFromEventSerializer(society)
+    return Response(serializer.data)
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def getSingleEvent(request, society_name, eventID):
@@ -194,7 +210,7 @@ class LeaveEventSerializer(serializers.ModelSerializer):
             # Remove the member
             relation.delete()
 
-            # Ensure count doesn’t go below 0
+            # Ensure count doesn't go below 0
             event.numOfInterestedPeople = max(event.numOfInterestedPeople - 1, 0)
             event.save(update_fields=['numOfInterestedPeople'])
 
@@ -271,19 +287,20 @@ def leave_event(request, society_name, eventID):
 
     return Response(serializer.errors, status=400)
 
-# retrieving the data for one event
-class GetSocietyFromEventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model=Society
-        fields = ['name']
-
+# Check if user is interested in event
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def getSocietyFromEvent(request, eventID):
+@permission_classes([IsAuthenticated])
+def check_interest(request, society_name, eventID):
+    society = get_object_or_404(Society, name=society_name)
     event = get_object_or_404(Event, id=eventID)
-    event_check = Event.objects.filter(id=event.id)
+    
+    event_check = Event.objects.filter(id=event.id, society=society)
     if not event_check.exists():
-        return Response({"error": f"event {event.id} does not exist"})
-    society = Society.objects.filter(id=event.society_id).first()
-    serializer = GetSocietyFromEventSerializer(society)
-    return Response(serializer.data)
+        return Response({"error": f"{society.name} does not have this event"})
+    
+    user = request.user
+    event_relation = EventRelation.objects.filter(event=event, account=user)
+    
+    return Response({
+        "is_registered": event_relation.exists()
+    })
