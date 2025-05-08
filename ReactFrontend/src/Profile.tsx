@@ -45,11 +45,15 @@ interface UserProfile {
     lastName: string;
     email: string;
     bio: string;
-    pfp: string | null;
+    pfp: string;
     is_owner: boolean;
     societies: string[];
     events: string[];
-    [key: string]: any;
+    address?: string;
+    dob?: string;
+    course?: string;
+    year_of_course?: string;
+    interests?: string[];
 }
 
 const Profile = () => {
@@ -61,9 +65,9 @@ const Profile = () => {
     } = useAuth();
 
     // Determine which ID to fetch: URL param or own
-    const profileID = paramID
-        ? parseInt(paramID, 10)
-        : loggedAccountID;
+    const profileID = paramID && !isNaN(parseInt(paramID))
+        ? parseInt(paramID)
+        : typeof loggedAccountID === 'string' ? parseInt(loggedAccountID) : 0;
 
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -73,7 +77,7 @@ const Profile = () => {
 
     const form = useForm<UserProfile>({
         initialValues: {
-            accountID: profileID || 0,
+            accountID: profileID,
             firstName: "",
             lastName: "",
             email: "",
@@ -82,6 +86,11 @@ const Profile = () => {
             is_owner: false,
             societies: [],
             events: []
+        },
+        validate: {
+            firstName: (value) => (value ? null : 'First name is required'),
+            lastName: (value) => (value ? null : 'Last name is required'),
+            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email')
         }
     });
 
@@ -119,8 +128,8 @@ const Profile = () => {
 
             if (response.data) {
                 // Determine ownership
-                const isOwner = profileID === loggedAccountID;
-                const profileData = {
+                const isOwner = loggedAccountID ? profileID === parseInt(loggedAccountID) : false;
+                const profileData: UserProfile = {
                     ...response.data,
                     is_owner: isOwner,
                     pfp: response.data.pfp || "http://127.0.0.1:8000/media/profile_pics/default.webp"
@@ -198,7 +207,7 @@ const Profile = () => {
         try {
             const response = await apiRequest<{ pfp: string }>({
                 endpoint: `/Profile/${profileID}/uploadpfp/`,
-                method: "PUT",
+                method: "PATCH",
                 data: formData
             });
 
@@ -206,9 +215,10 @@ const Profile = () => {
                 throw new Error(response.message);
             }
 
-            if (response.data?.pfp) {
-                form.setFieldValue('pfp', response.data.pfp);
-                setUser(prev => prev ? { ...prev, pfp: response.data.pfp } : null);
+            const pfpUrl = response.data?.pfp;
+            if (pfpUrl) {
+                form.setFieldValue('pfp', pfpUrl);
+                setUser(prev => prev ? { ...prev, pfp: pfpUrl } : null);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to upload profile picture");

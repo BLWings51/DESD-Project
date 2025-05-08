@@ -53,6 +53,16 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
         }}
       />
       <NavLink
+        label="Notifications"
+        component={Link}
+        to="/notifications"
+        active={location.pathname === "/notifications"}
+        onClick={close}
+        styles={{
+          label: { fontSize: '1.2rem', padding: '12px 0' },
+        }}
+      />
+      <NavLink
         label="Profile"
         component={Link}
         to="/profile"

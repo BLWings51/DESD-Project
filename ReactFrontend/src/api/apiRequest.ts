@@ -10,7 +10,7 @@ interface ApiResponse<T> {
 // Define request parameters
 interface RequestOptions {
     endpoint: string;
-    method?: "GET" | "POST" | "PUT" | "DELETE";
+    method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
     data?: Record<string, any> | FormData;
     headers?: HeadersInit;
 }
