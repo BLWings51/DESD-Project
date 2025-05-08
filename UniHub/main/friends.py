@@ -101,3 +101,11 @@ def outgoing_requests(request):
     receivers = [rel.to_account for rel in outgoing]
     serializer = GetAccountSerializer(receivers, many=True, context={'request': request})
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def are_friends(request, account_id):
+    user = request.user
+    other = get_object_or_404(Account, accountID=account_id)
+    are_friends = FriendRelation.are_friends(user, other)
+    return Response({"are_friends": are_friends})

@@ -171,6 +171,8 @@ const SignUp = () => {
                 radius="md"
                 type="number"
                 placeholder="#000000"
+                minLength={6}
+                maxLength={6}
                 value={formData.accountID}
                 onChange={handleChange}
                 required
