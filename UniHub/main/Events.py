@@ -162,7 +162,7 @@ class UpdateEventSerializer(serializers.ModelSerializer):
     
     class Meta:
         model=Event
-        fields = ['name', 'details', 'startTime', 'endTime', 'location']
+        fields = ['name', 'details', 'startTime', 'endTime', 'location', 'interests']
     
     def update(self, instance, validated_data):
         interests_data = validated_data.pop('interests', None)
