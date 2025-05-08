@@ -55,13 +55,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class CustomRefreshTokenView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
-            accountID = request.data.get('accountID')
-            password = request.data.get('password')
+            # accountID = request.data.get('accountID')
+            # password = request.data.get('password')
 
-            account = authenticate(request, username=accountID, password=password)
+            # account = authenticate(request, username=accountID, password=password)
 
-            if not account:
-                return Response({"message": "Account no longer exists"}, status=400)
+            # if not account:
+            #     return Response({"message": "Account no longer exists"}, status=400)
             refresh_token = request.COOKIES.get('refresh_token')
             request_data = request.data.copy()
             request_data['refresh'] = refresh_token
@@ -106,7 +106,7 @@ def logout(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def is_authenticated(request):
-    return Response({'authenticated':True})
+    return Response({'authenticated':True, 'accountID':request.user.accountID})
 
 @api_view(['POST'])
 @permission_classes([CustomIsAdminUser])

@@ -5,6 +5,8 @@ import { LoadingOverlay } from '@mantine/core';
 const ProtectedRoute = () => {
     const { isAuthenticated, isLoading } = useAuth();
 
+    console.log(isAuthenticated);
+
     if (isLoading) {
         return <LoadingOverlay visible />;
     }

@@ -20,7 +20,6 @@ interface Is_Admin {
 }
 
 const Societies = () => {
-    const { isAuthenticated, isLoading: authLoading, loggedAccountID } = useAuth();
     const [societies, setSocieties] = useState<Society[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -55,14 +54,6 @@ const Societies = () => {
 
         fetchData();
     }, []);
-
-    if (authLoading || loading) {
-        return <Loader size="xl" />;
-    }
-
-    if (!isAuthenticated) {
-        return <Text>Please log in to view societies</Text>;
-    }
 
     return (
         <>

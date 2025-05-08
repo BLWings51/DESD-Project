@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import apiRequest from './api/apiRequest';
 import { refreshAccessToken } from './api/auth';
 
@@ -31,37 +31,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [loggedAccountID, setLoggedAccountID] = useState<string | null>(null);
 
-    useEffect(() => {
-        // try to refresh immediately on startup
-        refreshAccessToken()
-            .then(ok => {
-                if (ok) {
-                    // fetch /api/profile/ or decode the cookie-backed access token
-                    apiRequest<{ user: UserProfile }>({ endpoint: '/Profile/' })
-                        .then(res => {
-                            if (!res.error && res.data) {
-                                setLoggedAccountID(res.data.user.accountID.toString());
-                            }
-                        });
-                }
-            });
-    }, []);
-
     const checkAuth = async () => {
-        setIsLoading(true);
         try {
             const response = await apiRequest<{ authenticated: boolean; accountID?: string }>({
                 endpoint: '/authenticated/',
                 method: 'POST',
             });
+            console.log(response.data);
 
             if (response.data?.authenticated && response.data.accountID) {
+                console.log("authenticated");
                 setIsAuthenticated(true);
+                setLoggedAccountID(response.data.accountID);
             } else {
+                console.log("not authenticated");
                 setIsAuthenticated(false);
                 setLoggedAccountID(null);
             }
-        } catch (error) {
+        } catch {
+            console.log("error");
             setIsAuthenticated(false);
             setLoggedAccountID(null);
         } finally {
@@ -79,16 +67,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
 
             if (response.error) {
-                throw new Error(response.message || "Login failed");
+                throw new Error(response.message || 'Login failed');
             }
 
-            setLoggedAccountID(accountID);
             setIsAuthenticated(true);
-            // Don't need to call checkAuth() here since we're setting the state directly
-        } catch (error) {
+            setLoggedAccountID(accountID);
+        } catch (err) {
             setIsAuthenticated(false);
             setLoggedAccountID(null);
-            throw error; // Re-throw the error to be caught by the Login component
+            throw err;
         } finally {
             setIsLoading(false);
         }
@@ -97,30 +84,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const logout = async () => {
         setIsLoading(true);
         try {
-            await apiRequest({
-                endpoint: '/logout/',
-                method: 'POST',
-            });
+            await apiRequest({ endpoint: '/logout/', method: 'POST' });
             setIsAuthenticated(false);
-            setLoggedAccountID(null); // Reset account ID on logout
+            setLoggedAccountID(null);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Initial auth check - only run once
+    // On mount, refresh token first, then check auth
     useEffect(() => {
-        checkAuth();
+        const initAuth = async () => {
+            setIsLoading(true);
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+                console.log("refreshed");
+                await checkAuth();
+            } else {
+                console.log("not refreshed");
+                setIsAuthenticated(false);
+                setLoggedAccountID(null);
+                setIsLoading(false);
+            }
+        };
+        initAuth();
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, isLoading, loggedAccountID, checkAuth, login, logout }}>
+        <AuthContext.Provider
+            value={{
+                isAuthenticated,
+                isLoading,
+                loggedAccountID,
+                checkAuth,
+                login,
+                logout,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (!context) {
         throw new Error('useAuth must be used within an AuthProvider');
