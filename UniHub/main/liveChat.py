@@ -12,7 +12,6 @@ from datetime import timedelta
 
 def is_event_ongoing(event):
     event.startTime = timezone.localtime(event.startTime)
-    event.startTime = event.startTime - timedelta(hours=1)
     status = "none"
     if event.startTime <= timezone.now() <= event.endTime:
         status = "ongoing"
