@@ -75,7 +75,7 @@ const EventDetail = () => {
 
                 // member?
                 const mem = await apiRequest<{ success: boolean }>({
-                    endpoint: `/Societies/${society_name}/${loggedAccountID}/`,
+                    endpoint: `/${society_name}/${loggedAccountID}/`,
                     method: 'GET',
                 });
                 if (mem.data) setIsMember(mem.data.success);

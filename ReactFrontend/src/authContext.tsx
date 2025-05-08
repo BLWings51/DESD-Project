@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import apiRequest from "./api/apiRequest";
-import { refreshAccessToken } from "./api/auth";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiRequest from './api/apiRequest';
+import { refreshAccessToken } from './api/auth';
 
 interface UserProfile {
   accountID: number;
@@ -33,26 +33,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await apiRequest<{
-        authenticated: boolean;
-        accountID?: string;
-      }>({
-        endpoint: "/authenticated/",
-        method: "POST",
+      const response = await apiRequest<{ authenticated: boolean; accountID?: string }>({
+        endpoint: '/authenticated/',
+        method: 'POST',
       });
-      console.log(response.data);
 
       if (response.data?.authenticated && response.data.accountID) {
-        console.log("authenticated");
         setIsAuthenticated(true);
         setLoggedAccountID(response.data.accountID);
       } else {
-        console.log("not authenticated");
         setIsAuthenticated(false);
         setLoggedAccountID(null);
       }
     } catch {
-      console.log("error");
       setIsAuthenticated(false);
       setLoggedAccountID(null);
     } finally {
@@ -63,19 +56,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (accountID: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/login/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Ensure cookies are sent
-        body: JSON.stringify({ accountID, password }),
+      const response = await apiRequest({
+        endpoint: '/login/',
+        method: 'POST',
+        data: { accountID, password },
       });
 
-      const data = await response.json();
-
-      if (!response.ok || data.success === false) {
-        throw new Error(data.message || "Login failed");
+      if (response.error) {
+        throw new Error(response.message || 'Login failed');
       }
 
       setIsAuthenticated(true);
@@ -92,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await apiRequest({ endpoint: "/logout/", method: "POST" });
+      await apiRequest({ endpoint: '/logout/', method: 'POST' });
       setIsAuthenticated(false);
       setLoggedAccountID(null);
     } finally {
@@ -106,10 +94,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       const refreshed = await refreshAccessToken();
       if (refreshed) {
-        console.log("refreshed");
         await checkAuth();
       } else {
-        console.log("not refreshed");
         setIsAuthenticated(false);
         setLoggedAccountID(null);
         setIsLoading(false);
@@ -137,7 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
