@@ -14,6 +14,7 @@ import CreateEvent from "./CreateEvent";
 import EventDetail from "./EventDetail";
 import UpdateEvent from "./UpdateEvent";
 import Events from "./Events";
+import NotificationsPage from "./NotificationsPage";
 import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
 import PermissionRoute from './PermissionRoute';
@@ -35,22 +36,22 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/Societies" element={<Societies />} />
-
+            
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
+              <Route path="/home" element={<Home />} />
               <Route path="/Profile" element={<Profile />} />
               <Route path="/Profile/:accountID" element={<Profile />} />
               <Route path="/events" element={<Events />} />
               <Route path="/search" element={<SearchPage />} />
-
-              {/* Society Routes */}
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/Societies" element={<Societies />} />
+              <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
               <Route path="/Societies/:society_name" element={<SocietyDetail />} />
 
               {/* Admin Routes */}
               <Route element={<PermissionRoute requiredPermission="admin" />}>
-                <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
+                {/* Admin-only routes go here */}
               </Route>
 
               {/* Society Admin Routes */}

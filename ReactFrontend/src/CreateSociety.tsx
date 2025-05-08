@@ -1,5 +1,5 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, MultiSelect, Group } from "@mantine/core";
 import apiRequest from "./api/apiRequest";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -13,9 +13,11 @@ const CreateSociety = () => {
         initialValues: {
             name: '',
             description: '',
+            interests: [] as string[],
         },
         validate: {
             name: (value) => (value.length < 3 ? 'Name must be at least 3 characters' : null),
+            description: (value) => (value.length < 10 ? 'Description must be at least 10 characters' : null),
         },
     });
 
@@ -27,7 +29,10 @@ const CreateSociety = () => {
             const response = await apiRequest<{ message: string }>({
                 endpoint: '/Societies/CreateSociety',
                 method: 'POST',
-                data: values,
+                data: {
+                    ...values,
+                    numOfInterestedPeople: 0
+                },
             });
 
             if (response.error) {
@@ -79,15 +84,32 @@ const CreateSociety = () => {
                             mb="md"
                         />
 
-                        <Button
-                            fullWidth
-                            color="blue"
-                            type="submit"
-                            loading={loading}
-                            disabled={loading}
-                        >
-                            Create Society
-                        </Button>
+                        <MultiSelect
+                            label="Interest Tags"
+                            placeholder="Select or create interest tags"
+                            data={[]}
+                            searchable
+                            clearable
+                            {...form.getInputProps('interests')}
+                            mb="md"
+                        />
+
+                        <Group justify="flex-end" mt="md">
+                            <Button
+                                variant="default"
+                                onClick={() => navigate('/Societies')}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={loading}
+                                disabled={loading}
+                            >
+                                Create Society
+                            </Button>
+                        </Group>
                     </form>
                 </Card.Section>
             </Card>

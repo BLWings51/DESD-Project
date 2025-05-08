@@ -5,7 +5,23 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import serializers
+from django.core.mail import send_mail
 from .models import Account, InterestTag
+
+class InterestTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InterestTag
+        fields = ['name']
+
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            return {"name": data}
+        return super().to_internal_value(data)
+
+    def create(self, validated_data):
+        tag, _ = InterestTag.objects.get_or_create(name=validated_data['name'])
+        return tag
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -25,13 +41,27 @@ def SignupView(request):
     
     if serializer.is_valid():
         serializer.save()
+        send_mail(
+            subject=f"Confirm Email",
+            message=f"Please click the following link to confirm your email\n\n\nhttp://127.0.0.1:8000/api/confirmEmail/\n\n\n\nUniHub Management",
+            from_email=None,
+            recipient_list=[email],
+            fail_silently=False,
+        )
         return Response(serializer.data)
     return Response(serializer.data)
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def confirmEmail(request):
+    user = request.user
+    user.confirmed = True
+    user.save()
+    return Response({"success": True})
+
+
 class SignupSerializer(serializers.ModelSerializer):
-    interests = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
-    )
+    interests = InterestTagSerializer(many=True, required=False)
 
     class Meta:
         model = Account
@@ -42,7 +72,7 @@ class SignupSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        interests = validated_data.pop('interests', [])
+        interests_data = validated_data.pop('interests', [])
         account = Account(
             accountID=validated_data["accountID"],
             email=validated_data['email'],
@@ -58,9 +88,11 @@ class SignupSerializer(serializers.ModelSerializer):
         # Handle interests
         tags = []
         
-        for name in interests:
-            tag = InterestTag.objects.filter(name__iexact=name).first()
-            if tag is None:
-                tag = InterestTag.objects.create(name=name)
+        for interest_data in interests_data:
+            tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
             tags.append(tag)
+
+        account.interests.set(tags)
+        
         return account
+    

@@ -45,11 +45,15 @@ interface UserProfile {
     lastName: string;
     email: string;
     bio: string;
-    pfp: string | null;
+    pfp: string;
     is_owner: boolean;
     societies: string[];
     events: string[];
-    [key: string]: any;
+    address?: string;
+    dob?: string;
+    course?: string;
+    year_of_course?: string;
+    interests?: string[];
 }
 
 const Profile = () => {
@@ -61,19 +65,20 @@ const Profile = () => {
     } = useAuth();
 
     // Determine which ID to fetch: URL param or own
-    const profileID = paramID
-        ? parseInt(paramID, 10)
-        : loggedAccountID;
+    const profileID = paramID && !isNaN(parseInt(paramID))
+        ? parseInt(paramID)
+        : typeof loggedAccountID === 'string' ? parseInt(loggedAccountID) : 0;
 
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [editing, setEditing] = useState<boolean>(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     const form = useForm<UserProfile>({
         initialValues: {
-            accountID: profileID || 0,
+            accountID: profileID,
             firstName: "",
             lastName: "",
             email: "",
@@ -82,6 +87,11 @@ const Profile = () => {
             is_owner: false,
             societies: [],
             events: []
+        },
+        validate: {
+            firstName: (value) => (value ? null : 'First name is required'),
+            lastName: (value) => (value ? null : 'Last name is required'),
+            email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Invalid email')
         }
     });
 
@@ -93,6 +103,23 @@ const Profile = () => {
             </Flex>
         );
     }
+
+    // Check admin status
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            if (!isAuthenticated) return;
+            try {
+                const response = await apiRequest<{ admin: boolean }>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                setIsAdmin(response.data?.admin || false);
+            } catch (error) {
+                console.error("Failed to check admin status:", error);
+            }
+        };
+        checkAdminStatus();
+    }, [isAuthenticated]);
 
     // If no param AND not logged in, force login
     if (!paramID && (!isAuthenticated || !loggedAccountID)) {
@@ -119,8 +146,8 @@ const Profile = () => {
 
             if (response.data) {
                 // Determine ownership
-                const isOwner = profileID === loggedAccountID;
-                const profileData = {
+                const isOwner = loggedAccountID ? profileID === parseInt(loggedAccountID) : false;
+                const profileData: UserProfile = {
                     ...response.data,
                     is_owner: isOwner,
                     pfp: response.data.pfp || "http://127.0.0.1:8000/media/profile_pics/default.webp"
@@ -149,7 +176,10 @@ const Profile = () => {
             const response = await apiRequest<UserProfile>({
                 endpoint: "/Profile/Settings/",
                 method: "POST",
-                data: dataToSend
+                data: {
+                    ...dataToSend,
+                    accountID: profileID // Include the target account ID for admin actions
+                }
             });
 
             if (response.error) {
@@ -171,13 +201,24 @@ const Profile = () => {
         setError(null);
 
         try {
-            await apiRequest({
-                endpoint: `/Profile/${profileID}/`,
+            const endpoint = isAdmin && paramID ? `/Profile/${paramID}/delete/` : '/Profile/delete/';
+            const response = await apiRequest({
+                endpoint,
                 method: "DELETE"
             });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
             setUser(null);
             setDeleteModalOpen(false);
             form.reset();
+
+            // If admin deleting another user's profile, navigate to home
+            if (isAdmin && paramID) {
+                window.location.href = "/";
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to delete profile");
         } finally {
@@ -198,7 +239,7 @@ const Profile = () => {
         try {
             const response = await apiRequest<{ pfp: string }>({
                 endpoint: `/Profile/${profileID}/uploadpfp/`,
-                method: "PUT",
+                method: "PATCH",
                 data: formData
             });
 
@@ -206,9 +247,10 @@ const Profile = () => {
                 throw new Error(response.message);
             }
 
-            if (response.data?.pfp) {
-                form.setFieldValue('pfp', response.data.pfp);
-                setUser(prev => prev ? { ...prev, pfp: response.data.pfp } : null);
+            const pfpUrl = response.data?.pfp;
+            if (pfpUrl) {
+                form.setFieldValue('pfp', pfpUrl);
+                setUser(prev => prev ? { ...prev, pfp: pfpUrl } : null);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to upload profile picture");
@@ -244,7 +286,7 @@ const Profile = () => {
                                     <Title order={2}>
                                         {paramID ? "User Profile" : "My Profile"}
                                     </Title>
-                                    {!editing && user?.is_owner && (
+                                    {!editing && (user?.is_owner || isAdmin) && (
                                         <Group gap="xs">
                                             <ActionIcon
                                                 color="blue"
@@ -304,7 +346,7 @@ const Profile = () => {
                                             {...form.getInputProps("email")}
                                             mb="sm"
                                             required
-                                            disabled={!user?.is_owner}
+                                            disabled={!user?.is_owner && !isAdmin}
                                         />
                                         <Textarea
                                             label="Bio"
@@ -421,7 +463,7 @@ const Profile = () => {
                             </Card>
 
                             {/* Delete Confirmation */}
-                            {user?.is_owner && (
+                            {(user?.is_owner || isAdmin) && (
                                 <Modal
                                     opened={deleteModalOpen}
                                     onClose={() => setDeleteModalOpen(false)}
@@ -429,8 +471,10 @@ const Profile = () => {
                                     centered
                                 >
                                     <Text>
-                                        Are you sure you want to delete your profile? This
-                                        action cannot be undone.
+                                        {isAdmin && !user?.is_owner 
+                                            ? "Are you sure you want to delete this user's profile? This action cannot be undone."
+                                            : "Are you sure you want to delete your profile? This action cannot be undone."
+                                        }
                                     </Text>
                                     <Group mt="xl" justify="flex-end">
                                         <Button

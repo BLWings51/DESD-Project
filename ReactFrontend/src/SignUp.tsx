@@ -11,6 +11,8 @@ import {
   Text,
   Alert,
   Loader,
+  SimpleGrid,
+  Group,
 } from "@mantine/core";
 
 const SignUp = () => {
@@ -111,7 +113,7 @@ const SignUp = () => {
 
   return (
     <Flex justify="center" align="center" h="90vh" direction="column" px="md">
-      <Card p="xl" withBorder radius="lg" w="100%" maw={600}>
+      <Card p="xl" withBorder radius="lg" w="100%" maw={800}>
         <Card.Section p="md">
           <Flex justify="center">
             <Title order={2}>Sign Up</Title>
@@ -126,143 +128,140 @@ const SignUp = () => {
           )}
 
           <form onSubmit={handleSignUp}>
-            <TextInput
-              label="Account ID"
-              name="accountID"
-              variant="filled"
-              radius="md"
-              type="number"
-              placeholder="#000000"
-              value={formData.accountID}
-              onChange={handleChange}
-              required
-              autoComplete="username"
-              mb="sm"
-            />
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              <TextInput
+                label="Account ID"
+                name="accountID"
+                variant="filled"
+                radius="md"
+                type="number"
+                placeholder="#000000"
+                value={formData.accountID}
+                onChange={handleChange}
+                required
+                autoComplete="username"
+              />
 
-            <TextInput
-              label="Email"
-              name="email"
-              variant="filled"
-              radius="md"
-              type="email"
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              autoComplete="email"
-              mb="sm"
-            />
+              <TextInput
+                label="Email"
+                name="email"
+                variant="filled"
+                radius="md"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
 
-            <TextInput
-              label="First Name"
-              name="firstName"
-              variant="filled"
-              radius="md"
-              placeholder="John"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-              autoComplete="given-name"
-              mb="sm"
-            />
+              <TextInput
+                label="First Name"
+                name="firstName"
+                variant="filled"
+                radius="md"
+                placeholder="John"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+                autoComplete="given-name"
+              />
 
-            <TextInput
-              label="Last Name"
-              name="lastName"
-              variant="filled"
-              radius="md"
-              placeholder="Doe"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-              autoComplete="family-name"
-              mb="sm"
-            />
+              <TextInput
+                label="Last Name"
+                name="lastName"
+                variant="filled"
+                radius="md"
+                placeholder="Doe"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+                autoComplete="family-name"
+              />
 
-            <TextInput
-              label="Password"
-              name="password"
-              variant="filled"
-              radius="md"
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              autoComplete="new-password"
-              mb="sm"
-            />
+              <TextInput
+                label="Password"
+                name="password"
+                variant="filled"
+                radius="md"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+              />
 
-            <TextInput
-              label="Confirm Password"
-              name="confirmPassword"
-              variant="filled"
-              radius="md"
-              type="password"
-              placeholder="••••••••"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              autoComplete="new-password"
-              mb="md"
-            />
+              <TextInput
+                label="Confirm Password"
+                name="confirmPassword"
+                variant="filled"
+                radius="md"
+                type="password"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                autoComplete="new-password"
+              />
+            </SimpleGrid>
 
-            {/* Optional fields */}
-            <TextInput
-              label="Address (optional)"
-              name="address"
-              variant="filled"
-              radius="md"
-              placeholder="123 Main St"
-              value={formData.address}
-              onChange={handleChange}
-              mb="sm"
-            />
+            <Title order={4} mt="xl" mb="md">Additional Information (Optional)</Title>
+            
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              <TextInput
+                label="Address"
+                name="address"
+                variant="filled"
+                radius="md"
+                placeholder="123 Main St"
+                value={formData.address}
+                onChange={handleChange}
+              />
 
-            <TextInput
-              label="Course (optional)"
-              name="course"
-              variant="filled"
-              radius="md"
-              placeholder="Computer Science"
-              value={formData.course}
-              onChange={handleChange}
-              mb="sm"
-            />
+              <TextInput
+                label="Course"
+                name="course"
+                variant="filled"
+                radius="md"
+                placeholder="Computer Science"
+                value={formData.course}
+                onChange={handleChange}
+              />
 
-            <TextInput
-              label="Date of Birth (optional)"
-              name="dob"
-              variant="filled"
-              radius="md"
-              type="date"
-              value={formData.dob}
-              onChange={handleChange}
-              mb="sm"
-            />
+              <TextInput
+                label="Date of Birth"
+                name="dob"
+                variant="filled"
+                radius="md"
+                type="date"
+                value={formData.dob}
+                onChange={handleChange}
+              />
 
-            <TextInput
-              label="Year of Course (optional)"
-              name="yearOfCourse"
-              variant="filled"
-              radius="md"
-              type="number"
-              placeholder="1, 2, 3..."
-              value={formData.yearOfCourse}
-              onChange={handleChange}
-              mb="md"
-            />
+              <TextInput
+                label="Year of Course"
+                name="yearOfCourse"
+                variant="filled"
+                radius="md"
+                type="number"
+                placeholder="1, 2, 3..."
+                value={formData.yearOfCourse}
+                onChange={handleChange}
+              />
+            </SimpleGrid>
 
-            <Button
-              fullWidth
-              color="blue"
-              type="submit"
-              loading={isLoading}
-              disabled={isLoading || authLoading}
-            >
-              Sign Up
-            </Button>
+            <Group justify="center" mt="xl">
+              <Button
+                size="md"
+                color="blue"
+                type="submit"
+                loading={isLoading}
+                disabled={isLoading || authLoading}
+              >
+                Sign Up
+              </Button>
+            </Group>
           </form>
         </Card.Section>
 

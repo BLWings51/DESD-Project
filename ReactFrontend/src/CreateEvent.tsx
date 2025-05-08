@@ -1,5 +1,5 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Text } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Text, MultiSelect } from "@mantine/core";
 import { DateTimePicker } from '@mantine/dates';
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
@@ -10,6 +10,7 @@ interface SocietyInfo {
     name: string;
     description: string;
     numOfInterestedPeople: number;
+    interests: string[];
 }
 
 const CreateEvent = () => {
@@ -19,6 +20,7 @@ const CreateEvent = () => {
     const [societyLoading, setSocietyLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [societyInfo, setSocietyInfo] = useState<SocietyInfo | null>(null);
+    const [availableTags, setAvailableTags] = useState<string[]>([]);
 
     const form = useForm({
         initialValues: {
@@ -27,6 +29,7 @@ const CreateEvent = () => {
             startTime: new Date(Date.now() + 3600000),
             endTime: new Date(Date.now() + 7200000), // 1 hour later by default
             location: '',
+            interests: [] as string[],
         },
         validate: {
             name: (value) => (value.length < 3 ? 'Name must be at least 3 characters' : null),
@@ -44,6 +47,9 @@ const CreateEvent = () => {
                     method: 'GET',
                 });
                 setSocietyInfo(response.data || null);
+                if (response.data?.interests) {
+                    setAvailableTags(response.data.interests);
+                }
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load society information");
             } finally {
@@ -69,6 +75,7 @@ const CreateEvent = () => {
                     startTime: values.startTime.toISOString(),
                     endTime: values.endTime.toISOString(),
                     location: values.location,
+                    interests: values.interests,
                 },
             });
 
@@ -160,6 +167,16 @@ const CreateEvent = () => {
                             placeholder="Event Location"
                             {...form.getInputProps('location')}
                             required
+                            mb="md"
+                        />
+
+                        <MultiSelect
+                            label="Interest Tags"
+                            placeholder="Select or create interest tags"
+                            data={availableTags}
+                            searchable
+                            clearable
+                            {...form.getInputProps('interests')}
                             mb="md"
                         />
 
