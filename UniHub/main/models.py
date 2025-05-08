@@ -137,12 +137,12 @@ class EventRelation(models.Model):
 class PostVisibility(models.Model):
     public = 'public'
     members_only = 'members_only'
-    admin_only = 'admin_only'
+    admins = 'admins'
     
     VISIBILITY_CHOICES = [
         (public, 'Public'),
         (members_only, 'Members Only'),
-        (admin_only, 'Admin Only'),
+        (admins, 'Admins Only'),
     ]
     
     name = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=public)
@@ -173,7 +173,7 @@ class Post(models.Model):
             return True
         if self.visibility.name == PostVisibility.members_only:
             return SocietyRelation.objects.filter(society=self.society, account=user).exists()
-        if self.visibility.name == PostVisibility.admin_only:
+        if self.visibility.name == PostVisibility.admins:
             return SocietyRelation.objects.filter(
                 society=self.society,
                 account=user,

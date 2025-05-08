@@ -53,7 +53,7 @@ def create_post(request, society_name):
 
             # Check if user has permission to create posts with the requested visibility
             visibility = data.get('visibility', {}).get('name', PostVisibility.public)
-            if visibility == PostVisibility.admin_only:
+            if visibility == PostVisibility.admins:
                 is_admin = SocietyRelation.objects.filter(
                     society=society,
                     account=request.user,
@@ -91,7 +91,7 @@ def update_post(request, society_name, post_id):
     else:
         visibility_name = visibility_data
 
-    if visibility_name == PostVisibility.admin_only:
+    if visibility_name == PostVisibility.admins:
         if post.society:
             is_admin = SocietyRelation.objects.filter(
                 society=post.society,
@@ -177,7 +177,7 @@ class PostSerializer(serializers.ModelSerializer):
     visibility = serializers.CharField(required=False)
     can_view = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True)
 
 
     class Meta:
