@@ -16,6 +16,7 @@ interface Event {
   location: string;
   society: string;
   status: string;
+  online: boolean;
 }
 
 interface Society {
