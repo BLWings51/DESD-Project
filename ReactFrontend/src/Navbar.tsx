@@ -44,7 +44,8 @@ const Navbar: React.FC = () => {
         try {
             await apiRequest({ endpoint: "/logout/", method: "POST" });
             logout();
-            navigate('/');
+            // Redirect to login page (root URL)
+            window.location.href = "/";
         } catch (error) {
             console.error("Logout failed:", error);
         }
@@ -63,48 +64,24 @@ const Navbar: React.FC = () => {
                     <Text size="xl" component={Link} to="/home" style={{ textDecoration: 'none' }}>
                         UWEhub
                     </Text>
-                    <form onSubmit={handleSearch} style={{ flex: 1, marginLeft: 24, marginRight: 24 }}>
-                        <TextInput
-                            leftSection={<Icon icon={search} width={18} height={18} />}
-                            leftSectionPointerEvents="none"
-                            placeholder="Search..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.currentTarget.value)}
-                            rightSection={searchLoading ? <Loader size="xs" /> : null}
-                            style={{ minWidth: 300 }}
-                        />
-                    </form>
+                    {isAuthenticated && (
+                        <form onSubmit={handleSearch} style={{ flex: 1, marginLeft: 24, marginRight: 24 }}>
+                            <TextInput
+                                leftSection={<Icon icon={search} width={18} height={18} />}
+                                leftSectionPointerEvents="none"
+                                placeholder="Search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                                rightSection={searchLoading ? <Loader size="xs" /> : null}
+                                style={{ minWidth: 300 }}
+                            />
+                        </form>
+                    )}
 
                     {/* Desktop Navigation */}
                     <Group gap="lg" visibleFrom="sm">
-
                         {isAuthenticated ? (
                             <>
-                                <Button variant="subtle" component={Link} to="/home">
-                                    Home
-                                </Button>
-
-                                {/* Societies Dropdown */}
-                                <Menu trigger="hover" transitionProps={{ exitDuration: 0 }}>
-                                    <Menu.Target>
-                                        <Button variant="subtle" rightSection={<Icon icon={chevronDown} width={14} height={14} />}>
-                                            Societies
-                                        </Button>
-                                    </Menu.Target>
-                                    <Menu.Dropdown>
-                                        <Menu.Item component={Link} to="/Societies">
-                                            All Societies
-                                        </Menu.Item>
-                                        {isAdmin && (
-                                            <Menu.Item component={Link} to="/Societies/CreateSociety">
-                                                Create Society
-                                            </Menu.Item>
-                                        )}
-                                    </Menu.Dropdown>
-                                </Menu>
-                                <Button variant="subtle" component={Link} to="/profile">
-                                    Profile
-                                </Button>
                                 <Button variant="subtle" onClick={handleLogout}>
                                     Logout
                                 </Button>
@@ -119,10 +96,6 @@ const Navbar: React.FC = () => {
                                 </Button>
                             </>
                         )}
-
-                        <Button variant="subtle" component={Link} to="/contact">
-                            Contact
-                        </Button>
                     </Group>
 
                     {/* Mobile Navigation */}
@@ -137,33 +110,8 @@ const Navbar: React.FC = () => {
                             padding: '10px'
                         }}>
                             <Group gap="xs" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                                <Button fullWidth variant="subtle" component={Link} to="/home" onClick={toggle}>
-                                    Home
-                                </Button>
-
-                                <Menu>
-                                    <Menu.Target>
-                                        <Button fullWidth variant="subtle" rightSection={<Icon icon={chevronDown} width={14} height={14} />}>
-                                            Societies
-                                        </Button>
-                                    </Menu.Target>
-                                    <Menu.Dropdown>
-                                        <Menu.Item component={Link} to="/Societies" onClick={toggle}>
-                                            All Societies
-                                        </Menu.Item>
-                                        {isAdmin && (
-                                            <Menu.Item component={Link} to="/Societies/CreateSociety" onClick={toggle}>
-                                                Create Society
-                                            </Menu.Item>
-                                        )}
-                                    </Menu.Dropdown>
-                                </Menu>
-
                                 {isAuthenticated ? (
                                     <>
-                                        <Button fullWidth variant="subtle" component={Link} to="/profile" onClick={toggle}>
-                                            Profile
-                                        </Button>
                                         <Button fullWidth variant="subtle" onClick={() => {
                                             handleLogout();
                                             toggle();
@@ -181,10 +129,6 @@ const Navbar: React.FC = () => {
                                         </Button>
                                     </>
                                 )}
-
-                                <Button fullWidth variant="subtle" component={Link} to="/contact" onClick={toggle}>
-                                    Contact
-                                </Button>
                             </Group>
                         </Paper>
                     )}
