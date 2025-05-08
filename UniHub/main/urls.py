@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.urls import path
-from main import signup, views, Profile, society, Events, post, searchBar, notifications, liveChat
+from main import signup, views, Profile, society, Events, post, searchBar, notifications, liveChat, friends
 
 urlpatterns = [
     path('signup/', signup.SignupView, name='signup'),
@@ -49,4 +49,9 @@ urlpatterns = [
     path('<str:society_name>/<int:eventID>/liveChat/sendFinalMessage/', liveChat.sendFinalMessage),
     path('<str:society_name>/<int:eventID>/liveChat/<int:chatID>/delete/', liveChat.deleteChat),
     path('<int:eventID>/hasChatEnded/', liveChat.hasChatEnded),
+    path('friends/send/<int:to_account_id>/', friends.send_friend_request, name='send_friend_request'),
+    path('friends/accept/<int:from_account_id>/', friends.accept_friend_request, name='accept_friend_request'),
+    path('friends/decline/<int:from_account_id>/', friends.decline_friend_request, name='decline_friend_request'),
+    path('friends/remove/<int:account_id>/', friends.remove_friend, name='remove_friend'),
+    path('friends/list/', friends.list_friends, name='list_friends'),
 ]

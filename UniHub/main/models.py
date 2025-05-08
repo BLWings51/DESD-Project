@@ -109,6 +109,7 @@ class Society(models.Model):
     numOfInterestedPeople = models.IntegerField(default=0)
     description = models.CharField(max_length=2000)
     members = models.ManyToManyField(Account, related_name='societies')
+    interests = models.ManyToManyField(InterestTag, related_name='societies', blank=True)
 
     def __str__(self):
         return self.name
@@ -127,6 +128,7 @@ class Event(models.Model):
     location = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
     online = models.BooleanField(default=False)
+    interests = models.ManyToManyField(InterestTag, related_name='events', blank=True)
 
 class EventRelation(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
@@ -137,6 +139,7 @@ class Post(models.Model):
     society = models.ForeignKey(Society, on_delete=models.CASCADE, null=True, blank=True, related_name='posts')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    interests = models.ManyToManyField(InterestTag, related_name='posts', blank=True)
 
     class Meta:
         ordering = ['-created_at']
