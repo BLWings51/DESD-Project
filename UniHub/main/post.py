@@ -160,7 +160,7 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments']
-        read_only_fields = ['author', 'created_at']
+        read_only_fields = ['created_at']
 
     def get_author_name(self, obj):
         return f"{obj.author.firstName} {obj.author.lastName}"
