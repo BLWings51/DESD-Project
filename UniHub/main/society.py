@@ -414,7 +414,7 @@ class GetSocietySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Society
-        fields = ['name', 'numOfInterestedPeople', 'description', 'members', 'interests']
+        fields = ['name', 'numOfInterestedPeople', 'description', 'members', 'interests', 'pfp']
 
     def get_members(self, society):
         society_relations = SocietyRelation.objects.filter(society=society)

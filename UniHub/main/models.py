@@ -110,6 +110,7 @@ class Society(models.Model):
     description = models.CharField(max_length=2000)
     members = models.ManyToManyField(Account, related_name='societies')
     interests = models.ManyToManyField(InterestTag, related_name='societies', blank=True)
+    pfp = models.ImageField(upload_to='', default='default.webp')
 
     def __str__(self):
         return self.name
