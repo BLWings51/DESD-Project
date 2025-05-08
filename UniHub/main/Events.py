@@ -59,14 +59,14 @@ def reschedule_event(event, newStartTime, user):
     times = {
         "in 1 day": event.startTime - timedelta(days=1),
         "in 1 hour": event.startTime - timedelta(hours=1),
-        "now": event.startTime + timedelta(hours=1),
+        "now": event.startTime,
         }
 
     print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
     for label, notify_time in times.items():
         print(f"Checking label '{label}' for time: {notify_time}")
         if label=="now":
-            notify_time = notify_time - timedelta(hours=1)
+            notify_time = notify_time
         task = send_event_notification.apply_async(
             args=[user.id, event.id, label],
             eta = notify_time
@@ -122,7 +122,6 @@ class GetAllEventSerializer(serializers.ModelSerializer):
 
     def get_status(self, event):
         event.startTime = timezone.localtime(event.startTime)
-        event.startTime = event.startTime - timedelta(hours=1)
         status = "none"
         if event.startTime <= timezone.now() <= event.endTime:
             status = "ongoing"
@@ -240,7 +239,6 @@ class GetSingleEventSerializer(serializers.ModelSerializer):
 
     def get_status(self, event):
         event.startTime = timezone.localtime(event.startTime)
-        event.startTime = event.startTime - timedelta(hours=1)
         status = "none"
         if event.startTime <= timezone.now() <= event.endTime:
             status = "ongoing"
@@ -331,7 +329,6 @@ class LeaveEventSerializer(serializers.ModelSerializer):
 
 def is_event_ongoing(event):
     event.startTime = timezone.localtime(event.startTime)
-    event.startTime = event.startTime - timedelta(hours=1)
     status = "none"
     if event.startTime <= timezone.now() <= event.endTime:
         status = "ongoing"
@@ -383,14 +380,14 @@ def join_event(request, society_name, eventID):
         times = {
         "in 1 day": event.startTime - timedelta(days=1),
         "in 1 hour": event.startTime - timedelta(hours=1),
-        "now": event.startTime + timedelta(hours=1),
+        "now": event.startTime,
         }
 
         print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
         for label, notify_time in times.items():
             print(f"Checking label '{label}' for time: {notify_time}")
             if label=="now":
-                notify_time = notify_time - timedelta(hours=1)
+                notify_time = notify_time
             task = send_event_notification.apply_async(
                 args=[user.id, event.id, label],
                 eta = notify_time

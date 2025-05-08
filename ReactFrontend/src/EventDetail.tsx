@@ -3,8 +3,18 @@ import { useAuth } from './authContext';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import {
-    Card, Title, Text, Loader, Button,
-    Group, ActionIcon, Modal, Badge, Flex, Container
+    Card,
+    Title,
+    Text,
+    Loader,
+    Button,
+    Group,
+    ActionIcon,
+    Modal,
+    Badge,
+    Flex,
+    Container,
+    Alert,
 } from "@mantine/core";
 import { Icon } from '@iconify/react';
 import edit from '@iconify-icons/tabler/edit';
@@ -23,152 +33,160 @@ interface EventDetail {
     online: boolean;
 }
 
-interface Is_Admin {
-    admin: boolean;
-}
-
 const EventDetail = () => {
     const { isAuthenticated, isLoading: authLoading, loggedAccountID } = useAuth();
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isSocietyAdmin, setIsSocietyAdmin] = useState(false);
+    const [isMember, setIsMember] = useState(false);
+    const [hasJoined, setHasJoined] = useState(false);
     const [userId, setUserId] = useState<number | null>(null);
-    const { society_name, eventID } = useParams();
+    const { society_name, eventID } = useParams<{ society_name: string; eventID: string }>();
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const navigate = useNavigate();
 
-    // Check admin status and get user ID
+    // fetch user roles & membership
     useEffect(() => {
         if (!isAuthenticated || !loggedAccountID) return;
-
-        // Get user profile to get database ID and admin status
-        apiRequest<{ id: number; adminStatus: boolean }>({
-            endpoint: `/Profile/${loggedAccountID}/`,
-            method: 'GET'
-        })
-            .then(res => {
-                if (res.data) {
-                    setUserId(res.data.id);
-                    setIsAdmin(res.data.adminStatus);
-                }
-            })
-            .catch(err => console.error("Failed to get user details:", err));
-    }, [isAuthenticated, loggedAccountID]);
-
-    useEffect(() => {
-        const fetchEvent = async () => {
+        (async () => {
             try {
-                // First get all events for the society
-                const allEventsResponse = await apiRequest<EventDetail[]>({
+                // get user database ID
+                const profile = await apiRequest<{ id: number }>({
+                    endpoint: `/Profile/${loggedAccountID}/`,
+                    method: 'GET',
+                });
+                if (profile.data) setUserId(profile.data.id);
+
+                // super-admin?
+                const adm = await apiRequest<{ admin: boolean }>({
+                    endpoint: '/admin_check/',
+                    method: 'POST',
+                });
+                if (adm.data) setIsAdmin(adm.data.admin);
+
+                // society-admin?
+                const socAdm = await apiRequest<{ is_admin: boolean }>({
+                    endpoint: `/Societies/${society_name}/IsSocietyAdmin/`,
+                    method: 'POST',
+                });
+                if (socAdm.data) setIsSocietyAdmin(socAdm.data.is_admin);
+
+                // member?
+                const mem = await apiRequest<{ success: boolean }>({
+                    endpoint: `/Societies/${society_name}/${loggedAccountID}/`,
+                    method: 'GET',
+                });
+                if (mem.data) setIsMember(mem.data.success);
+
+                // joined event?
+                const join = await apiRequest<{ has_joined: boolean }>({
+                    endpoint: `/Societies/${society_name}/Events/${eventID}/hasJoined/`,
+                    method: 'GET',
+                });
+                if (join.data) setHasJoined(join.data.has_joined);
+            } catch (e) {
+                console.error(e);
+            }
+        })();
+    }, [isAuthenticated, loggedAccountID, society_name, eventID]);
+
+    // fetch event data
+    useEffect(() => {
+        (async () => {
+            try {
+                const resp = await apiRequest<EventDetail[]>({
                     endpoint: `/Societies/${society_name}/Events/`,
                     method: 'GET',
                 });
-
-                if (allEventsResponse.data) {
-                    // Find the specific event by ID
-                    const foundEvent = allEventsResponse.data.find(e => e.id.toString() === eventID);
-                    if (foundEvent) {
-                        console.log('Event found:', foundEvent);
-                        console.log('Event status:', foundEvent.status);
-                        console.log('Event online status:', foundEvent.online);
-                        console.log('Should show chat button:', (foundEvent.status === "ongoing" || foundEvent.status === "finished") && foundEvent.online);
-                        setEvent(foundEvent);
-                    } else {
-                        setError("Event not found");
-                    }
+                if (resp.data) {
+                    const found = resp.data.find(e => e.id.toString() === eventID);
+                    if (found) setEvent(found);
+                    else setError("Event not found");
                 }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load event");
+            } catch (e) {
+                setError(e instanceof Error ? e.message : "Failed to load event");
             } finally {
                 setLoading(false);
             }
-        };
-
-        fetchEvent();
+        })();
     }, [society_name, eventID]);
-
-    const formatDateTime = (dateString: string) => {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return "Invalid date";
-
-        return date.toLocaleString([], {
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
 
     const handleDelete = async () => {
         try {
             await apiRequest({
-                endpoint: `/Societies/${society_name}/Events/${eventID}/`,
-                method: 'POST',
+                endpoint: `/Societies/${society_name}/${eventID}/DeleteEvent/`,
+                method: 'DELETE',
             });
             navigate(`/Societies/${society_name}`);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to delete event");
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to delete event");
         }
     };
 
-    if (loading) {
-        return <Loader size="xl" />;
-    }
+    const handleUpdate = () => {
+        navigate(`/Societies/${society_name}/${eventID}/UpdateEvent`);
+    };
 
-    if (error) {
-        return <Text color="red">{error}</Text>;
-    }
+    const formatDateTime = (s: string) => {
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return "Invalid date";
+        return d.toLocaleString([], {
+            year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+        });
+    };
 
-    if (!event) {
-        return <Text>Event not found</Text>;
-    }
+    if (loading || authLoading) return <Loader size="xl" />;
+    if (error) return <Text color="red">{error}</Text>;
+    if (!event) return <Text>Event not found</Text>;
+
+    const canManage = isAdmin || isSocietyAdmin;
+    const showJoin = isAuthenticated && !hasJoined && event.status === "upcoming" && isMember;
+    const showLeave = isAuthenticated && hasJoined && event.status === "upcoming" && isMember;
 
     return (
         <>
             <Sidebar>
-                <Flex justify="center" align="flex-start" gap="md" px="md">
-                    {/* Left Sidebar Placeholder */}
-                    <div style={{ width: "200px" }} />
+                <Flex px="md" gap="md" justify="center" align="flex-start">
+                    <div style={{ width: 200 }} />
+                    <Container size="xl" py="md" style={{ flex: 1, maxWidth: 900 }}>
+                        {!isMember && (
+                            <Alert color="yellow" mb="md">
+                                You must be a member of this society to interact with its events.
+                            </Alert>
+                        )}
 
-                    {/* Main Content */}
-                    <Container size="xl" py="md" style={{ flex: 1, maxWidth: "900px" }}>
-                        {/* Event Header */}
-                        <Card shadow="sm" p="lg" radius="md" withBorder mb="xl">
-                            <Group justify="space-between" align="flex-start">
+                        <Card mb="lg" shadow="sm" p="lg" radius="md" withBorder>
+                            <Group >
                                 <div>
                                     <Title order={2}>{event.name}</Title>
-                                    <Text c="dimmed" size="sm">
-                                        {event.location}
-                                    </Text>
+                                    <Text color="dimmed" size="sm">{event.location}</Text>
                                 </div>
                                 <Group>
-                                    {(event.status === "ongoing" || event.status === "finished") && event.online && (
-                                        <Button
-                                            variant="outline"
-                                            component={Link}
-                                            to={`/Societies/${society_name}/${eventID}/chat`}
-                                        >
-                                            View Chat
+                                    {showJoin && (
+                                        <Button onClick={async () => {
+                                            await apiRequest({ endpoint: `/Societies/${society_name}/Events/${eventID}/Join/`, method: 'POST' });
+                                            setHasJoined(true);
+                                        }}>
+                                            Join Event
                                         </Button>
                                     )}
-                                    {isAdmin && (
+                                    {showLeave && (
+                                        <Button color="red" variant="outline" onClick={async () => {
+                                            await apiRequest({ endpoint: `/Societies/${society_name}/Events/${eventID}/Leave/`, method: 'POST' });
+                                            setHasJoined(false);
+                                        }}>
+                                            Leave Event
+                                        </Button>
+                                    )}
+                                    {canManage && (
                                         <>
-                                            <Button
-                                                variant="outline"
-                                                component={Link}
-                                                to={`/Societies/${society_name}/${eventID}/UpdateEvent`}
-                                                leftSection={<Icon icon={edit} width={16} height={16} />}
-                                            >
+                                            <Button leftSection={<Icon icon={edit} />} onClick={handleUpdate}>
                                                 Edit Event
                                             </Button>
-                                            <Button
-                                                variant="outline"
-                                                color="red"
-                                                onClick={() => setDeleteModalOpen(true)}
-                                                leftSection={<Icon icon={trash} width={16} height={16} />}
-                                            >
+                                            <Button color="red" leftSection={<Icon icon={trash} />} onClick={() => setDeleteModalOpen(true)}>
                                                 Delete Event
                                             </Button>
                                         </>
@@ -178,48 +196,29 @@ const EventDetail = () => {
                         </Card>
 
                         <Card shadow="sm" p="lg" radius="md" withBorder>
-                            <Text size="lg" mb="sm">
-                                <strong>Start:</strong> {formatDateTime(event.startTime)}
-                            </Text>
-                            <Text size="lg" mb="sm">
-                                <strong>End:</strong> {formatDateTime(event.endTime)}
-                            </Text>
-                            <Text size="lg" mb="sm">
-                                <strong>Location:</strong> {event.location}
-                            </Text>
-                            <Text mb="sm">
-                                <strong>Status:</strong>
-                                <Badge
-                                    color={event.status === 'upcoming' ? 'blue' : event.status === 'finished' ? 'green' : 'gray'}
-                                    ml="sm"
-                                >
+                            <Text mb="sm"><strong>Start:</strong> {formatDateTime(event.startTime)}</Text>
+                            <Text mb="sm"><strong>End:</strong>   {formatDateTime(event.endTime)}</Text>
+                            <Text mb="sm"><strong>Status:</strong>{" "}
+                                <Badge color={
+                                    event.status === "upcoming" ? "blue" :
+                                        event.status === "ongoing" ? "gray" :
+                                            "green"
+                                }>
                                     {event.status}
                                 </Badge>
                             </Text>
-                            <Text>
-                                <strong>Details:</strong> {event.details}
-                            </Text>
+                            <Text><strong>Details:</strong> {event.details}</Text>
                         </Card>
 
-                        <Modal
-                            opened={deleteModalOpen}
-                            onClose={() => setDeleteModalOpen(false)}
-                            title="Delete Event"
-                        >
-                            <Text>Are you sure you want to delete this event?</Text>
-                            <Group justify="flex-end" mt="md">
-                                <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button color="red" onClick={handleDelete}>
-                                    Delete
-                                </Button>
+                        <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Delete Event">
+                            <Text>Are you sure?</Text>
+                            <Group mt="md">
+                                <Button variant="default" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+                                <Button color="red" onClick={handleDelete}>Delete</Button>
                             </Group>
                         </Modal>
                     </Container>
-
-                    {/* Right Sidebar Placeholder */}
-                    <div style={{ width: "200px" }} />
+                    <div style={{ width: 200 }} />
                 </Flex>
             </Sidebar>
             <RightSidebar />
