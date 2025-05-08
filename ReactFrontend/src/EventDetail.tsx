@@ -59,6 +59,13 @@ const EventDetail = () => {
                 });
                 if (profile.data) setUserId(profile.data.id);
 
+                // member?
+                const mem = await apiRequest<{ success: boolean }>({
+                    endpoint: `/${society_name}/${loggedAccountID}/`,
+                    method: 'GET',
+                });
+                if (mem.data) setIsMember(mem.data.success);
+
                 // super-admin?
                 const adm = await apiRequest<{ admin: boolean }>({
                     endpoint: '/admin_check/',
@@ -72,14 +79,6 @@ const EventDetail = () => {
                     method: 'POST',
                 });
                 if (socAdm.data) setIsSocietyAdmin(socAdm.data.is_admin);
-
-                // member?
-                const mem = await apiRequest<{ success: boolean }>({
-                    endpoint: `/${society_name}/${loggedAccountID}/`,
-                    method: 'GET',
-                });
-                if (mem.data) setIsMember(mem.data.success);
-
                 // joined event?
                 const join = await apiRequest<{ has_joined: boolean }>({
                     endpoint: `/Societies/${society_name}/${eventID}/CheckInterest/`,
@@ -166,18 +165,39 @@ const EventDetail = () => {
                                 </div>
                                 <Group>
                                     {showJoin && (
-                                        <Button onClick={async () => {
-                                            await apiRequest({ endpoint: `/Societies/${society_name}/Events/${eventID}/Join/`, method: 'POST' });
-                                            setHasJoined(true);
-                                        }}>
+                                        <Button
+                                            color="blue"
+                                            onClick={async () => {
+                                                try {
+                                                    await apiRequest({
+                                                        endpoint: `/Societies/${society_name}/${eventID}/Join/`,
+                                                        method: 'POST'
+                                                    });
+                                                    setHasJoined(true);
+                                                } catch (e) {
+                                                    setError(e instanceof Error ? e.message : "Failed to join event");
+                                                }
+                                            }}
+                                        >
                                             Join Event
                                         </Button>
                                     )}
                                     {showLeave && (
-                                        <Button color="red" variant="outline" onClick={async () => {
-                                            await apiRequest({ endpoint: `/Societies/${society_name}/Events/${eventID}/Leave/`, method: 'POST' });
-                                            setHasJoined(false);
-                                        }}>
+                                        <Button
+                                            color="red"
+                                            variant="outline"
+                                            onClick={async () => {
+                                                try {
+                                                    await apiRequest({
+                                                        endpoint: `/Societies/${society_name}/${eventID}/Leave/`,
+                                                        method: 'POST'
+                                                    });
+                                                    setHasJoined(false);
+                                                } catch (e) {
+                                                    setError(e instanceof Error ? e.message : "Failed to leave event");
+                                                }
+                                            }}
+                                        >
                                             Leave Event
                                         </Button>
                                     )}
