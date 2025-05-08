@@ -9,12 +9,17 @@ COPY package*.json ./
 
 # Install dependencies
 RUN npm install
+RUN npm install -g vite
 
 # Copy the rest of the application code
 COPY . .
+
+# Copy SSL certificates into the container
+COPY certs /app/certs
 
 # Expose the React development server port
 EXPOSE 5173
 
 # Start the React app
-CMD ["npm", "start"]
+# CMD ["npm", "start"]
+CMD ["vite", "--host"]

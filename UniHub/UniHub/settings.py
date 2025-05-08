@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +24,49 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-lo&i=f(@lf0v1b9^xenw1fmwepd#a*yd5*7$=+!m31evo57)k+'
+SECRET_KEY = 'django-insecure-lo&i=f(@lf0v1b9^xenw1fmwepda*yd5*7$=+!m31evo57)k+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+
 ALLOWED_HOSTS = []
+
+TIME_ZONE = 'Europe/London'
+USE_TZ = True
+
+CELERY_BROKER_URL = "redis://redis:6379/0"
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com' 
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'deadbumbum@gmail.com'
+EMAIL_HOST_PASSWORD = 'iakersjkzeqgqqsr'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # Application definition
@@ -40,6 +81,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'main',
 ]
 
@@ -54,29 +96,48 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'main.views': {  # Replace 'main' with the name of your app
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        # You can add more loggers for other parts of your app if needed
+    },
+}
+
 # Allow requests from localhost:5173
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "https://localhost:5173",
+# ]
 
 # Allow all origins (for development only, not recommended in production)
-# CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Allow specific headers and methods if needed
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 CORS_ALLOW_HEADERS = ["Authorization", "Content-Type"]
 
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 REST_FRAMEWORK = {'DEFAULT_AUTHENTICATION_CLASSES': (
     'main.authentication.CookiesJWTAuthentication',
+    #'rest_framework.authentication.TokenAuthentication',
 ),
 'DEFAULT_PERMISSION_CLASSES': (
-    'rest_framework.permissions.IsAuthenticated'
+    'rest_framework.permissions.IsAuthenticated',
+    #'rest_framework_simplejwt.authentication.JWTAuthentication'
 )}
 
 ROOT_URLCONF = 'UniHub.urls'
@@ -105,8 +166,12 @@ WSGI_APPLICATION = 'UniHub.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DATABASE_NAME', 'mydatabase'),
+        'USER': os.environ.get('DATABASE_USER', 'myuser'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'mypassword'),
+        'HOST': os.getenv('DATABASE_HOST', 'db'),
+        'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
 
@@ -150,7 +215,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# Removing the need to install pillow only if the environment variable is set
+if os.environ.get("DISABLE_PILLOW_CHECK"):
+    SILENCED_SYSTEM_CHECKS = ['fields.E210']

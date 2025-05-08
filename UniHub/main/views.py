@@ -1,42 +1,44 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import status
 from rest_framework.response import Response
-
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.generics import get_object_or_404
 
-from .serializer import SignupSerializer
-from .models import Account
-from .permissions import CustomIsAdminUser
+from .models import Account, SocietyRelation, Society, COURSE_CHOICES, YEAR_CHOICES
+from .permissions import CustomIsAdminUser, IsSocietyAdmin, IsAdminOrSocietyAdmin
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         try:
-            email = request.data.get('email')
+            if request.user.is_authenticated:
+                return Response({"message": "You are already logged in."}, status=400)
+
+            accountID = request.data.get('accountID')
             password = request.data.get('password')
 
-            account = authenticate(request, username=email, password=password)
+            user = authenticate(request, username=accountID, password=password)
 
-            if not account:
-                return Response({"message": "Invalid email or password"}, status=400)
-            
+            if not user:
+                return Response({"success": False, "message": "Incorrect username or password"}, status=400)
+
+            # Generate token
             response = super().post(request, *args, **kwargs)
             tokens = response.data
             access_token = tokens['access']
             refresh_token = tokens['refresh']
 
-            res = Response()
-
-            res.data = {"success":True}
+            res = Response({"success": True})
 
             res.set_cookie(
                 key="access_token",
                 value=access_token,
                 httponly=True,
-                secure=False, # We're not using HTTPS for development
+                secure=True,
+                samesite="None",
                 path="/"
             )
 
@@ -44,24 +46,27 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 key="refresh_token",
                 value=refresh_token,
                 httponly=True,
-                secure=False, # We're not using HTTPS for development
+                secure=True,
+                samesite="None",
                 path="/"
             )
 
             return res
-        except:
-            return Response({"success":False}, status=400)
+
+        except Exception as e:
+            return Response({"success": False, "message": str(e)}, status=400)
+    
         
 class CustomRefreshTokenView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
-            email = request.data.get('email')
-            password = request.data.get('password')
+            # accountID = request.data.get('accountID')
+            # password = request.data.get('password')
 
-            account = authenticate(request, username=email, password=password)
+            # account = authenticate(request, username=accountID, password=password)
 
-            if not account:
-                return Response({"message": "Account no longer exists"}, status=400)
+            # if not account:
+            #     return Response({"message": "Account no longer exists"}, status=400)
             refresh_token = request.COOKIES.get('refresh_token')
             request_data = request.data.copy()
             request_data['refresh'] = refresh_token
@@ -106,11 +111,22 @@ def logout(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def is_authenticated(request):
-    return Response({'authenticated':True})
+    return Response({'authenticated':True, 'accountID':request.user.accountID})
 
 @api_view(['POST'])
 @permission_classes([CustomIsAdminUser])
 def is_admin(request):
     return Response({"admin":True})
 
+@api_view(['POST'])
+@permission_classes([IsAdminOrSocietyAdmin])
+def is_society_admin(request, society_name):
+    society = get_object_or_404(Society, name=society_name)
+    return Response({"Society Admin": True})
 
+@api_view(['GET'])
+def get_choices(request):
+    return Response({
+        "course_choices": COURSE_CHOICES,
+        "year_choices": YEAR_CHOICES,
+    })

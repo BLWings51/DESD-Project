@@ -1,98 +1,115 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import apiRequest, { saveTokensToLocalStorage } from "./api/auth";
-import "./App.css";
-import { Card, Flex, Title, TextInput, Button } from '@mantine/core';
+import { useState, useEffect } from "react";
+import { useAuth } from './authContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { Card, Flex, Title, TextInput, Button, Text, Alert } from "@mantine/core";
 
-interface LoginResponse {
-  access: string; // Access token
-  refresh: string; // Refresh token
-}
+import Sidebar from "./Sidebar";
 
-async function loginUser(email: string, password: string): Promise<LoginResponse | null> {
-  const response = await apiRequest<LoginResponse>({
-    endpoint: "/login/",
-    method: "POST",
-    data: { email, password },
-  });
+import "./static/stylesheet.css";
 
-  if (response.error || !response.data) {
-    console.error("Login failed:", response.message);
-    return null;
-  }
+// import styles from "./static/login.module.css";
 
-  console.log("Login successful, tokens received:", response.data);
-  return response.data; // Return both tokens
-}
-
-interface LoginProps {
-  setAuth: (authToken: string) => void;
-  setRefresh: (refreshToken: string) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ setAuth, setRefresh }) => {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+const Login = () => {
+  const [accountID, setAccountID] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    login,
+    isAuthenticated,
+    isLoading: authLoading
+  } = useAuth();
+
   const navigate = useNavigate();
 
-  const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault();
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/home');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-
-    const response = await loginUser(email, password);
-
-    if (!response) {
-      setError("Invalid email or password");
-    } else {
-      // Save tokens to local storage using the utility function
-      saveTokensToLocalStorage(response.access, response.refresh);
-
-      console.log(response.access);
-      console.log(response.refresh);
-
-
-
-      // Update state with tokens
-      setAuth(response.access);
-      setRefresh(response.refresh);
-
-      alert("Login successful!");
-      navigate("/home");
+  
+    try {
+      await login(accountID, password);
+      // No need to navigate — useEffect handles it
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);  // Use message from backend
+      } else {
+        setError("Login failed");
+      }
     }
   };
+  
 
   return (
-    <Flex justify={"center"} align={"center"} h={"100vh"} direction={"column"}>
-      <Card p={50} bd={"2px solid gray.6"} radius={"lg"}>
-        <Card.Section>
-          <Title>Login</Title>
+
+
+    <Flex justify="center" align="center" h="90vh" direction="column">
+        <Card p={50} withBorder radius="lg" w={400}>
+          <Card.Section p="md">
+          <Flex justify="center" align="center">
+      <Title order={2}>Login</Title>
+    </Flex>
         </Card.Section>
 
-        <Card.Section mt={"lg"}>
-          <form onSubmit={handleLogin}>
+        <Card.Section p="md">
+          {error && (
+            <Alert color="red" mb="md">
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
             <TextInput
+              label="Account ID"
               variant="filled"
-              radius={"md"}
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              radius="md"
+              type="number"
+              placeholder="#000000"
+              value={accountID}
+              onChange={(e) => setAccountID(e.target.value)}
               required
+              autoComplete="username"
+              mb="sm"
             />
+
             <TextInput
-              mt={"xs"}
+              label="Password"
               variant="filled"
-              radius={"md"}
+              radius="md"
               type="password"
-              placeholder="Password"
+              placeholder="Your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
+              mb="md"
             />
-            {error && <p className="error">{error}</p>}
-            <Button color="secondary.5" mt={"md"} type="submit">Login</Button>
+
+            <Button
+              fullWidth
+              color="blue"
+              type="submit"
+              loading={authLoading}
+              disabled={authLoading}
+            >
+              Login
+            </Button>
           </form>
+        </Card.Section>
+
+        <Card.Section p="md" ta="center">
+          <Text size="sm">
+            Don't have an account?{' '}
+            <Link to="/signup" style={{ color: 'var(--mantine-color-blue-6)' }}>
+              Sign up here
+            </Link>
+          </Text>
         </Card.Section>
       </Card>
     </Flex>

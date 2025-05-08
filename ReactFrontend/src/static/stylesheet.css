@@ -1,0 +1,9 @@
+
+
+.login-card-decorator {
+  background-color: var(--mantine-color-primary-5);
+  border-radius: var(--mantine-radius-lg);
+  padding: 2rem;
+
+
+}
