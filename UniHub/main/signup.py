@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import serializers
-from .models import Account
+from .models import Account, InterestTag
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -29,13 +29,38 @@ def SignupView(request):
     return Response(serializer.data)
 
 class SignupSerializer(serializers.ModelSerializer):
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
+
     class Meta:
-        model=Account
-        fields = ['accountID', 'email', 'firstName', 'lastName', 'password']
+        model = Account
+        fields = [
+            'accountID', 'email', 'firstName', 'lastName', 'password',
+            'dob', 'course', 'year_of_course', 'address', 'interests'
+        ]
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        account = Account(accountID=validated_data["accountID"], email=validated_data['email'], firstName=validated_data["firstName"], lastName=validated_data["lastName"])
+        interests = validated_data.pop('interests', [])
+        account = Account(
+            accountID=validated_data["accountID"],
+            email=validated_data['email'],
+            firstName=validated_data["firstName"],
+            lastName=validated_data["lastName"],
+            dob=validated_data.get("dob"),
+            course=validated_data.get("course"),
+            year_of_course=validated_data.get("year_of_course"),
+            address=validated_data.get("address", "")
+        )
         account.set_password(validated_data['password'])
         account.save()
+        # Handle interests
+        tags = []
+        
+        for name in interests:
+            tag = InterestTag.objects.filter(name__iexact=name).first()
+            if tag is None:
+                tag = InterestTag.objects.create(name=name)
+            tags.append(tag)
         return account

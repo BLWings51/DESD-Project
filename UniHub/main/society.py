@@ -1,5 +1,5 @@
 from rest_framework import generics
-from .models import Society, SocietyRelation, Account
+from .models import Society, SocietyRelation, Account, InterestTag
 from .permissions import *
 from rest_framework import serializers
 from rest_framework.permissions import *
@@ -335,12 +335,23 @@ class LeaveSocietySerializer(serializers.ModelSerializer):
 
 
 class CreateSocietySerializer(serializers.ModelSerializer):
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
     class Meta:
         model = Society
-        fields = ['name', 'numOfInterestedPeople', 'description']
+        fields = ['name', 'numOfInterestedPeople', 'description', 'interests']
 
     def create(self, validated_data):
+        interests = validated_data.pop('interests', [])
         society = Society.objects.create(**validated_data)
+        tags = []
+        for name in interests:
+            tag = InterestTag.objects.filter(name__iexact=name).first()
+            if tag is None:
+                tag = InterestTag.objects.create(name=name)
+            tags.append(tag)
+        society.interests.set(tags)
         society.save()
         return society
     
@@ -350,9 +361,12 @@ class CreateSocietySerializer(serializers.ModelSerializer):
         return value
 
 class UpdateSocietySerializer(serializers.ModelSerializer):
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
     class Meta:
         model = Society
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'interests']
 
     def validate_name(self, value):
         """
@@ -366,8 +380,17 @@ class UpdateSocietySerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.description = validated_data.get('description', instance.description)
+        interests = validated_data.pop('interests', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if interests is not None:
+            tags = []
+            for name in interests:
+                tag = InterestTag.objects.filter(name__iexact=name).first()
+                if tag is None:
+                    tag = InterestTag.objects.create(name=name)
+                tags.append(tag)
+            instance.interests.set(tags)
         instance.save()
         return instance
 

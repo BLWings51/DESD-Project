@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsSocietyAdmin, IsAdminOrSocietyAdmin
 from rest_framework.response import Response
-from .models import Post, Society, SocietyRelation
+from .models import Post, Society, SocietyRelation, InterestTag
 
 # Get posts from user's friends
 @api_view(['GET'])
@@ -116,10 +116,42 @@ def delete_post(request, society_name, post_id):
 
 class PostSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
+    interests = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at']
+        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests']
 
     def get_author_name(self, obj):
         return f"{obj.author.firstName} {obj.author.lastName}"
+
+    def get_interests(self, obj):
+        return [tag.name for tag in obj.interests.all()]
+
+    def create(self, validated_data):
+        interests = validated_data.pop('interests', [])
+        post = Post.objects.create(**validated_data)
+        tags = []
+        for name in interests:
+            tag = InterestTag.objects.filter(name__iexact=name).first()
+            if tag is None:
+                tag = InterestTag.objects.create(name=name)
+            tags.append(tag)
+        post.interests.set(tags)
+        post.save()
+        return post
+
+    def update(self, instance, validated_data):
+        interests = validated_data.pop('interests', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if interests is not None:
+            tags = []
+            for name in interests:
+                tag = InterestTag.objects.filter(name__iexact=name).first()
+                if tag is None:
+                    tag = InterestTag.objects.create(name=name)
+                tags.append(tag)
+            instance.interests.set(tags)
+        instance.save()
+        return instance
