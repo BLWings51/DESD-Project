@@ -7,6 +7,7 @@ import calendarEvent from '@iconify-icons/tabler/calendar-event';
 import users from '@iconify-icons/tabler/users';
 import messageCircle from '@iconify-icons/tabler/message-circle';
 import check from '@iconify-icons/tabler/check';
+import userPlus from '@iconify-icons/tabler/user-plus';
 import apiRequest from "./api/apiRequest";
 import { useAuth } from "./authContext";
 import Sidebar from "./Sidebar";
@@ -25,6 +26,7 @@ const NotificationsPage = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [friendRequestCount, setFriendRequestCount] = useState(0);
 
     const fetchNotifications = async () => {
         if (!isAuthenticated) return;
@@ -50,9 +52,31 @@ const NotificationsPage = () => {
         }
     };
 
+    const fetchFriendRequestCount = async () => {
+        if (!isAuthenticated) return;
+        try {
+            const response = await apiRequest<{ quantity: number }>({
+                endpoint: '/notificationBell/',
+                method: 'GET',
+            });
+            if (response.data) {
+                // Get the total count and subtract the notification count
+                const totalCount = response.data.quantity;
+                const notificationCount = notifications.filter(n => !n.is_read).length;
+                setFriendRequestCount(totalCount - notificationCount);
+            }
+        } catch (err) {
+            console.error("Failed to fetch friend request count:", err);
+        }
+    };
+
     useEffect(() => {
         fetchNotifications();
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        fetchFriendRequestCount();
+    }, [isAuthenticated, notifications]);
 
     const handleMarkAsRead = async (notificationId: number) => {
         if (!notificationId) {
@@ -104,7 +128,50 @@ const NotificationsPage = () => {
                     <div style={{ width: "200px" }} />
 
                     <div style={{ flex: 1, maxWidth: "900px" }}>
-                        <Title order={2} mb="xl">Notifications</Title>
+                        <Group justify="space-between" mb="xl">
+                            <Title order={2}>Notifications</Title>
+                            <div style={{ marginRight: '12px' }}>
+                                <Button
+                                    variant="subtle"
+                                    component={Link}
+                                    to="/friend-requests"
+                                    style={{ 
+                                        position: 'relative',
+                                        padding: '8px',
+                                        width: '52px',
+                                        height: '52px'
+                                    }}
+                                >
+                                    <Icon icon={userPlus} width={20} height={20} />
+                                    {friendRequestCount > 0 && (
+                                        <Badge
+                                            size="md"
+                                            color="red"
+                                            style={{
+                                                position: 'absolute',
+                                                top: -1,
+                                                right: -1,
+                                                padding: '0 4px',
+                                                minWidth: '18px',
+                                                height: '18px',
+                                                borderRadius: '9px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '11px',
+                                                fontWeight: 'bold',
+                                                border: '2px solid var(--mantine-color-body)',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                zIndex: 1,
+                                                transform: 'translate(0, 0)'
+                                            }}
+                                        >
+                                            {friendRequestCount}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            </div>
+                        </Group>
 
                         {loading ? (
                             <Flex justify="center" align="center" h="200px">

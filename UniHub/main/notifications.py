@@ -1,6 +1,6 @@
 # notifications/serializers.py
 from rest_framework import serializers
-from .models import Notification, Event, Society, SocietyRelation
+from .models import Notification, Event, Society, SocietyRelation, FriendRelation
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -24,13 +24,27 @@ def get_notifications(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_unread_notification_quantity(request):
-    user = request.user
-    quantity = 0
-    notification_list = Notification.objects.filter(recipient=user).values_list('is_read', flat=True)
-    for notification in notification_list:
-        if notification==False:
-            quantity += 1
-    return Response({'quantity':quantity})
+    try:
+        user = request.user
+        quantity = 0
+        
+        # Count unread notifications
+        unread_notifications = Notification.objects.filter(
+            recipient=user,
+            is_read=False
+        ).count()
+        quantity += unread_notifications
+        
+        # Count incoming friend requests
+        incoming_requests = FriendRelation.objects.filter(
+            to_account=user,
+            confirmed=False
+        ).count()
+        quantity += incoming_requests
+        
+        return Response({'quantity': quantity})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
 
 class UpdateNotificationSerializer(serializers.ModelSerializer):
     class Meta:

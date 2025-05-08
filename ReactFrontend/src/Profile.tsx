@@ -1,24 +1,39 @@
 // Profile.tsx
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
     Card, Title, Text, Loader, Flex, Alert, TextInput, Textarea,
     Button, Modal, Group, ActionIcon, Box, Badge, Avatar, SimpleGrid
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Icon } from "@iconify/react";
+import type { IconifyIcon } from '@iconify/types';
 import edit from "@iconify-icons/tabler/edit";
 import trash from "@iconify-icons/tabler/trash";
 import check from "@iconify-icons/tabler/check";
 import x from "@iconify-icons/tabler/x";
 import calendarEvent from "@iconify-icons/tabler/calendar-event";
 import usersIcon from "@iconify-icons/tabler/users";
+import userIcon from "@iconify-icons/tabler/user";
 import apiRequest from "./api/apiRequest";
 import { useAuth } from "./authContext";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
 /* ---------- data model ---------- */
+interface InterestTag {
+    id: number;
+    name: string;
+}
+
+interface Event {
+    id: number;
+    title: string;
+    description: string;
+    date: string;
+    location: string;
+}
+
 interface UserProfile {
     accountID: number;
     firstName: string;
@@ -27,14 +42,15 @@ interface UserProfile {
     bio: string;
     pfp: string;
     is_owner: boolean;
+    is_admin: boolean;
+    is_friend: boolean;
+    address: string;
+    dob: string;
+    course: string;
+    year_of_course: number;
+    interests: InterestTag[];
     societies: string[];
-    events: string[];
-    address?: string;
-    dob?: string;
-    course?: string;
-    year_of_course?: string;
-    interests?: string[];
-    is_friend?: boolean;
+    events: Event[];
 }
 
 /* ---------- component ---------- */
@@ -52,6 +68,7 @@ const Profile = () => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [verifiedAccountID, setVerifiedAccountID] = useState<string | null>(null);
+    const [outgoingRequests, setOutgoingRequests] = useState<number[]>([]);
 
     /* compute whose profile to show */
     const profileID =
@@ -71,9 +88,15 @@ const Profile = () => {
             bio: "",
             pfp: "http://127.0.0.1:8000/media/profile_pics/default.webp",
             is_owner: false,
+            is_admin: false,
+            is_friend: false,
+            address: "",
+            dob: "",
+            course: "",
+            year_of_course: 0,
+            interests: [],
             societies: [],
             events: [],
-            is_friend: false,
         },
         validate: {
             firstName: (v) => (v ? null : "First name is required"),
@@ -128,6 +151,18 @@ const Profile = () => {
     };
 
     useEffect(() => { fetchProfile(); }, [profileID, loggedAccountID]);
+
+    useEffect(() => {
+        const fetchOutgoingRequests = async () => {
+            const res = await apiRequest<{ accountID: number }[]>({ endpoint: "/friends/outgoing/" });
+            if (!res.error) {
+                setOutgoingRequests(res.data?.map(u => u.accountID) || []);
+            }
+        };
+        if (isAuthenticated) {
+            fetchOutgoingRequests();
+        }
+    }, [isAuthenticated]);
 
     /* ---------- action handlers ---------- */
 
@@ -195,6 +230,9 @@ const Profile = () => {
         setLoading(true); setError(null);
         try {
             await apiRequest({ endpoint: `/friends/send/${profileID}/`, method: "POST" });
+            if (profileID) {
+                setOutgoingRequests(prev => [...prev, profileID]);
+            }
             await fetchProfile();
         } catch (e: any) {
             setError(e.message);
@@ -202,6 +240,7 @@ const Profile = () => {
             setLoading(false);
         }
     };
+
     const handleRemoveFriend = async () => {
         setLoading(true); setError(null);
         try {
@@ -238,12 +277,43 @@ const Profile = () => {
                                 {/* header */}
                                 <Group justify="space-between" mb="md" wrap="wrap">
                                     <Title order={2}>{paramID ? "User Profile" : "My Profile"}</Title>
-                                    {!editing && (user?.is_owner || isAdmin) && (
-                                        <Group gap="xs">
-                                            <ActionIcon color="blue" onClick={() => setEditing(true)} title="Edit profile"><Icon icon={edit} width={18} height={18} /></ActionIcon>
-                                            <ActionIcon color="red" onClick={() => setDeleteModalOpen(true)} title="Delete profile"><Icon icon={trash} width={18} height={18} /></ActionIcon>
-                                        </Group>
-                                    )}
+                                    <Group gap="xs">
+                                        {!user?.is_owner && (
+                                            <>
+                                                {user?.is_friend ? (
+                                                    <Button 
+                                                        color="red" 
+                                                        variant="filled" 
+                                                        onClick={handleRemoveFriend}
+                                                        leftSection={<Icon icon={trash} width={16} height={16} />}
+                                                    >
+                                                        Unfriend
+                                                    </Button>
+                                                ) : outgoingRequests.includes(user?.accountID || 0) ? (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        color="gray" 
+                                                        disabled
+                                                    >
+                                                        Request Sent
+                                                    </Button>
+                                                ) : (
+                                                    <Button 
+                                                        onClick={handleAddFriend}
+                                                        leftSection={<Icon icon={userIcon} width={16} height={16} />}
+                                                    >
+                                                        Add Friend
+                                                    </Button>
+                                                )}
+                                            </>
+                                        )}
+                                        {!editing && (user?.is_owner || isAdmin) && (
+                                            <>
+                                                <ActionIcon color="blue" onClick={() => setEditing(true)} title="Edit profile"><Icon icon={edit} width={18} height={18} /></ActionIcon>
+                                                <ActionIcon color="red" onClick={() => setDeleteModalOpen(true)} title="Delete profile"><Icon icon={trash} width={18} height={18} /></ActionIcon>
+                                            </>
+                                        )}
+                                    </Group>
                                 </Group>
 
                                 {error && <Alert color="red" mb="md">{error}</Alert>}
@@ -285,31 +355,21 @@ const Profile = () => {
                                         <Flex justify="center"><Text mt="xs"><strong>ID:</strong> {user.accountID}</Text></Flex>
                                         <Box mt="sm" p="sm" bg="dark.6"><Text size="sm" c="dimmed">{user.bio || "No bio provided."}</Text></Box>
 
-                                        {(user.is_owner || isAdmin) && (
-                                            <Box mt="md">
-                                                <Title order={4} mb="sm">Additional Information</Title>
-                                                <SimpleGrid cols={2} spacing="md">
-                                                    {user.address && <Info label="Address" value={user.address} />}
-                                                    {user.dob && <Info label="Date of Birth" value={new Date(user.dob).toLocaleDateString()} />}
-                                                    {user.course && <Info label="Course" value={user.course} />}
-                                                    {user.year_of_course && <Info label="Year of Course" value={user.year_of_course} />}
-                                                </SimpleGrid>
-                                            </Box>
-                                        )}
+                                        <Box mt="md">
+                                            <Title order={4} mb="sm">Additional Information</Title>
+                                            <SimpleGrid cols={2} spacing="md">
+                                                {user.address && <Info label="Address" value={user.address} />}
+                                                {user.dob && <Info label="Date of Birth" value={new Date(user.dob).toLocaleDateString()} />}
+                                                {user.course && <Info label="Course" value={user.course} />}
+                                                {user.year_of_course && <Info label="Year of Course" value={user.year_of_course} />}
+                                            </SimpleGrid>
+                                        </Box>
 
                                         {user.is_owner && (
                                             <>
                                                 <ListBlock icon={usersIcon} label="Societies" data={user.societies} />
                                                 <ListBlock icon={calendarEvent} label="Events" data={user.events.map(e => (e as any).name ?? e)} />
                                             </>
-                                        )}
-
-                                        {/* friend controls */}
-                                        {!user.is_owner && !user.is_friend && (
-                                            <Button onClick={handleAddFriend}>Add Friend</Button>
-                                        )}
-                                        {user.is_friend && (
-                                            <Button color="red" onClick={handleRemoveFriend}>Remove Friend</Button>
                                         )}
                                     </Box>
                                 ) : (
