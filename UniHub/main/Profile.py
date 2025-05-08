@@ -27,7 +27,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         user = self.context['request'].user
         
-        if Account.objects.exclude(pk=user.account.pk).filter(email=value).exists():
+        if Account.objects.exclude(pk=user.pk).filter(email=value).exists():
             raise serializers.ValidationError("Email is already in use")
         return value
     
@@ -57,15 +57,17 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return instance
 
 class UpdateProfilePictureSerializer(serializers.ModelSerializer):
-    pfp = serializers.ImageField(required=True)  # Make the image field required
-
     class Meta:
         model = Account
         fields = ['pfp']
 
     def update(self, instance, validated_data):
-        instance.pfp = validated_data.get('pfp', instance.pfp)
-        instance.save()
+        if 'pfp' in validated_data:
+            # Delete old file if it exists and is not the default
+            if instance.pfp and instance.pfp.name != 'default.webp':
+                instance.pfp.delete(save=False)
+            instance.pfp = validated_data['pfp']
+            instance.save()
         return instance
 
 @api_view(['POST'])
@@ -209,11 +211,21 @@ def deleteProfile(request):
     account.delete()
     return Response({"message": "Account deleted successfully."}, status=204)
 
-@api_view(['PATCH'])
+@api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def upload_profile_picture(request, account_ID):
-    serializer = UpdateProfilePictureSerializer(request.user, data=request.data, partial=True)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        account = Account.objects.get(accountID=account_ID)
+        if account != request.user:
+            return Response({"error": "You can only update your own profile picture"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if 'pfp' not in request.FILES:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UpdateProfilePictureSerializer(account, data=request.FILES, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Account.DoesNotExist:
+        return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)

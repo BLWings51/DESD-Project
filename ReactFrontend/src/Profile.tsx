@@ -78,7 +78,7 @@ const Profile = () => {
             lastName: "",
             email: "",
             bio: "",
-            pfp: "../../UniHub/media/profile_pics/default.webp",
+            pfp: "http://127.0.0.1:8000/media/profile_pics/default.webp",
             is_owner: false,
             societies: [],
             events: []
@@ -123,7 +123,7 @@ const Profile = () => {
                 const profileData = {
                     ...response.data,
                     is_owner: isOwner,
-                    pfp: response.data.pfp || "../../UniHub/media/profile_pics/default.webp"
+                    pfp: response.data.pfp || "http://127.0.0.1:8000/media/profile_pics/default.webp"
                 };
                 form.setValues(profileData);
                 setUser(profileData);
@@ -185,6 +185,38 @@ const Profile = () => {
         }
     };
 
+    const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.currentTarget.files?.[0];
+        if (!file) return;
+
+        setLoading(true);
+        setError(null);
+
+        const formData = new FormData();
+        formData.append('pfp', file);
+
+        try {
+            const response = await apiRequest<{ pfp: string }>({
+                endpoint: `/Profile/${profileID}/uploadpfp/`,
+                method: "PUT",
+                data: formData
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            if (response.data?.pfp) {
+                form.setFieldValue('pfp', response.data.pfp);
+                setUser(prev => prev ? { ...prev, pfp: response.data.pfp } : null);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to upload profile picture");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (loading && !user) {
         return (
             <Flex justify="center" align="center" h="100vh">
@@ -240,6 +272,21 @@ const Profile = () => {
 
                                 {editing ? (
                                     <form onSubmit={form.onSubmit(handleSubmit)}>
+                                        <Flex justify="center" mb="md">
+                                            <Avatar
+                                                src={form.values.pfp}
+                                                size={120}
+                                                radius="50%"
+                                                alt="Profile picture"
+                                            />
+                                        </Flex>
+                                        <TextInput
+                                            type="file"
+                                            accept="image/*"
+                                            label="Profile Picture"
+                                            onChange={handleProfilePictureUpload}
+                                            mb="sm"
+                                        />
                                         <TextInput
                                             label="First Name"
                                             {...form.getInputProps("firstName")}
@@ -351,9 +398,9 @@ const Profile = () => {
                                                     </Flex>
                                                     {user.events.length > 0 ? (
                                                         <Group gap="sm" wrap="wrap">
-                                                            {user.events.map((item: string) => (
-                                                                <Badge key={item} variant="light">
-                                                                    {item}
+                                                            {user.events.map((item: any) => (
+                                                                <Badge key={item.name} variant="light">
+                                                                    {item.name}
                                                                 </Badge>
                                                             ))}
                                                         </Group>

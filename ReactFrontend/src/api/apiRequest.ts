@@ -11,17 +11,15 @@ interface ApiResponse<T> {
 interface RequestOptions {
     endpoint: string;
     method?: "GET" | "POST" | "PUT" | "DELETE";
-    data?: Record<string, any>;
+    data?: Record<string, any> | FormData;
+    headers?: HeadersInit;
 }
 
 // Function to make API requests
 async function apiRequest<T>({ endpoint, method = "GET", data }: RequestOptions): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const headers: HeadersInit = {
-        "Content-Type": "application/json",
-    };
-
+    const headers: HeadersInit = {};
     const options: RequestInit = {
         method,
         headers,
@@ -29,7 +27,13 @@ async function apiRequest<T>({ endpoint, method = "GET", data }: RequestOptions)
     };
 
     if (data) {
-        options.body = JSON.stringify(data);
+        if (data instanceof FormData) {
+            // Don't set Content-Type for FormData, let the browser set it with the boundary
+            options.body = data;
+        } else {
+            headers["Content-Type"] = "application/json";
+            options.body = JSON.stringify(data);
+        }
     }
 
     try {
