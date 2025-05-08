@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
     Card, Title, Text, Loader, Flex, Alert, TextInput, Textarea,
-    Button, Modal, Group, ActionIcon, Box, Badge, Avatar, SimpleGrid
+    Button, Modal, Group, ActionIcon, Box, Badge, Avatar, SimpleGrid, Select
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Icon } from "@iconify/react";
@@ -53,6 +53,11 @@ interface UserProfile {
     events: Event[];
 }
 
+interface Choices {
+    course_choices: [string, string][];
+    year_choices: [string, string][];
+}
+
 /* ---------- component ---------- */
 const Profile = () => {
     const { accountID: paramID } = useParams<{ accountID: string }>();
@@ -70,6 +75,8 @@ const Profile = () => {
     const [isFriend, setIsFriend] = useState(false);
     const [verifiedAccountID, setVerifiedAccountID] = useState<string | null>(null);
     const [outgoingRequests, setOutgoingRequests] = useState<number[]>([]);
+    const [choices, setChoices] = useState<Choices | null>(null);
+    const [choicesLoading, setChoicesLoading] = useState(true);
 
     /* compute whose profile to show */
     const profileID =
@@ -171,6 +178,26 @@ const Profile = () => {
             fetchOutgoingRequests();
         }
     }, [isAuthenticated]);
+
+    /* Fetch choices from backend */
+    useEffect(() => {
+        const fetchChoices = async () => {
+            try {
+                const response = await apiRequest<Choices>({
+                    endpoint: '/choices/',
+                    method: 'GET',
+                });
+                if (response.data) {
+                    setChoices(response.data);
+                }
+            } catch (err) {
+                console.error('Failed to load form choices:', err);
+            } finally {
+                setChoicesLoading(false);
+            }
+        };
+        fetchChoices();
+    }, []);
 
     /* ---------- action handlers ---------- */
 
@@ -340,10 +367,26 @@ const Profile = () => {
 
                                         {(user?.is_owner || isAdmin) && (
                                             <>
-                                                <TextInput label="Address"        {...form.getInputProps("address")} mb="sm" />
-                                                <TextInput label="Date of Birth" type="date"  {...form.getInputProps("dob")} mb="sm" />
-                                                <TextInput label="Course"         {...form.getInputProps("course")} mb="sm" />
-                                                <TextInput label="Year of Course" type="number" {...form.getInputProps("year_of_course")} mb="sm" />
+                                                <TextInput label="Address" {...form.getInputProps("address")} mb="sm" />
+                                                <TextInput label="Date of Birth" type="date" {...form.getInputProps("dob")} mb="sm" />
+                                                <Select
+                                                    label="Course"
+                                                    placeholder="Select your course"
+                                                    data={choices?.course_choices.map(([value, label]) => ({ value, label })) || []}
+                                                    value={form.values.course}
+                                                    onChange={(value) => form.setFieldValue('course', value || '')}
+                                                    mb="sm"
+                                                    disabled={choicesLoading}
+                                                />
+                                                <Select
+                                                    label="Year of Course"
+                                                    placeholder="Select your year"
+                                                    data={choices?.year_choices.map(([value, label]) => ({ value, label })) || []}
+                                                    value={form.values.year_of_course.toString()}
+                                                    onChange={(value) => form.setFieldValue('year_of_course', value ? parseInt(value) : 0)}
+                                                    mb="sm"
+                                                    disabled={choicesLoading}
+                                                />
                                             </>
                                         )}
 
