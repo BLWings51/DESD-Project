@@ -348,7 +348,7 @@ class LeaveSocietySerializer(serializers.ModelSerializer):
 
 class CreateSocietySerializer(serializers.ModelSerializer):
     interests = serializers.ListField(
-        child=serializers.CharField(), required=False
+        child=serializers.CharField(), required=False, default=list
     )
     class Meta:
         model = Society
