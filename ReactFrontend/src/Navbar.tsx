@@ -1,16 +1,29 @@
 import { useEffect, useState } from "react";
 import { useAuth } from './authContext';
-import { Container, Group, Button, Text, Paper, Menu, Burger, TextInput, Loader, List } from "@mantine/core";
+import { Container, Group, Button, Text, Paper, Menu, Burger, TextInput, Loader, List, Badge } from "@mantine/core";
 import { Link, useNavigate } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import { useDisclosure } from "@mantine/hooks";
 import { Icon } from '@iconify/react';
 import chevronDown from '@iconify-icons/tabler/chevron-down';
 import search from '@iconify-icons/tabler/search';
+import bell from '@iconify-icons/tabler/bell';
 
 interface Is_Admin {
     admin: boolean;
 }
+
+interface NotificationCount {
+    quantity: number;
+}
+
+// Create a global event emitter for notification updates
+const notificationEvents = new EventTarget();
+export const NOTIFICATION_UPDATED = 'notification-updated';
+
+export const updateNotificationCount = () => {
+    notificationEvents.dispatchEvent(new Event(NOTIFICATION_UPDATED));
+};
 
 const Navbar: React.FC = () => {
     const { isAuthenticated, logout, loggedAccountID } = useAuth();
@@ -21,6 +34,22 @@ const Navbar: React.FC = () => {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const fetchUnreadCount = async () => {
+        if (!isAuthenticated) return;
+        try {
+            const response = await apiRequest<NotificationCount>({
+                endpoint: '/notificationBell/',
+                method: 'GET',
+            });
+            if (response.data) {
+                setUnreadCount(response.data.quantity);
+            }
+        } catch (error) {
+            console.error("Failed to fetch unread count:", error);
+        }
+    };
 
     // Check if user is admin
     useEffect(() => {
@@ -38,6 +67,24 @@ const Navbar: React.FC = () => {
         };
         checkAdminStatus();
     }, [isAuthenticated, loggedAccountID]);
+
+    // Fetch unread notification count
+    useEffect(() => {
+        fetchUnreadCount();
+        // Set up polling every 30 seconds
+        const interval = setInterval(fetchUnreadCount, 30000);
+
+        // Listen for notification updates
+        const handleNotificationUpdate = () => {
+            fetchUnreadCount();
+        };
+        notificationEvents.addEventListener(NOTIFICATION_UPDATED, handleNotificationUpdate);
+
+        return () => {
+            clearInterval(interval);
+            notificationEvents.removeEventListener(NOTIFICATION_UPDATED, handleNotificationUpdate);
+        };
+    }, [isAuthenticated]);
 
     // Logout function
     const handleLogout = async () => {
@@ -79,9 +126,40 @@ const Navbar: React.FC = () => {
                     )}
 
                     {/* Desktop Navigation */}
-                    <Group gap="lg" visibleFrom="sm">
+                    <Group>
                         {isAuthenticated ? (
                             <>
+                                <Button
+                                    variant="subtle"
+                                    component={Link}
+                                    to="/notifications"
+                                    style={{ position: 'relative' }}
+                                >
+                                    <Icon icon={bell} width={20} height={20} />
+                                    {unreadCount > 0 && (
+                                        <Badge
+                                            size="sm"
+                                            color="red"
+                                            style={{
+                                                position: 'absolute',
+                                                top: -1,
+                                                right: -1,
+                                                padding: '0 4px',
+                                                minWidth: '16px',
+                                                height: '16px',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '10px',
+                                                fontWeight: 'bold',
+                                                border: '2px solid var(--mantine-color-body)'
+                                            }}
+                                        >
+                                            {unreadCount}
+                                        </Badge>
+                                    )}
+                                </Button>
                                 <Button variant="subtle" onClick={handleLogout}>
                                     Logout
                                 </Button>
@@ -112,6 +190,9 @@ const Navbar: React.FC = () => {
                             <Group gap="xs" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
                                 {isAuthenticated ? (
                                     <>
+                                        <Button fullWidth variant="subtle" component={Link} to="/notifications">
+                                            Notifications {unreadCount > 0 && `(${unreadCount})`}
+                                        </Button>
                                         <Button fullWidth variant="subtle" onClick={() => {
                                             handleLogout();
                                             toggle();
