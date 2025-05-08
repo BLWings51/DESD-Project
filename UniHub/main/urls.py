@@ -63,6 +63,8 @@ urlpatterns = [
     path('friends/decline/<int:from_account_id>/', friends.decline_friend_request, name='decline_friend_request'),
     path('friends/remove/<int:account_id>/', friends.remove_friend, name='remove_friend'),
     path('friends/list/', friends.list_friends, name='list_friends'),
+    path('friends/incoming/', friends.incoming_requests, name='incoming_friend_requests'),
+    path('friends/outgoing/', friends.outgoing_requests, name='outgoing_friend_requests'),
     path('<str:society_name>/<int:personID>/', society.IsPersonInSociety),
     path('confirmEmail/', signup.confirmEmail),
     path('tags/search/', tags.search_tags, name='search_tags'),

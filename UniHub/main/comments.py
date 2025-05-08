@@ -13,7 +13,7 @@ def create_comment(request, post_id):
     data['author'] = request.user.id     
     data['post'] = post_id            
 
-    serializer = CommentSerializer(data=data)
+    serializer = CommentSerializer(data=data, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=201)
@@ -31,7 +31,7 @@ def update_comment(request, comment_id, post_id):
     if request.user != comment.author:
         return Response({"error": "You are not allowed to edit this comment."}, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = CommentSerializer(comment, data=request.data, partial=True)
+    serializer = CommentSerializer(comment, data=request.data, partial=True, context={'request': request})
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -84,9 +84,15 @@ def delete_comment(request, post_id, comment_id):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author_name = serializers.CharField(source='author.get_full_name', read_only=True)
+    author_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
         fields = ['id', 'author', 'author_name', 'post', 'content', 'created_at']
         read_only_fields = ['author_name', 'created_at']
+
+    def get_author_name(self, obj):
+        if hasattr(obj, 'author'):
+            print(f"Comment author data: {obj.author.firstName} {obj.author.lastName}")
+            return f"{obj.author.firstName} {obj.author.lastName}"
+        return "Unknown Author"

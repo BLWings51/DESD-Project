@@ -160,6 +160,20 @@ const Navbar: React.FC = () => {
                                         </Badge>
                                     )}
                                 </Button>
+                                <Button
+                                    variant="subtle"
+                                    component={Link}
+                                    to="/friends"
+                                >
+                                    Friends
+                                </Button>
+                                <Button
+                                    variant="subtle"
+                                    component={Link}
+                                    to="/friend-requests"
+                                >
+                                    Friend Requests
+                                </Button>
                                 <Button variant="subtle" onClick={handleLogout}>
                                     Logout
                                 </Button>

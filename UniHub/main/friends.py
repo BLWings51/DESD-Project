@@ -83,3 +83,21 @@ def list_friends(request):
     serializer = GetAccountSerializer(friends, many=True, context={'request': request})
     
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def incoming_requests(request):
+    user = request.user
+    incoming = FriendRelation.objects.filter(to_account=user, confirmed=False)
+    senders = [rel.from_account for rel in incoming]
+    serializer = GetAccountSerializer(senders, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def outgoing_requests(request):
+    user = request.user
+    outgoing = FriendRelation.objects.filter(from_account=user, confirmed=False)
+    receivers = [rel.to_account for rel in outgoing]
+    serializer = GetAccountSerializer(receivers, many=True, context={'request': request})
+    return Response(serializer.data)
