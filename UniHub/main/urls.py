@@ -4,6 +4,7 @@ from main import signup, views, Profile, society, Events, post, searchBar, notif
 
 urlpatterns = [
     path('signup/', signup.SignupView, name='signup'),
+    path('choices/', views.get_choices, name='get_choices'),
     path('login/', views.CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path('authenticated/', views.is_authenticated),
     path('token/refresh/', views.CustomRefreshTokenView.as_view(), name="token_refresh"),

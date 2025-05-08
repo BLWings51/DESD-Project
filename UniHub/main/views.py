@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.generics import get_object_or_404
 
-from .models import Account, SocietyRelation, Society
+from .models import Account, SocietyRelation, Society, COURSE_CHOICES, YEAR_CHOICES
 from .permissions import CustomIsAdminUser, IsSocietyAdmin, IsAdminOrSocietyAdmin
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -119,3 +119,9 @@ def is_society_admin(request, society_name):
     society = get_object_or_404(Society, name=society_name)
     return Response({"Society Admin": True})
 
+@api_view(['GET'])
+def get_choices(request):
+    return Response({
+        "course_choices": COURSE_CHOICES,
+        "year_choices": YEAR_CHOICES,
+    })
