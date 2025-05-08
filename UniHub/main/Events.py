@@ -23,14 +23,18 @@ from .signup import InterestTagSerializer
 # creating an event
 class CreateEventSerializer(serializers.ModelSerializer):
     interests = InterestTagSerializer(many=True, required=False)
+    society = serializers.PrimaryKeyRelatedField(queryset=Society.objects.all(), write_only=True)
+
     
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'online', 'interests']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'online', 'interests', 'society']
 
     def create(self, validated_data):
         interests_data  = validated_data.pop('interests', [])
-        event = Event.objects.create(**validated_data)
+        society = validated_data.pop('society')
+        event = Event.objects.create(society=society, **validated_data)
+        
         tags = []
         for interest_data in interests_data:
             tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
@@ -80,7 +84,9 @@ def reschedule_event(event, newStartTime, user):
 @permission_classes([IsAdminOrSocietyAdmin])
 def CreateEvent(request, society_name):
     society = get_object_or_404(Society, name=society_name)
-    serializer = CreateEventSerializer(data=request.data, context={'society': society})
+    data = request.data.copy()
+    data['society'] = society.id
+    serializer = CreateEventSerializer(data=data)
     startTime = request.data.get('startTime')
     endTime = request.data.get('endTime')
     if endTime <= startTime:
