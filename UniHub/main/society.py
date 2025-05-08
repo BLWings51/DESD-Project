@@ -239,6 +239,24 @@ def IsPersonInSociety(request, society_name, personID):
     else:
         return Response({"success":False})
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_interest(request, society_name):
+    try:
+        society = Society.objects.get(name=society_name)
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
+
+    user = request.user
+    relation = SocietyRelation.objects.filter(society=society, account=user).first()
+
+    if not relation:
+        return Response({"status": "not_member"})
+    elif relation.adminStatus:
+        return Response({"status": "admin"})
+    else:
+        return Response({"status": "member"})
+
 
 # Serializers
 
