@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.urls import path
-from main import signup, views, Profile, society, Events, post, searchBar, notifications, liveChat, friends
+from main import signup, views, Profile, society, Events, post, searchBar, notifications, liveChat, friends, comments
 
 urlpatterns = [
     path('signup/', signup.SignupView, name='signup'),
@@ -40,6 +40,12 @@ urlpatterns = [
     path('Societies/<str:society_name>/posts/update/<int:post_id>/', post.update_post, name="update-post"),
     path('Societies/<str:society_name>/posts/delete/<int:post_id>/', post.delete_post, name="delete-post"),
     path('Societies/<str:society_name>/posts/can_delete/<int:post_id>/', post.can_delete_post),
+    path('Societies/<str:society_name>/posts/<int:post_id>/like/', post.like_post),
+    path('Societies/<str:society_name>/posts/<int:post_id>/dislike/', post.dislike_post),
+    path('Societies/posts/<int:post_id>/comments/', comments.create_comment, name="create-comment"),
+    path('Societies/posts/<int:post_id>/comments/<int:comment_id>/update/', comments.update_comment, name="update-comment"),
+    path('Societies/posts/<int:post_id>/comments/<int:comment_id>/can_delete/', comments.can_delete_comment, name="can-delete-comment"),
+    path('Societies/posts/<int:post_id>/comments/<int:comment_id>/delete/', comments.delete_comment, name="delete-comment"),
     path('posts/friends/', post.get_friends_posts, name="get_friends_posts"),
     path('notifications/', notifications.get_notifications),
     path('notificationBell/', notifications.get_unread_notification_quantity),

@@ -140,6 +140,7 @@ class Post(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     interests = models.ManyToManyField(InterestTag, related_name='posts', blank=True)
+    likes = models.ManyToManyField(Account, related_name='liked_posts', blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -161,3 +162,9 @@ class LiveEventChat(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     text = models.CharField(max_length=2000)
     finalMessage = models.BooleanField(default=False)
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
+    author = models.ForeignKey(Account, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

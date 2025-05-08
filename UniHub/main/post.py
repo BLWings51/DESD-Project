@@ -1,10 +1,11 @@
-from rest_framework import serializers, status
+from rest_framework import serializers, status, viewsets
 from .models import Post
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsSocietyAdmin, IsAdminOrSocietyAdmin
 from rest_framework.response import Response
 from .models import Post, Society, SocietyRelation, InterestTag
+from .comments import CommentSerializer
 
 # Get posts from user's friends
 @api_view(['GET'])
@@ -21,8 +22,8 @@ def get_friends_posts(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_society_posts(request, society_name):
-    posts = Post.objects.filter(society__name=society_name)
-    serializer = PostSerializer(posts, many=True)
+    queryset = PostViewSet.queryset.filter(society__name=society_name)
+    serializer = PostViewSet.serializer_class(queryset, many=True, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -112,7 +113,35 @@ def delete_post(request, society_name, post_id):
     post.delete()
     return Response({"message": "Post deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
+# Like posts
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def like_post(request, society_name, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Post not found"}, status=404)
+
+    post.likes.add(request.user)
+    return Response({ "message": f"{request.user.firstName} {request.user.lastName} liked the post"}, status=200)
+
+# Dislike posts
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def dislike_post(request, society_name, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return Response({"error": "Post not found"}, status=404)
+    
+
+
+    post.likes.remove(request.user)
+    return Response({ "message": f"{request.user.firstName} {request.user.lastName} disliked the post"}, status=200)
+
+
 # serialisers
+
 
 class PostSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
@@ -120,16 +149,36 @@ class PostSerializer(serializers.ModelSerializer):
         child=serializers.CharField(), required=False, default=list, write_only=True
     )
     interests_display = serializers.SerializerMethodField(read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    liked_by_user = serializers.SerializerMethodField()
+    liked_by_display = serializers.SerializerMethodField(read_only=True)
+
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display']
+        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments']
+        read_only_fields = ['author', 'created_at']
 
     def get_author_name(self, obj):
         return f"{obj.author.firstName} {obj.author.lastName}"
 
     def get_interests_display(self, obj):
         return [tag.name for tag in obj.interests.all()]
+    
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_liked_by_user(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
+    
+    def get_liked_by_display(self, obj):
+        return [f"{user.firstName} {user.lastName}" for user in obj.likes.all()]
+
+
 
     def create(self, validated_data):
         interests = validated_data.pop('interests', [])
@@ -158,3 +207,7 @@ class PostSerializer(serializers.ModelSerializer):
             instance.interests.set(tags)
         instance.save()
         return instance
+    
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
