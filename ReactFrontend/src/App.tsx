@@ -37,16 +37,14 @@ const App = () => {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<Home />} />
             <Route path="/Societies" element={<Societies />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/Societies/:society_name" element={<SocietyDetail />} />
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/Profile" element={<Profile />} />
               <Route path="/Profile/:accountID" element={<Profile />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/search" element={<SearchPage />} />
-
-              {/* Society Routes */}
-              <Route path="/Societies/:society_name" element={<SocietyDetail />} />
 
               {/* Admin Routes */}
               <Route element={<PermissionRoute requiredPermission="admin" />}>

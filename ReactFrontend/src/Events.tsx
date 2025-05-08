@@ -24,7 +24,6 @@ interface Society {
 }
 
 const Events: React.FC = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +68,7 @@ const Events: React.FC = () => {
         const upcomingEvents = allEvents
           .filter(event => new Date(event.startTime) > now)
           .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-        
+
         setEvents(upcomingEvents);
 
       } catch (err) {
@@ -81,22 +80,6 @@ const Events: React.FC = () => {
 
     fetchData();
   }, []);
-
-  if (authLoading || loading) {
-    return (
-      <Flex justify="center" align="center" h="100vh">
-        <Loader size="xl" />
-      </Flex>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Flex justify="center" align="center" h="100vh">
-        <Text>Please log in to view events</Text>
-      </Flex>
-    );
-  }
 
   return (
     <>
@@ -131,10 +114,10 @@ const Events: React.FC = () => {
                           <Text size="sm" fw={500}>{event.society}</Text>
                           <Text size="sm" lineClamp={2}>{event.details}</Text>
                           <Text size="sm" c="dimmed">{event.location}</Text>
-                          <Button 
-                            variant="light" 
-                            fullWidth 
-                            mt="md" 
+                          <Button
+                            variant="light"
+                            fullWidth
+                            mt="md"
                             radius="md"
                             component={Link}
                             to={`/Societies/${event.society}/${event.id}`}

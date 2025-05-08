@@ -1,19 +1,19 @@
 import { useAuth } from './authContext';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { LoadingOverlay, Text, Center } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import apiRequest from './api/apiRequest';
 
 interface PermissionRouteProps {
     requiredPermission: 'admin' | 'society_admin' | 'member';
-    societyName?: string;
 }
 
-const PermissionRoute = ({ requiredPermission, societyName }: PermissionRouteProps) => {
+const PermissionRoute = ({ requiredPermission }: PermissionRouteProps) => {
     const { isAuthenticated, isLoading, loggedAccountID } = useAuth();
     const [hasPermission, setHasPermission] = useState<boolean | null>(null);
     const [isChecking, setIsChecking] = useState(true);
     const location = useLocation();
+    const { society_name } = useParams<{ society_name: string }>();
 
     useEffect(() => {
         const checkPermission = async () => {
@@ -30,19 +30,19 @@ const PermissionRoute = ({ requiredPermission, societyName }: PermissionRoutePro
                         method: 'POST',
                     });
                     setHasPermission(response.data?.admin || false);
-                } else if (requiredPermission === 'society_admin' && societyName) {
+                } else if (requiredPermission === 'society_admin' && society_name) {
                     const response = await apiRequest<{ "Society Admin": boolean }>({
-                        endpoint: `/Societies/${societyName}/IsSocietyAdmin/`,
+                        endpoint: `/Societies/${society_name}/IsSocietyAdmin/`,
                         method: 'POST',
                     });
                     setHasPermission(response.data?.["Society Admin"] || false);
-                } else if (requiredPermission === 'member' && societyName) {
+                } else if (requiredPermission === 'member' && society_name) {
                     // For member permission, we'll check if they're a member of the society
-                    const response = await apiRequest<{ is_member: boolean }>({
-                        endpoint: `/Societies/${societyName}/`,
+                    const response = await apiRequest<{ success: boolean }>({
+                        endpoint: `/${society_name}/${loggedAccountID}/`,
                         method: 'GET',
                     });
-                    setHasPermission(response.data?.is_member || false);
+                    setHasPermission(response.data?.success || false);
                 }
             } catch (error) {
                 console.error('Error checking permissions:', error);
@@ -53,7 +53,7 @@ const PermissionRoute = ({ requiredPermission, societyName }: PermissionRoutePro
         };
 
         checkPermission();
-    }, [isAuthenticated, loggedAccountID, requiredPermission, societyName]);
+    }, [isAuthenticated, loggedAccountID, requiredPermission, society_name]);
 
     if (isLoading || isChecking) {
         return <LoadingOverlay visible />;

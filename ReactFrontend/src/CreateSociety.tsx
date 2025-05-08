@@ -1,5 +1,5 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, MultiSelect } from "@mantine/core";
 import apiRequest from "./api/apiRequest";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -13,6 +13,7 @@ const CreateSociety = () => {
         initialValues: {
             name: '',
             description: '',
+            interests: [] as string[],
         },
         validate: {
             name: (value) => (value.length < 3 ? 'Name must be at least 3 characters' : null),
@@ -76,6 +77,16 @@ const CreateSociety = () => {
                             {...form.getInputProps('description')}
                             required
                             minRows={4}
+                            mb="md"
+                        />
+
+                        <MultiSelect
+                            label="Interest Tags"
+                            placeholder="Select or create interest tags"
+                            data={[]}
+                            searchable
+                            clearable
+                            {...form.getInputProps('interests')}
                             mb="md"
                         />
 

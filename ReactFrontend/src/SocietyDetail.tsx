@@ -18,6 +18,7 @@ import {
   Box,
   Textarea,
   Container,
+  MultiSelect,
 } from "@mantine/core";
 import { Icon } from '@iconify/react';
 import edit from '@iconify-icons/tabler/edit';
@@ -34,6 +35,7 @@ interface SocietyDetail {
   numOfInterestedPeople: number;
   logo?: string | null;
   is_member?: boolean;
+  interests: string[];
 }
 
 interface Event {
@@ -72,7 +74,9 @@ const SocietyDetail = () => {
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [postPermissions, setPostPermissions] = useState<{ [key: number]: boolean }>({});
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
+  const [newPostInterests, setNewPostInterests] = useState<string[]>([]);
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [deletePostModalOpen, setDeletePostModalOpen] = useState(false);
@@ -147,6 +151,7 @@ const SocietyDetail = () => {
         });
         if (resp.data) {
           setSociety(resp.data);
+          setAvailableTags(resp.data.interests || []);
           const ev = await apiRequest<Event[]>({
             endpoint: `/Societies/${resp.data.name}/Events/`,
             method: 'GET',
@@ -221,7 +226,10 @@ const SocietyDetail = () => {
       await apiRequest({
         endpoint: `/Societies/${society_name}/posts/create/`,
         method: 'POST',
-        data: { content: newPostContent },
+        data: {
+          content: newPostContent,
+          interests: newPostInterests,
+        },
       });
       const resp = await apiRequest<Post[]>({
         endpoint: `/Societies/${society_name}/posts/`,
@@ -229,6 +237,7 @@ const SocietyDetail = () => {
       });
       setPosts(resp.data || []);
       setNewPostContent('');
+      setNewPostInterests([]);
     } catch {
       setPostsError('Failed to create post');
     } finally {
@@ -344,8 +353,31 @@ const SocietyDetail = () => {
               <Tabs.Panel value="posts" pt="md">
                 {isAuthenticated && (
                   <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
-                    <Textarea placeholder="What's on your mind?" value={newPostContent} onChange={e => setNewPostContent(e.target.value)} minRows={3} mb="md" />
-                    <Button leftSection={<Icon icon={plus} width={16} height={16} />} onClick={handleCreatePost} loading={isCreatingPost} disabled={!newPostContent.trim()}>Create Post</Button>
+                    <Textarea
+                      placeholder="What's on your mind?"
+                      value={newPostContent}
+                      onChange={e => setNewPostContent(e.target.value)}
+                      minRows={3}
+                      mb="md"
+                    />
+                    <MultiSelect
+                      label="Interest Tags"
+                      placeholder="Select or create interest tags"
+                      data={availableTags}
+                      value={newPostInterests}
+                      onChange={setNewPostInterests}
+                      searchable
+                      clearable
+                      mb="md"
+                    />
+                    <Button
+                      leftSection={<Icon icon={plus} width={16} height={16} />}
+                      onClick={handleCreatePost}
+                      loading={isCreatingPost}
+                      disabled={!newPostContent.trim()}
+                    >
+                      Create Post
+                    </Button>
                   </Card>
                 )}
                 {postsLoading ? (
