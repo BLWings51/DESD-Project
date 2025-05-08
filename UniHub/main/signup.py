@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import serializers
+from django.core.mail import send_mail
 from .models import Account, InterestTag
 
 @api_view(['POST'])
@@ -25,8 +26,24 @@ def SignupView(request):
     
     if serializer.is_valid():
         serializer.save()
+        send_mail(
+            subject=f"Confirm Email",
+            message=f"Please click the following link to confirm your email\n\n\nhttp://127.0.0.1:8000/api/confirmEmail/\n\n\n\nUniHub Management",
+            from_email=None,
+            recipient_list=[email],
+            fail_silently=False,
+        )
         return Response(serializer.data)
     return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def confirmEmail(request):
+    user = request.user
+    user.confirmed = True
+    user.save()
+    return Response({"success": True})
+
 
 class SignupSerializer(serializers.ModelSerializer):
     interests = serializers.ListField(

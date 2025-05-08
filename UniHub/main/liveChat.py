@@ -69,13 +69,14 @@ class GetAllChatsSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
     firstName = serializers.SerializerMethodField()
     lastName = serializers.SerializerMethodField()
-    #pfp = serializers.SerializerMethodField()
+    pfp = serializers.SerializerMethodField()
+    
     class Meta:
         model=LiveEventChat
-        fields = ['id', 'sender', 'event', 'text', 'finalMessage', 'is_owner', 'firstName', 'lastName']#, 'pfp']
+        fields = ['id', 'sender', 'event', 'text', 'finalMessage', 'is_owner', 'firstName', 'lastName', 'pfp']
 
     def getChatDetails(self, chat):
-        chatDetails = {"id":chat.id, "sender":chat.sender, "event":chat.event, "text":chat.text, "finalMessage":chat.finalMessage, "is_owner":chat.is_owner, "firsstName":chat.firstName, "lastName":chat.lastName}#, "pfp":chat.pfp}
+        chatDetails = {"id":chat.id, "sender":chat.sender, "event":chat.event, "text":chat.text, "finalMessage":chat.finalMessage, "is_owner":chat.is_owner, "firstName":chat.firstName, "lastName":chat.lastName, "pfp":chat.pfp}
         return chatDetails
 
     def get_is_owner(self, chat):
@@ -96,10 +97,10 @@ class GetAllChatsSerializer(serializers.ModelSerializer):
         lastName = user.lastName
         return lastName
     
-            # def get_pfp(self, chat):
-            #     user = self.context.get('user')
-            #     pfp = user.pfp
-            #     return pfp
+    def get_pfp(self, chat):
+        user = self.context.get('user')
+        pfp = user.pfp
+        return pfp.url
         
 
         

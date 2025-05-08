@@ -57,4 +57,5 @@ urlpatterns = [
     path('friends/remove/<int:account_id>/', friends.remove_friend, name='remove_friend'),
     path('friends/list/', friends.list_friends, name='list_friends'),
     path('<str:society_name>/<int:personID>/', society.IsPersonInSociety),
+    path('confirmEmail/', signup.confirmEmail),
 ]
