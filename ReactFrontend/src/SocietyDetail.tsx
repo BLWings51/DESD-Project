@@ -310,7 +310,7 @@ const SocietyDetail = () => {
     <>
       <Sidebar>
         <Flex justify="center" align="flex-start" gap="md" px="md">
-          <div style={{ width: 200 }} />
+          <div style={{ width:0 }} />
           <Box style={{ flex: 1, maxWidth: 800 }}>
             <Flex justify="space-between" align="center" mb="md">
               <Group>
