@@ -2,22 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-    Card,
-    Title,
-    Text,
-    Loader,
-    Flex,
-    Alert,
-    TextInput,
-    Textarea,
-    Button,
-    Modal,
-    Group,
-    ActionIcon,
-    Box,
-    Badge,
-    Avatar,
-    SimpleGrid,
+    Card, Title, Text, Loader, Flex, Alert, TextInput, Textarea,
+    Button, Modal, Group, ActionIcon, Box, Badge, Avatar, SimpleGrid
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Icon } from "@iconify/react";
@@ -26,12 +12,13 @@ import trash from "@iconify-icons/tabler/trash";
 import check from "@iconify-icons/tabler/check";
 import x from "@iconify-icons/tabler/x";
 import calendarEvent from "@iconify-icons/tabler/calendar-event";
-import users from "@iconify-icons/tabler/users";
+import usersIcon from "@iconify-icons/tabler/users";
 import apiRequest from "./api/apiRequest";
 import { useAuth } from "./authContext";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
+/* ---------- data model ---------- */
 interface UserProfile {
     accountID: number;
     firstName: string;
@@ -50,15 +37,14 @@ interface UserProfile {
     is_friend?: boolean;
 }
 
+/* ---------- component ---------- */
 const Profile = () => {
     const { accountID: paramID } = useParams<{ accountID: string }>();
-    const {
-        isAuthenticated,
-        isLoading: authLoading,
-        loggedAccountID,
-    } = useAuth();
 
-    // — All hooks must run unconditionally
+    /* auth context */
+    const { isAuthenticated, isLoading: authLoading, loggedAccountID } = useAuth();
+
+    /* stable states */
     const [user, setUser] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -67,6 +53,7 @@ const Profile = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [verifiedAccountID, setVerifiedAccountID] = useState<string | null>(null);
 
+    /* compute whose profile to show */
     const profileID =
         paramID && !isNaN(+paramID)
             ? +paramID
@@ -74,6 +61,7 @@ const Profile = () => {
                 ? +verifiedAccountID
                 : null;
 
+    /* form */
     const form = useForm<UserProfile>({
         initialValues: {
             accountID: profileID ?? 0,
@@ -85,273 +73,67 @@ const Profile = () => {
             is_owner: false,
             societies: [],
             events: [],
-            is_friend: false
+            is_friend: false,
         },
         validate: {
             firstName: (v) => (v ? null : "First name is required"),
             lastName: (v) => (v ? null : "Last name is required"),
-            email: (v) =>
-                /^\S+@\S+$/.test(v) ? null : "Must be a valid email address",
+            email: (v) => (/^\S+@\S+$/.test(v) ? null : "Must be a valid email"),
         },
     });
 
-    // verify auth and get verifiedAccountID
+    /* ---------- side-effects ---------- */
+
+    /* verify auth → get own accountID */
     useEffect(() => {
         if (!isAuthenticated) return;
         apiRequest<{ authenticated: boolean; accountID: string }>({
             endpoint: "/authenticated/",
             method: "POST",
         })
-            .then((res) => {
-                if (res.data?.authenticated) {
-                    setVerifiedAccountID(res.data.accountID);
-                }
-            })
+            .then(r => r.data?.authenticated && setVerifiedAccountID(r.data.accountID))
             .catch(() => setError("Failed to verify authentication"));
     }, [isAuthenticated]);
 
-    // check admin status
+    /* admin check */
     useEffect(() => {
         if (!isAuthenticated) return;
-        apiRequest<{ admin: boolean }>({
-            endpoint: "/admin_check/",
-            method: "POST",
-        })
-            .then((res) => setIsAdmin(res.data?.admin ?? false))
+        apiRequest<{ admin: boolean }>({ endpoint: "/admin_check/", method: "POST" })
+            .then(r => setIsAdmin(r.data?.admin ?? false))
             .catch(() => console.error("Admin check failed"));
     }, [isAuthenticated]);
 
-    // fetch profile data
-    useEffect(() => {
+    /* fetch profile */
+    const fetchProfile = async () => {
         if (!profileID) return;
-        setLoading(true);
-        apiRequest<UserProfile>({
-            endpoint: `/Profile/${profileID}/`,
-            method: "GET",
-        })
-            .then((res) => {
-                if (res.error) throw new Error(res.message);
-                const data = res.data!;
-                const is_owner = loggedAccountID ? +loggedAccountID === data.accountID : false;
-                const pfpUrl = data.pfp || form.values.pfp;
-                const profileData = { ...data, is_owner, pfp: pfpUrl };
-                setUser(profileData);
-                form.setValues(profileData);
-            })
-            .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
-    }, [profileID, loggedAccountID]);
-
-    // now that all hooks have run, handle loading/auth early returns
-    if (authLoading) {
-        return (
-            <Flex justify="center" align="center" h="100vh">
-                <Loader size="xl" />
-            </Flex>
-        );
-    }
-
-    if (!paramID && (!isAuthenticated || !verifiedAccountID)) {
-        return (
-            <Flex justify="center" align="center" h="100vh">
-                <Text>Please log in to view your profile</Text>
-            </Flex>
-        );
-    }
-
-    if (!profileID) {
-        return (
-            <Flex justify="center" align="center" h="100vh">
-                <Text>Unable to determine which profile to view.</Text>
-            </Flex>
-        );
-    }
-
-    if (loading && !user) {
-        return (
-            <Flex justify="center" align="center" h="100vh">
-                <Loader size="xl" />
-            </Flex>
-        );
-    }
-
-    const fetchUserProfile = async () => {
-        setLoading(true);
-        setError(null);
-
+        setLoading(true); setError(null);
         try {
-            const response = await apiRequest<UserProfile>({
+            const r = await apiRequest<UserProfile>({
                 endpoint: `/Profile/${profileID}/`,
-                method: "GET"
+                method: "GET",
             });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
-            if (response.data) {
-                // Determine ownership
-                const isOwner = loggedAccountID ? profileID === parseInt(loggedAccountID) : false;
-                const profileData: UserProfile = {
-                    ...response.data,
-                    is_owner: isOwner,
-                    pfp: response.data.pfp || "http://127.0.0.1:8000/media/profile_pics/default.webp"
-                };
-                form.setValues(profileData);
-                setUser(profileData);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load profile");
+            if (r.error) throw new Error(r.message);
+            const data = r.data!;
+            const owner = loggedAccountID ? +loggedAccountID === data.accountID : false;
+            const pfp = data.pfp || form.values.pfp;
+            const profile: UserProfile = { ...data, is_owner: owner, pfp };
+            setUser(profile);
+            form.setValues(profile);
+        } catch (e: any) {
+            setError(e.message);
             setUser(null);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchUserProfile();
-    }, [profileID, loggedAccountID]);
+    useEffect(() => { fetchProfile(); }, [profileID, loggedAccountID]);
 
-    const handleSubmit = async (values: UserProfile) => {
-        setLoading(true);
-        setError(null);
+    /* ---------- action handlers ---------- */
 
-        try {
-            const { pfp, is_owner, societies, events, ...dataToSend } = values;
-            const response = await apiRequest<UserProfile>({
-                endpoint: "/Profile/Settings/",
-                method: "POST",
-                data: {
-                    ...dataToSend,
-                    accountID: profileID // Include the target account ID for admin actions
-                }
-            });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
-            // Refresh after save
-            await fetchUserProfile();
-            setEditing(false);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to save profile");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const endpoint = isAdmin && paramID ? `/Profile/${paramID}/delete/` : '/Profile/delete/';
-            const response = await apiRequest({
-                endpoint,
-                method: "DELETE"
-            });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
-            setUser(null);
-            setDeleteModalOpen(false);
-            form.reset();
-
-            // If admin deleting another user's profile, navigate to home
-            if (isAdmin && paramID) {
-                window.location.href = "/";
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to delete profile");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.currentTarget.files?.[0];
-        if (!file) return;
-
-        setLoading(true);
-        setError(null);
-
-        const formData = new FormData();
-        formData.append('pfp', file);
-
-        try {
-            const response = await apiRequest<{ pfp: string }>({
-                endpoint: `/Profile/${profileID}/uploadpfp/`,
-                method: "PATCH",
-                data: formData
-            });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
-            const pfpUrl = response.data?.pfp;
-            if (pfpUrl) {
-                form.setFieldValue('pfp', pfpUrl);
-                setUser(prev => prev ? { ...prev, pfp: pfpUrl } : null);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to upload profile picture");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAddFriend = async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await apiRequest<UserProfile>({
-                endpoint: `/friends/send/${profileID}/`,
-                method: "POST"
-            });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
-            await fetchUserProfile();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to add friend");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleRemoveFriend = async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await apiRequest<UserProfile>({
-                endpoint: `/friends/remove/${profileID}/`,
-                method: "POST"
-            });
-
-            if (response.error) {
-                throw new Error(response.message);
-            }
-
-            await fetchUserProfile();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to remove friend");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // form submit handler
-    const handleSubmit = async (values: UserProfile) => {
-        setLoading(true);
-        setError(null);
+    /* save edits */
+    const handleSave = async (values: UserProfile) => {
+        setLoading(true); setError(null);
         try {
             const { pfp, is_owner, societies, events, ...payload } = values;
             await apiRequest({
@@ -360,61 +142,90 @@ const Profile = () => {
                 data: { ...payload, accountID: profileID },
             });
             setEditing(false);
-            // refresh
-            setUser((u) => u && { ...u, ...payload });
-        } catch (err) {
-            setError((err as Error).message);
+            await fetchProfile();
+        } catch (e: any) {
+            setError(e.message);
         } finally {
             setLoading(false);
         }
     };
 
-    // delete handler
+    /* delete profile */
     const handleDelete = async () => {
-        setLoading(true);
-        setError(null);
+        setLoading(true); setError(null);
         try {
             const ep = isAdmin && paramID
                 ? `/Profile/${paramID}/delete/`
                 : "/Profile/delete/";
             await apiRequest({ endpoint: ep, method: "DELETE" });
-            // after delete, you might redirect:
             window.location.href = "/";
-        } catch (err) {
-            setError((err as Error).message);
+        } catch (e: any) {
+            setError(e.message);
         } finally {
             setLoading(false);
         }
     };
 
-    // picture upload
-    const handleProfilePictureUpload = async (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    /* upload picture */
+    const handleUploadPfp = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.currentTarget.files?.[0];
         if (!file) return;
-        setLoading(true);
-        setError(null);
-        const fd = new FormData();
-        fd.append("pfp", file);
+        setLoading(true); setError(null);
         try {
-            const res = await apiRequest<{ pfp: string }>({
+            const fd = new FormData(); fd.append("pfp", file);
+            const r = await apiRequest<{ pfp: string }>({
                 endpoint: `/Profile/${profileID}/uploadpfp/`,
                 method: "PATCH",
                 data: fd,
             });
-            const pfpUrl = res.data?.pfp;
+            const pfpUrl = r.data?.pfp;
             if (pfpUrl) {
                 form.setFieldValue("pfp", pfpUrl);
-                setUser((u) => u && { ...u, pfp: pfpUrl });
+                setUser(u => u && { ...u, pfp: pfpUrl });
             }
-        } catch (err) {
-            setError((err as Error).message);
+        } catch (e: any) {
+            setError(e.message);
         } finally {
             setLoading(false);
         }
     };
 
+    /* friendship */
+    const handleAddFriend = async () => {
+        setLoading(true); setError(null);
+        try {
+            await apiRequest({ endpoint: `/friends/send/${profileID}/`, method: "POST" });
+            await fetchProfile();
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const handleRemoveFriend = async () => {
+        setLoading(true); setError(null);
+        try {
+            await apiRequest({ endpoint: `/friends/remove/${profileID}/`, method: "POST" });
+            await fetchProfile();
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ---------- early returns ---------- */
+    if (authLoading || (loading && !user)) {
+        return <Flex justify="center" align="center" h="100vh"><Loader size="xl" /></Flex>;
+    }
+    if (!paramID && (!isAuthenticated || !verifiedAccountID)) {
+        return <Flex justify="center" align="center" h="100vh"><Text>Please log in to view your profile</Text></Flex>;
+    }
+    if (!profileID) {
+        return <Flex justify="center" align="center" h="100vh"><Text>Unable to determine which profile to view.</Text></Flex>;
+    }
+
+    /* ---------- render ---------- */
     return (
         <>
             <Sidebar>
@@ -423,140 +234,81 @@ const Profile = () => {
                     <div style={{ flex: 1, maxWidth: 900 }}>
                         <Flex justify="center" align="center" direction="column" py="xl" px="md">
                             <Card p="xl" shadow="md" radius="lg" w="100%" maw={450}>
+
+                                {/* header */}
                                 <Group justify="space-between" mb="md" wrap="wrap">
                                     <Title order={2}>{paramID ? "User Profile" : "My Profile"}</Title>
                                     {!editing && (user?.is_owner || isAdmin) && (
                                         <Group gap="xs">
-                                            <ActionIcon color="blue" onClick={() => setEditing(true)} title="Edit profile">
-                                                <Icon icon={edit} width={18} height={18} />
-                                            </ActionIcon>
-                                            <ActionIcon color="red" onClick={() => setDeleteModalOpen(true)} title="Delete profile">
-                                                <Icon icon={trash} width={18} height={18} />
-                                            </ActionIcon>
+                                            <ActionIcon color="blue" onClick={() => setEditing(true)} title="Edit profile"><Icon icon={edit} width={18} height={18} /></ActionIcon>
+                                            <ActionIcon color="red" onClick={() => setDeleteModalOpen(true)} title="Delete profile"><Icon icon={trash} width={18} height={18} /></ActionIcon>
                                         </Group>
                                     )}
                                 </Group>
 
                                 {error && <Alert color="red" mb="md">{error}</Alert>}
 
+                                {/* ------------ EDIT MODE ------------ */}
                                 {editing ? (
-                                    <form onSubmit={form.onSubmit(handleSubmit)}>
+                                    <form onSubmit={form.onSubmit(handleSave)}>
                                         <Flex justify="center" mb="md">
-                                            <Avatar src={form.values.pfp} size={120} radius="50%" alt="Profile picture" />
+                                            <Avatar src={form.values.pfp} size={120} radius="50%" />
                                         </Flex>
-                                        <TextInput type="file" accept="image/*" label="Profile Picture" onChange={handleProfilePictureUpload} mb="sm" />
+                                        <TextInput type="file" accept="image/*" label="Profile Picture" onChange={handleUploadPfp} mb="sm" />
                                         <TextInput label="First Name" {...form.getInputProps("firstName")} mb="sm" required />
-                                        <TextInput label="Last Name" {...form.getInputProps("lastName")} mb="sm" required />
+                                        <TextInput label="Last Name"  {...form.getInputProps("lastName")} mb="sm" required />
                                         <TextInput label="Email" {...form.getInputProps("email")} mb="sm" required disabled={!user?.is_owner && !isAdmin} />
-                                        <Textarea label="Bio" {...form.getInputProps("bio")} minRows={4} mb="sm" />
+                                        <Textarea label="Bio"   {...form.getInputProps("bio")} minRows={4} mb="sm" />
+
                                         {(user?.is_owner || isAdmin) && (
                                             <>
-                                                <TextInput label="Address" {...form.getInputProps("address")} mb="sm" />
-                                                <TextInput label="Date of Birth" type="date" {...form.getInputProps("dob")} mb="sm" />
-                                                <TextInput label="Course" {...form.getInputProps("course")} mb="sm" />
-                                                <TextInput
-                                                    label="Year of Course"
-                                                    type="number"
-                                                    {...form.getInputProps("year_of_course")}
-                                                    mb="sm"
-                                                />
+                                                <TextInput label="Address"        {...form.getInputProps("address")} mb="sm" />
+                                                <TextInput label="Date of Birth" type="date"  {...form.getInputProps("dob")} mb="sm" />
+                                                <TextInput label="Course"         {...form.getInputProps("course")} mb="sm" />
+                                                <TextInput label="Year of Course" type="number" {...form.getInputProps("year_of_course")} mb="sm" />
                                             </>
                                         )}
+
                                         <Group justify="flex-end" mt="md" wrap="wrap">
-                                            <Button variant="default" onClick={() => { setEditing(false); user && form.setValues(user); }} leftSection={<Icon icon={x} width={16} height={16} />}>
-                                                Cancel
-                                            </Button>
-                                            <Button type="submit" loading={loading} leftSection={<Icon icon={check} width={16} height={16} />}>
-                                                Save
-                                            </Button>
+                                            <Button variant="default" onClick={() => { setEditing(false); user && form.setValues(user); }} leftSection={<Icon icon={x} width={16} height={16} />}>Cancel</Button>
+                                            <Button type="submit" loading={loading} leftSection={<Icon icon={check} width={16} height={16} />}>Save</Button>
                                         </Group>
                                     </form>
-                                ) : user ? (
+                                ) : /* ------------ VIEW MODE ------------ */ user ? (
                                     <Box>
-                                        <Flex justify="center" mb="md">
-                                            <Avatar src={user.pfp} size={120} radius="50%" alt="Profile picture" />
-                                        </Flex>
+                                        <Flex justify="center" mb="md"><Avatar src={user.pfp} size={120} radius="50%" /></Flex>
                                         <Flex justify="center" gap="md" wrap="wrap">
                                             <Text fw={500}>{user.firstName}</Text>
                                             <Text fw={500}>{user.lastName}</Text>
                                         </Flex>
                                         <Flex justify="center"><Text mt="xs">{user.email}</Text></Flex>
                                         <Flex justify="center"><Text mt="xs"><strong>ID:</strong> {user.accountID}</Text></Flex>
-                                        <Box mt="sm" p="sm" bg="dark.6">
-                                            <Text size="sm" c="dimmed">{user.bio || "No bio provided."}</Text>
-                                        </Box>
+                                        <Box mt="sm" p="sm" bg="dark.6"><Text size="sm" c="dimmed">{user.bio || "No bio provided."}</Text></Box>
 
                                         {(user.is_owner || isAdmin) && (
                                             <Box mt="md">
                                                 <Title order={4} mb="sm">Additional Information</Title>
                                                 <SimpleGrid cols={2} spacing="md">
-                                                    {user.address && (
-                                                        <Box>
-                                                            <Text fw={500} size="sm">Address:</Text>
-                                                            <Text size="sm">{user.address}</Text>
-                                                        </Box>
-                                                    )}
-                                                    {user.dob && (
-                                                        <Box>
-                                                            <Text fw={500} size="sm">Date of Birth:</Text>
-                                                            <Text size="sm">{new Date(user.dob).toLocaleDateString()}</Text>
-                                                        </Box>
-                                                    )}
-                                                    {user.course && (
-                                                        <Box>
-                                                            <Text fw={500} size="sm">Course:</Text>
-                                                            <Text size="sm">{user.course}</Text>
-                                                        </Box>
-                                                    )}
-                                                    {user.year_of_course && (
-                                                        <Box>
-                                                            <Text fw={500} size="sm">Year of Course:</Text>
-                                                            <Text size="sm">{user.year_of_course}</Text>
-                                                        </Box>
-                                                    )}
+                                                    {user.address && <Info label="Address" value={user.address} />}
+                                                    {user.dob && <Info label="Date of Birth" value={new Date(user.dob).toLocaleDateString()} />}
+                                                    {user.course && <Info label="Course" value={user.course} />}
+                                                    {user.year_of_course && <Info label="Year of Course" value={user.year_of_course} />}
                                                 </SimpleGrid>
                                             </Box>
                                         )}
 
                                         {user.is_owner && (
                                             <>
-                                                <Box mt="md">
-                                                    <Flex align="center" gap="sm" mb="xs">
-                                                        <Icon icon={users} width={18} height={18} />
-                                                        <Text fw={500}>Societies:</Text>
-                                                    </Flex>
-                                                    {user.societies.length > 0 ? (
-                                                        <Group gap="sm" wrap="wrap">
-                                                            {user.societies.map((item) => (
-                                                                <Badge key={item} variant="light">{item}</Badge>
-                                                            ))}
-                                                        </Group>
-                                                    ) : (
-                                                        <Text fs="italic" c="dimmed">No societies</Text>
-                                                    )}
-                                                </Box>
-                                                <Box mt="md">
-                                                    <Flex align="center" gap="sm" mb="xs">
-                                                        <Icon icon={calendarEvent} width={18} height={18} />
-                                                        <Text fw={500}>Events:</Text>
-                                                    </Flex>
-                                                    {user.events.length > 0 ? (
-                                                        <Group gap="sm" wrap="wrap">
-                                                            {user.events.map((item: any) => (
-                                                                <Badge key={item.name} variant="light">{item.name}</Badge>
-                                                            ))}
-                                                        </Group>
-                                                    ) : (
-                                                        <Text fs="italic" c="dimmed">No events</Text>
-                                                    )}
-                                                </Box>
+                                                <ListBlock icon={usersIcon} label="Societies" data={user.societies} />
+                                                <ListBlock icon={calendarEvent} label="Events" data={user.events.map(e => (e as any).name ?? e)} />
                                             </>
                                         )}
 
-                                        {!user?.is_owner && !user?.is_friend && (
+                                        {/* friend controls */}
+                                        {!user.is_owner && !user.is_friend && (
                                             <Button onClick={handleAddFriend}>Add Friend</Button>
                                         )}
-                                        {user?.is_friend && (
+                                        {user.is_friend && (
                                             <Button color="red" onClick={handleRemoveFriend}>Remove Friend</Button>
                                         )}
                                     </Box>
@@ -565,18 +317,13 @@ const Profile = () => {
                                 )}
                             </Card>
 
+                            {/* delete modal */}
                             {(user?.is_owner || isAdmin) && (
-                                <Modal
-                                    opened={deleteModalOpen}
-                                    onClose={() => setDeleteModalOpen(false)}
-                                    title="Delete Profile"
-                                    centered
-                                >
+                                <Modal opened={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Delete Profile" centered>
                                     <Text>
                                         {isAdmin && !user?.is_owner
                                             ? "Are you sure you want to delete this user's profile? This action cannot be undone."
-                                            : "Are you sure you want to delete your profile? This action cannot be undone."
-                                        }
+                                            : "Are you sure you want to delete your profile? This action cannot be undone."}
                                     </Text>
                                     <Group mt="xl" justify="flex-end">
                                         <Button variant="default" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
@@ -593,5 +340,29 @@ const Profile = () => {
         </>
     );
 };
+
+/* ---------- small helpers ---------- */
+const Info = ({ label, value }: { label: string; value: string | number }) => (
+    <Box>
+        <Text fw={500} size="sm">{label}:</Text>
+        <Text size="sm">{value}</Text>
+    </Box>
+);
+
+const ListBlock = ({ icon, label, data }: { icon: any; label: string; data: string[] }) => (
+    <Box mt="md">
+        <Flex align="center" gap="sm" mb="xs">
+            <Icon icon={icon} width={18} height={18} />
+            <Text fw={500}>{label}:</Text>
+        </Flex>
+        {data.length ? (
+            <Group gap="sm" wrap="wrap">
+                {data.map(item => <Badge key={item} variant="light">{item}</Badge>)}
+            </Group>
+        ) : (
+            <Text fs="italic" c="dimmed">No {label.toLowerCase()}</Text>
+        )}
+    </Box>
+);
 
 export default Profile;
