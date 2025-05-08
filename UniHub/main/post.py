@@ -23,9 +23,21 @@ def get_friends_posts(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_society_posts(request, society_name):
-    queryset = PostViewSet.queryset.filter(society__name=society_name)
-    serializer = PostViewSet.serializer_class(queryset, many=True, context={'request': request})
-    return Response(serializer.data)
+    queryset = Post.objects.filter(society__name=society_name).prefetch_related(
+        'comments',
+        'comments__author',
+        'author',
+        'interests',
+        'likes'
+    )
+    serializer = PostSerializer(queryset, many=True, context={'request': request})
+    data = serializer.data
+    
+    # Log the first post's comments to see what data we're getting
+    if data and len(data) > 0 and 'comments' in data[0]:
+        print("First post comments data:", data[0]['comments'])
+    
+    return Response(data)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

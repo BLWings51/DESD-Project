@@ -20,6 +20,11 @@ import {
   Container,
   MultiSelect,
   Alert,
+  Divider,
+  Stack,
+  Paper,
+  TextInput,
+  SimpleGrid,
 } from "@mantine/core";
 import { Icon } from '@iconify/react';
 import edit from '@iconify-icons/tabler/edit';
@@ -27,6 +32,9 @@ import trash from '@iconify-icons/tabler/trash';
 import calendarEvent from '@iconify-icons/tabler/calendar-event';
 import messageCircle from '@iconify-icons/tabler/message-circle';
 import plus from '@iconify-icons/tabler/plus';
+import send from '@iconify-icons/tabler/send';
+import chevronDown from '@iconify-icons/tabler/chevron-down';
+import chevronUp from '@iconify-icons/tabler/chevron-up';
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -49,11 +57,22 @@ interface Event {
   status: string;
 }
 
+interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  author_id: number;
+  post_id: number;
+  author_name?: string;
+}
+
 interface Post {
   id: number;
   content: string;
-  author_name: string;
   created_at: string;
+  author_name: string;
+  interests: string[];
+  comments?: Comment[];
 }
 
 interface Is_Admin {
@@ -83,6 +102,12 @@ const SocietyDetail = () => {
   const [deletePostModalOpen, setDeletePostModalOpen] = useState(false);
   const [pfpFile, setPfpFile] = useState<File | null>(null);
   const [isUploadingPfp, setIsUploadingPfp] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [commentingPostId, setCommentingPostId] = useState<number | null>(null);
+  const [expandedPosts, setExpandedPosts] = useState<{ [key: number]: boolean }>({});
+  const [commentPermissions, setCommentPermissions] = useState<{ [key: number]: boolean }>({});
+  const [commentToDelete, setCommentToDelete] = useState<{ postId: number; commentId: number } | null>(null);
+  const [deleteCommentModalOpen, setDeleteCommentModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -146,6 +171,27 @@ const SocietyDetail = () => {
   }, [isAuthenticated, society_name, posts]);
 
   useEffect(() => {
+    if (!isAuthenticated || !society_name) return;
+    (async () => {
+      const perms: { [key: number]: boolean } = {};
+      for (const post of posts) {
+        for (const comment of post.comments || []) {
+          try {
+            const resp = await apiRequest<{ can_delete: boolean }>({
+              endpoint: `/Societies/posts/${post.id}/comments/${comment.id}/can_delete/`,
+              method: 'GET',
+            });
+            perms[comment.id] = resp.data?.can_delete ?? false;
+          } catch {
+            perms[comment.id] = false;
+          }
+        }
+      }
+      setCommentPermissions(perms);
+    })();
+  }, [isAuthenticated, society_name, posts]);
+
+  useEffect(() => {
     (async () => {
       try {
         const resp = await apiRequest<SocietyDetail>({
@@ -169,20 +215,29 @@ const SocietyDetail = () => {
     })();
   }, [society_name]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const resp = await apiRequest<Post[]>({
-          endpoint: `/Societies/${society_name}/posts/`,
-          method: 'GET',
-        });
-        setPosts(resp.data || []);
-      } catch {
-        setPostsError('Failed to load posts');
-      } finally {
+  const fetchPosts = async () => {
+    if (!isAuthenticated) {
         setPostsLoading(false);
-      }
-    })();
+        return;
+    }
+
+    try {
+        const response = await apiRequest<Post[]>({
+            endpoint: `/Societies/${society_name}/posts/`,
+            method: 'GET'
+        });
+
+        setPosts(response.data || []);
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        setPostsError('Failed to load posts');
+    } finally {
+        setPostsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
   }, [society_name]);
 
   const handleJoin = async () => {
@@ -234,11 +289,7 @@ const SocietyDetail = () => {
           interests: newPostInterests,
         },
       });
-      const resp = await apiRequest<Post[]>({
-        endpoint: `/Societies/${society_name}/posts/`,
-        method: 'GET',
-      });
-      setPosts(resp.data || []);
+      fetchPosts();
       setNewPostContent('');
       setNewPostInterests([]);
     } catch {
@@ -252,11 +303,7 @@ const SocietyDetail = () => {
     if (!postToDelete) return;
     try {
       await apiRequest({ endpoint: `/Societies/${society_name}/posts/delete/${postToDelete.id}/`, method: 'DELETE' });
-      const resp = await apiRequest<Post[]>({
-        endpoint: `/Societies/${society_name}/posts/`,
-        method: 'GET',
-      });
-      setPosts(resp.data || []);
+      fetchPosts();
     } catch {
       setPostsError('Failed to delete post');
     } finally {
@@ -270,8 +317,14 @@ const SocietyDetail = () => {
   const formatDateTime = (str: string) => {
     const d = new Date(str);
     return isNaN(d.getTime())
-      ? 'Invalid date'
-      : d.toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        ? 'Invalid date'
+        : d.toLocaleString(undefined, { 
+            year: 'numeric', 
+            month: 'numeric', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit'
+        });
   };
 
   const handlePfpUpload = async () => {
@@ -302,6 +355,70 @@ const SocietyDetail = () => {
       setIsUploadingPfp(false);
     }
   };
+
+  const handleAddComment = async (postId: number) => {
+    if (!newComment.trim()) return;
+
+    try {
+        const response = await apiRequest<Comment>({
+            endpoint: `/Societies/posts/${postId}/comments/`,
+            method: 'POST',
+            data: {
+                content: newComment,
+                post_id: postId
+            }
+        });
+
+        setPosts(posts.map(post => {
+            if (post.id === postId) {
+                return {
+                    ...post,
+                    comments: [...(post.comments || []), response.data].filter((comment): comment is Comment => comment !== undefined)
+                };
+            }
+            return post;
+        }));
+
+        setNewComment('');
+        setCommentingPostId(null);
+    } catch (error) {
+        console.error('Error adding comment:', error);
+    }
+  };
+
+  const toggleComments = (postId: number) => {
+    setExpandedPosts(prev => ({
+        ...prev,
+        [postId]: !prev[postId]
+    }));
+  };
+
+  const handleDeleteComment = async () => {
+    if (!commentToDelete) return;
+    try {
+      await apiRequest({
+        endpoint: `/Societies/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}/delete/`,
+        method: 'DELETE'
+      });
+      
+      setPosts(posts.map(post => {
+        if (post.id === commentToDelete.postId) {
+          return {
+            ...post,
+            comments: post.comments?.filter(c => c.id !== commentToDelete.commentId) || []
+          };
+        }
+        return post;
+      }));
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    } finally {
+      setDeleteCommentModalOpen(false);
+      setCommentToDelete(null);
+    }
+  };
+
+  const canDeleteComment = (commentId: number) => commentPermissions[commentId] || false;
 
   if (!society) return <Text>Society not found</Text>;
   if (loading || authLoading) return <Loader size="xl" />;
@@ -424,9 +541,9 @@ const SocietyDetail = () => {
                 ) : postsError ? (
                   <Text color="red">{postsError}</Text>
                 ) : posts.length ? (
-                  <Flex direction="column" gap="md">
-                    {posts.map(post => (
-                      <Card key={post.id} shadow="xs" p="md" radius="md" withBorder>
+                  <SimpleGrid cols={1} spacing="md">
+                    {posts.map((post) => (
+                      <Card key={post.id} shadow="sm" padding="lg" radius="md" withBorder>
                         <Flex justify="space-between" align="flex-start">
                           <Box>
                             <Text size="sm" color="dimmed">{post.author_name} • {formatDateTime(post.created_at)}</Text>
@@ -438,9 +555,82 @@ const SocietyDetail = () => {
                             </ActionIcon>
                           )}
                         </Flex>
+                        
+                        {/* Comments Section */}
+                        <Divider my="sm" />
+                        <Group justify="space-between" mb="xs">
+                          <Text size="sm" fw={500}>
+                            {post.comments?.length || 0} Comments
+                          </Text>
+                          <Button
+                            variant="subtle"
+                            size="sm"
+                            leftSection={<Icon icon={expandedPosts[post.id] ? chevronUp : chevronDown} width={16} height={16} />}
+                            onClick={() => toggleComments(post.id)}
+                          >
+                            {expandedPosts[post.id] ? 'Hide Comments' : 'View Comments'}
+                          </Button>
+                        </Group>
+
+                        {expandedPosts[post.id] && (
+                          <Stack gap="xs">
+                            {commentingPostId === post.id ? (
+                              <Group>
+                                <TextInput
+                                  placeholder="Write a comment..."
+                                  value={newComment}
+                                  onChange={(e) => setNewComment(e.target.value)}
+                                  style={{ flex: 1 }}
+                                />
+                                <Button
+                                  variant="light"
+                                  onClick={() => handleAddComment(post.id)}
+                                  leftSection={<Icon icon={send} width={16} height={16} />}
+                                >
+                                  Post
+                                </Button>
+                              </Group>
+                            ) : (
+                              <Button
+                                variant="subtle"
+                                leftSection={<Icon icon={messageCircle} width={16} height={16} />}
+                                onClick={() => setCommentingPostId(post.id)}
+                              >
+                                Add Comment
+                              </Button>
+                            )}
+                            
+                            {post.comments?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((comment) => (
+                              <Paper key={comment.id} p="xs" withBorder>
+                                <Group justify="space-between" mb={4}>
+                                  <Text size="sm" fw={500}>{comment.author_name}</Text>
+                                  <Group gap="xs">
+                                    <Text size="xs" c="dimmed">
+                                      {formatDateTime(comment.created_at)}
+                                    </Text>
+                                    {canDeleteComment(comment.id) && (
+                                      <ActionIcon
+                                        color="red"
+                                        variant="subtle"
+                                        size="sm"
+                                        onClick={() => {
+                                          setCommentToDelete({ postId: post.id, commentId: comment.id });
+                                          setDeleteCommentModalOpen(true);
+                                        }}
+                                      >
+                                        <Icon icon={trash} width={14} height={14} />
+                                      </ActionIcon>
+                                    )}
+                                  </Group>
+                                </Group>
+                                <Text size="sm">{comment.content}</Text>
+                              </Paper>
+                            ))}
+                          </Stack>
+                        )}
                       </Card>
                     ))}
-                  </Flex>
+                  </SimpleGrid>
                 ) : (
                   <Text>No posts available</Text>
                 )}
@@ -460,6 +650,14 @@ const SocietyDetail = () => {
               <Group justify="flex-end" mt="md">
                 <Button variant="default" onClick={() => setDeletePostModalOpen(false)}>Cancel</Button>
                 <Button color="red" onClick={handleDeletePost}>Delete</Button>
+              </Group>
+            </Modal>
+
+            <Modal opened={deleteCommentModalOpen} onClose={() => setDeleteCommentModalOpen(false)} title="Delete Comment" centered>
+              <Text>Are you sure you want to delete this comment?</Text>
+              <Group justify="flex-end" mt="md">
+                <Button variant="default" onClick={() => setDeleteCommentModalOpen(false)}>Cancel</Button>
+                <Button color="red" onClick={handleDeleteComment}>Delete</Button>
               </Group>
             </Modal>
           </Box>
