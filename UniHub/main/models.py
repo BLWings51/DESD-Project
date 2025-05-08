@@ -57,7 +57,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
     dob = models.DateField(null=True, blank=True)
     
     course = models.CharField(max_length=50, choices=COURSE_CHOICES, blank=True)
-    year_of_course = models.CharField(max_length=10, choices=YEAR_CHOICES, blank=True)
+    year_of_course = models.CharField(max_length=20, choices=YEAR_CHOICES, blank=True)
     
     is_active = models.BooleanField(default=True)  # Required for Django user model
     is_staff = models.BooleanField(default=False)  # Required for admin access
