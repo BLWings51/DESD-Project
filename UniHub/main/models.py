@@ -126,6 +126,7 @@ class Event(models.Model):
     endTime = models.DateTimeField()
     location = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
+    online = models.BooleanField(default=False)
 
 class EventRelation(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
@@ -151,3 +152,9 @@ class ScheduledEventNotification(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     notification_time = models.DateTimeField()
     task_name = models.CharField(max_length=255) 
+
+class LiveEventChat(models.Model):
+    sender = models.ForeignKey(Account, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    text = models.CharField(max_length=2000)
+    finalMessage = models.BooleanField(default=False)

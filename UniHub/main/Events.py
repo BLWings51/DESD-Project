@@ -21,11 +21,11 @@ from django.utils.timezone import make_aware, is_naive
 class CreateEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'online']
 
     def create(self, validated_data):
         society = self.context.get('society')
-        event = Event(society=society, name=validated_data['name'], details=validated_data['details'], startTime=validated_data['startTime'], endTime=validated_data['endTime'], location=validated_data['location'])
+        event = Event(society=society, name=validated_data['name'], details=validated_data['details'], startTime=validated_data['startTime'], endTime=validated_data['endTime'], location=validated_data['location'], online=validated_data['online'])
         event.save()
         return event
     
@@ -92,10 +92,10 @@ class GetAllEventSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status', 'online']
 
     def getEventDetails(self, event):
-        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status}
+        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status, "online":event.online}
         return eventDetails
 
     def get_status(self, event):
@@ -129,7 +129,7 @@ def deleteEvent(request, society_name, eventID):
         society = get_object_or_404(Society, name=society_name)
         event_check = Event.objects.filter(id=event.id, society=society)
         if not event_check.exists():
-            return Response({"error": f"{society.name} does not have this event"})
+            return Response({"error": f"{society.name} does not have this event"}, status=400)
         event.delete()
         return Response({"success":"true"}, status=200)
     except Exception as e:
@@ -147,6 +147,7 @@ class UpdateEventSerializer(serializers.ModelSerializer):
         instance.startTime = validated_data.get('startTime', instance.startTime)
         instance.endTime = validated_data.get('endTime', instance.endTime)
         instance.location = validated_data.get('location', instance.location)
+        instance.online = validated_data.get('online', instance.online)
         instance.save()
         return instance
 
@@ -180,6 +181,10 @@ def UpdateEvent(request, society_name, eventID):
     
     if serializer.is_valid():
         serializer.save()
+        members_list = SocietyRelation.objects.filter(society=society).values_list('account', flat=True)
+        members = Account.objects.filter(id__in=members_list)
+        for member in members:
+            Notification.objects.create(recipient=member, message=f"{event.name} was just updated in {society.name}")
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
 
@@ -189,10 +194,10 @@ class GetSingleEventSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status', 'online']
 
     def getEventDetails(self, event):
-        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status}
+        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status, "online":event.online}
         return eventDetails
 
     def get_status(self, event):
@@ -286,6 +291,19 @@ class LeaveEventSerializer(serializers.ModelSerializer):
         except EventRelation.DoesNotExist:
             return {"error": "Event relation not found"}
 
+def is_event_ongoing(event):
+    event.startTime = timezone.localtime(event.startTime)
+    event.startTime = event.startTime - timedelta(hours=1)
+    status = "none"
+    if event.startTime <= timezone.now() <= event.endTime:
+        status = "ongoing"
+    elif event.endTime < timezone.now():
+        status = "finished"
+    elif event.startTime > timezone.now():
+        status = "upcoming"
+    return status 
+
+
 # Opt In To Event
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -310,6 +328,10 @@ def join_event(request, society_name, eventID):
     event_relation = EventRelation.objects.filter(event=event, account=user)
     if event_relation.exists():
         return Response({"error": f"{full_name} is already registered to this event"}, status=400)
+    
+    status = is_event_ongoing(event)
+    if status=="finished":
+        return Response({"error": "You cannot join a finished event"}, status=400)
 
     serializer = JoinEventSerializer(data=data)
 

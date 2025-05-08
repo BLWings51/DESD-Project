@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.urls import path
-from main import signup, views, Profile, society, Events, post, searchBar, notifications
+from main import signup, views, Profile, society, Events, post, searchBar, notifications, liveChat
 
 urlpatterns = [
     path('signup/', signup.SignupView, name='signup'),
@@ -44,4 +44,9 @@ urlpatterns = [
     path('notificationBell/', notifications.get_unread_notification_quantity),
     path('notifications/<int:notificationID>/', notifications.mark_notification_as_read),
     path('search/', searchBar.search, name='search'),
+    path('<int:eventID>/liveChat/talk/', liveChat.talkInChat),
+    path('<int:eventID>/liveChat/', liveChat.getAllMessages),
+    path('<str:society_name>/<int:eventID>/liveChat/sendFinalMessage/', liveChat.sendFinalMessage),
+    path('<str:society_name>/<int:eventID>/liveChat/<int:chatID>/delete/', liveChat.deleteChat),
+    path('<int:eventID>/hasChatEnded/', liveChat.hasChatEnded),
 ]
