@@ -9,12 +9,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Account, SocietyRelation, Society, Event, EventRelation, InterestTag, FriendRelation
 from rest_framework import serializers
-
+from .signup import InterestTagSerializer
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
-    interests = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
-    )
+    interests = InterestTagSerializer(many=True, required=False)
 
     class Meta:
         model = Account
@@ -38,6 +36,7 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return value
     
     def update(self, instance, validated_data):
+        interests_data = validated_data.pop('interests', None)
         # Handle fields
         for field in ['bio', 'firstName', 'lastName', 'email', 'pfp', 'address', 'dob', 'course', 'year_of_course']:
             if field in validated_data:
@@ -49,13 +48,10 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             instance.set_password(password)
 
         # Handle interests (tags)
-        if 'interests' in validated_data:
-            tag_names = validated_data['interests']
+        if interests_data is not None:
             tags = []
-            for name in tag_names:
-                tag = InterestTag.objects.filter(name__iexact=name).first()
-                if tag is None:
-                    tag = InterestTag.objects.create(name=name)
+            for interest_data in interests_data:
+                tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
                 tags.append(tag)
             instance.interests.set(tags)
 
@@ -134,11 +130,6 @@ class EventRelationSerializer(serializers.ModelSerializer):
         model = EventRelation
         fields = ['event']        
         
-# Serializer for Interest Tags
-class InterestTagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = InterestTag
-        fields = ['name']
 
 # Displaying profile details
 # Serializer
