@@ -14,7 +14,7 @@ urlpatterns = [
     path('Profile/<str:account_ID>/', Profile.getAccountDetails),
     path('Profile/<str:account_ID>/uploadpfp/', Profile.upload_profile_picture, name='upload_profile_picture'),
     path('Societies/', society.getAllSocieties, name='society-list'),
-    path('Societies/CreateSociety', society.society_create, name='society-create'),
+    path('Societies/CreateSociety/', society.society_create, name='society-create'),
     path('Societies/<str:society_name>/', society.getSocietyDetails, name='society-detail'),
     path('Societies/<str:society_name>/UpdateSociety/', society.UpdateSocietyView, name="update-society"),
     path('Societies/<str:society_name>/DeleteSociety/', society.DeleteSocietyView, name="delete-society"),

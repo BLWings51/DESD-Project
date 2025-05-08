@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, APIView
 
+
 # Functions with decorators
 
 # Join society
@@ -62,11 +63,15 @@ def leave_society(request, society_name):
 
 # Create society
 @api_view(['POST'])
-@permission_classes([IsAdmin])
+@permission_classes([IsAuthenticated])
 def society_create(request):
     serializer = CreateSocietySerializer(data=request.data)
     if serializer.is_valid():
+        user = request.user
         serializer.save()
+        society = Society.objects.filter(name=request.data.get('name')).first()
+        societyrelation = SocietyRelation.objects.create(society=society, account=user, adminStatus=True)
+        societyrelation.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

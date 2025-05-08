@@ -343,9 +343,9 @@ def join_event(request, society_name, eventID):
         event.startTime = timezone.localtime(event.startTime)
 
         times = {
-        "in 1 day": event.startTime - timedelta(days=1, hours=1),
-        "in 1 hour": event.startTime - timedelta(hours=2),
-        "now": event.startTime,
+        "in 1 day": event.startTime - timedelta(days=1),
+        "in 1 hour": event.startTime - timedelta(hours=1),
+        "now": event.startTime + timedelta(hours=1),
         }
 
         print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
