@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, APIView
 from rest_framework.generics import get_object_or_404
+from .signup import InterestTagSerializer
 
 
 # Functions with decorators
@@ -347,22 +348,20 @@ class LeaveSocietySerializer(serializers.ModelSerializer):
 
 
 class CreateSocietySerializer(serializers.ModelSerializer):
-    interests = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
-    )
+    interests = InterestTagSerializer(many=True, required=False)
+
     class Meta:
         model = Society
         fields = ['name', 'numOfInterestedPeople', 'description', 'interests']
 
     def create(self, validated_data):
-        interests = validated_data.pop('interests', [])
+        interests_data = validated_data.pop('interests', [])
         society = Society.objects.create(**validated_data)
         tags = []
-        for name in interests:
-            tag = InterestTag.objects.filter(name__iexact=name).first()
-            if tag is None:
-                tag = InterestTag.objects.create(name=name)
+        for interest_data in interests_data:
+            tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
             tags.append(tag)
+
         society.interests.set(tags)
         society.save()
         return society
@@ -373,9 +372,7 @@ class CreateSocietySerializer(serializers.ModelSerializer):
         return value
 
 class UpdateSocietySerializer(serializers.ModelSerializer):
-    interests = serializers.ListField(
-        child=serializers.CharField(), required=False
-    )
+    interests = InterestTagSerializer(many=True, required=False)
     class Meta:
         model = Society
         fields = ['name', 'description', 'interests']
@@ -392,16 +389,15 @@ class UpdateSocietySerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        interests = validated_data.pop('interests', None)
+        interests_data = validated_data.pop('interests', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if interests is not None:
+        if interests_data is not None:
             tags = []
-            for name in interests:
-                tag = InterestTag.objects.filter(name__iexact=name).first()
-                if tag is None:
-                    tag = InterestTag.objects.create(name=name)
+            for interest_data in interests_data:
+                tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
                 tags.append(tag)
+
             instance.interests.set(tags)
         instance.save()
         return instance
@@ -414,10 +410,11 @@ class AccountSerializer(serializers.ModelSerializer):
 
 class GetSocietySerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
+    interests = InterestTagSerializer(many=True)
 
     class Meta:
         model = Society
-        fields = ['name', 'numOfInterestedPeople', 'description', 'members']
+        fields = ['name', 'numOfInterestedPeople', 'description', 'members', 'interests']
 
     def get_members(self, society):
         society_relations = SocietyRelation.objects.filter(society=society)

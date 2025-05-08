@@ -18,26 +18,24 @@ from django.core.mail import send_mail
 from django.utils.timezone import make_aware, is_naive
 from django.utils.timezone import localtime
 import datetime
-
+from .signup import InterestTagSerializer
 
 # creating an event
 class CreateEventSerializer(serializers.ModelSerializer):
-    interests = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
-    )
+    interests = InterestTagSerializer(many=True, required=False)
+    
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'online']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'online', 'interests']
 
     def create(self, validated_data):
-        interests = validated_data.pop('interests', [])
+        interests_data  = validated_data.pop('interests', [])
         event = Event.objects.create(**validated_data)
         tags = []
-        for name in interests:
-            tag = InterestTag.objects.filter(name__iexact=name).first()
-            if tag is None:
-                tag = InterestTag.objects.create(name=name)
+        for interest_data in interests_data:
+            tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
             tags.append(tag)
+
         event.interests.set(tags)
         event.save()
         return event
@@ -108,13 +106,14 @@ def CreateEvent(request, society_name):
 
 # retreiving data for every event within a society
 class GetAllEventSerializer(serializers.ModelSerializer):
+    interests = InterestTagSerializer(many=True)
     status = serializers.SerializerMethodField()
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status', 'online']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status', 'online', 'interests']
 
     def getEventDetails(self, event):
-        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status, "online":event.online}
+        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status, "online":event.online, "interests":event.interests}
         return eventDetails
 
     def get_status(self, event):
@@ -156,25 +155,25 @@ def deleteEvent(request, society_name, eventID):
 
 #update events
 class UpdateEventSerializer(serializers.ModelSerializer):
-    interests = serializers.ListField(
-        child=serializers.CharField(), required=False
-    )
+    interests = InterestTagSerializer(many=True, required=False)
+    
     class Meta:
         model=Event
         fields = ['name', 'details', 'startTime', 'endTime', 'location']
     
     def update(self, instance, validated_data):
-        interests = validated_data.pop('interests', None)
+        interests_data = validated_data.pop('interests', None)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        if interests is not None:
+            
+        if interests_data is not None:
             tags = []
-            for name in interests:
-                tag = InterestTag.objects.filter(name__iexact=name).first()
-                if tag is None:
-                    tag = InterestTag.objects.create(name=name)
+            for interest_data in interests_data:
+                tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
                 tags.append(tag)
             instance.interests.set(tags)
+
         instance.save()
         return instance
 
