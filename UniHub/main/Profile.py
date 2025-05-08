@@ -47,7 +47,9 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
             tag_names = validated_data['interests']
             tags = []
             for name in tag_names:
-                tag, _ = InterestTag.objects.get_or_create(name=name)
+                tag = InterestTag.objects.filter(name__iexact=name).first()
+                if tag is None:
+                    tag = InterestTag.objects.create(name=name)
                 tags.append(tag)
             instance.interests.set(tags)
 

@@ -59,7 +59,7 @@ interface Is_Admin {
 
 const SocietyDetail = () => {
   const { society_name } = useParams<{ society_name: string }>();
-  const { isAuthenticated, loggedAccountID } = useAuth();
+  const { isAuthenticated, loggedAccountID, isLoading: authLoading } = useAuth();
   const [society, setSociety] = useState<SocietyDetail | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,6 @@ const SocietyDetail = () => {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [deletePostModalOpen, setDeletePostModalOpen] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -263,8 +262,8 @@ const SocietyDetail = () => {
       : d.toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  if (loading || authLoading) return <Loader size="xl" />;
   if (!society) return <Text>Society not found</Text>;
+  if (loading || authLoading) return <Loader size="xl" />;
 
   return (
     <>

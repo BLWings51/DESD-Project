@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from .tasks import send_event_notification
 from rest_framework import serializers
-from .models import Event, Society, SocietyRelation, EventRelation, Notification, Account, ScheduledEventNotification
+from .models import Event, Society, SocietyRelation, EventRelation, Notification, Account, ScheduledEventNotification, InterestTag
 from .permissions import IsAdminOrSocietyAdmin
 from datetime import timedelta
 from celery import Celery
@@ -22,13 +22,23 @@ import datetime
 
 # creating an event
 class CreateEventSerializer(serializers.ModelSerializer):
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
     class Meta:
         model=Event
         fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'online']
 
     def create(self, validated_data):
-        society = self.context.get('society')
-        event = Event(society=society, name=validated_data['name'], details=validated_data['details'], startTime=validated_data['startTime'], endTime=validated_data['endTime'], location=validated_data['location'], online=validated_data['online'])
+        interests = validated_data.pop('interests', [])
+        event = Event.objects.create(**validated_data)
+        tags = []
+        for name in interests:
+            tag = InterestTag.objects.filter(name__iexact=name).first()
+            if tag is None:
+                tag = InterestTag.objects.create(name=name)
+            tags.append(tag)
+        event.interests.set(tags)
         event.save()
         return event
     
@@ -146,17 +156,25 @@ def deleteEvent(request, society_name, eventID):
 
 #update events
 class UpdateEventSerializer(serializers.ModelSerializer):
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )
     class Meta:
         model=Event
         fields = ['name', 'details', 'startTime', 'endTime', 'location']
     
-    def update(self, instance, validated_data):        
-        instance.name = validated_data.get('name', instance.name)
-        instance.details = validated_data.get('details', instance.details)
-        instance.startTime = validated_data.get('startTime', instance.startTime)
-        instance.endTime = validated_data.get('endTime', instance.endTime)
-        instance.location = validated_data.get('location', instance.location)
-        instance.online = validated_data.get('online', instance.online)
+    def update(self, instance, validated_data):
+        interests = validated_data.pop('interests', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if interests is not None:
+            tags = []
+            for name in interests:
+                tag = InterestTag.objects.filter(name__iexact=name).first()
+                if tag is None:
+                    tag = InterestTag.objects.create(name=name)
+                tags.append(tag)
+            instance.interests.set(tags)
         instance.save()
         return instance
 

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Stack, Group, Grid, Center, Card, Image, Text, Title, Button, Container, Flex, Loader } from '@mantine/core';
+import { Stack, Group, Grid, Center, Card, Image, Text, Title, Button, Container, Flex } from '@mantine/core';
 import { Link } from "react-router-dom";
-import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
 import "./App.css";
 import Sidebar from "./Sidebar";
@@ -26,7 +25,6 @@ interface Event {
 }
 
 const Home: React.FC = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [featuredSocieties, setFeaturedSocieties] = useState<Society[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,21 +89,6 @@ const Home: React.FC = () => {
     fetchData();
   }, []);
 
-  if (authLoading || loading) {
-    return (
-      <Flex justify="center" align="center" h="100vh">
-        <Loader size="xl" />
-      </Flex>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Flex justify="center" align="center" h="100vh">
-        <Text>Please log in to view the home page</Text>
-      </Flex>
-    );
-  }
 
   return (
     <>
@@ -147,10 +130,10 @@ const Home: React.FC = () => {
                         <Stack gap="xs" mt="md">
                           <Text fw={500}>{society.name}</Text>
                           <Text size="sm" c="dimmed">{society.numOfInterestedPeople} members</Text>
-                          <Button 
-                            variant="light" 
-                            fullWidth 
-                            mt="md" 
+                          <Button
+                            variant="light"
+                            fullWidth
+                            mt="md"
                             radius="md"
                             component={Link}
                             to={`/Societies/${society.name}`}
@@ -179,10 +162,10 @@ const Home: React.FC = () => {
                             </Text>
                             <Text size="sm">{event.society}</Text>
                             <Text size="sm" lineClamp={2}>{event.details}</Text>
-                            <Button 
-                              variant="light" 
-                              fullWidth 
-                              mt="md" 
+                            <Button
+                              variant="light"
+                              fullWidth
+                              mt="md"
                               radius="md"
                               component={Link}
                               to={`/Societies/${event.society}/${event.id}`}

@@ -16,6 +16,7 @@ import UpdateEvent from "./UpdateEvent";
 import Events from "./Events";
 import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
+import PermissionRoute from './PermissionRoute';
 import SearchPage from "./SearchPage";
 
 import "./static/stylesheet.css";
@@ -35,29 +36,36 @@ const App = () => {
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/home" element={<Home />} />
-            <Route path="/Profile" element={<Profile />} />
-            <Route path="/Profile/:accountID" element={<Profile />} />
-            {/* <Route path="/Profile/Settings" element={<ProfileSettings />} /> */}
-            {/* <Route path="/Profile/Delete" element={<ProfileDelete />} /> */}
             <Route path="/Societies" element={<Societies />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/Societies/:society_name" element={<SocietyDetail />} />
-            <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
-            <Route path="/Societies/:society_name/UpdateSociety" element={<UpdateSociety />} />
-            <Route path="/Societies/:society_name/CreateEvent" element={<CreateEvent />} />
-            <Route path="/Societies/:society_name/:eventID" element={<EventDetail />} />
-            <Route path="/Societies/:society_name/:eventID/UpdateEvent" element={<UpdateEvent />} />
-            <Route path="/search" element={<SearchPage />} />
-            {/* <Route path="/Societies/:society_name/DeleteSociety" element={<DeleteSociety />} />
-            <Route path="/Societies/:society_name/Events" element={<SocietyEvents />} />
-            <Route path="/Societies/:society_name/posts" element={<SocietyPosts />} />
-            <Route path="/Societies/:society_name/posts/create" element={<CreatePost />} />
-            <Route path="/Societies/:society_name/posts/update/:post_id" element={<UpdatePost />} />
-            <Route path="/Societies/:society_name/posts/delete/:post_id" element={<DeletePost />} />
-            <Route path="/posts/friends" element={<FriendsPosts />} />
-            <Route path="/search" element={<SearchPage />} /> */}
 
+            {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
+              <Route path="/Profile" element={<Profile />} />
+              <Route path="/Profile/:accountID" element={<Profile />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/search" element={<SearchPage />} />
+
+              {/* Society Routes */}
+              <Route path="/Societies/:society_name" element={<SocietyDetail />} />
+
+              {/* Admin Routes */}
+              <Route element={<PermissionRoute requiredPermission="admin" />}>
+                <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
+              </Route>
+
+              {/* Society Admin Routes */}
+              <Route path="/Societies/:society_name">
+                <Route element={<PermissionRoute requiredPermission="society_admin" />}>
+                  <Route path="UpdateSociety" element={<UpdateSociety />} />
+                  <Route path="CreateEvent" element={<CreateEvent />} />
+                  <Route path=":eventID/UpdateEvent" element={<UpdateEvent />} />
+                </Route>
+
+                {/* Member Routes */}
+                <Route element={<PermissionRoute requiredPermission="member" />}>
+                  <Route path=":eventID" element={<EventDetail />} />
+                </Route>
+              </Route>
             </Route>
           </Routes>
         </AuthProvider>
