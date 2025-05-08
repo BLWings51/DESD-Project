@@ -51,6 +51,7 @@ const Profile = () => {
     const [editing, setEditing] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isFriend, setIsFriend] = useState(false);
     const [verifiedAccountID, setVerifiedAccountID] = useState<string | null>(null);
 
     /* compute whose profile to show */
@@ -101,6 +102,13 @@ const Profile = () => {
         apiRequest<{ admin: boolean }>({ endpoint: "/admin_check/", method: "POST" })
             .then(r => setIsAdmin(r.data?.admin ?? false))
             .catch(() => console.error("Admin check failed"));
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        apiRequest<{ is_friend: boolean }>({ endpoint: `/friends/are_friends/${profileID}/`, method: "GET" })
+            .then(r => setIsFriend(r.data?.is_friend ?? false))
+            .catch(() => console.error("Friend check failed"));
     }, [isAuthenticated]);
 
     /* fetch profile */
@@ -285,7 +293,7 @@ const Profile = () => {
                                         <Flex justify="center"><Text mt="xs"><strong>ID:</strong> {user.accountID}</Text></Flex>
                                         <Box mt="sm" p="sm" bg="dark.6"><Text size="sm" c="dimmed">{user.bio || "No bio provided."}</Text></Box>
 
-                                        {(user.is_owner || isAdmin) && (
+                                        {(user.is_owner || isAdmin || isFriend) && (
                                             <Box mt="md">
                                                 <Title order={4} mb="sm">Additional Information</Title>
                                                 <SimpleGrid cols={2} spacing="md">

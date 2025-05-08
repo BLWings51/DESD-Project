@@ -456,7 +456,11 @@ const SocietyDetail = () => {
           endpoint: `/Societies/${society_name}/CheckInterest/`,
           method: 'GET',
         });
-        if (mem.data) setIsMember(mem.data.has_joined);
+        if (mem.data) {
+          setIsMember(true);
+        } else {
+          setIsMember(false);
+        }
 
       } catch (e) {
         console.error('Error fetching user status:', e);
