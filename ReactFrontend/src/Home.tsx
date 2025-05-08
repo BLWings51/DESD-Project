@@ -10,7 +10,7 @@ interface Society {
   id: number;
   name: string;
   description: string;
-  logo: string | null;
+  pfp: string;
   numOfInterestedPeople: number;
 }
 
@@ -122,9 +122,10 @@ const Home: React.FC = () => {
                       <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Card.Section>
                           <Image
-                            src={society.logo || '/default-society-logo.png'}
+                            src={society.pfp || '/default-society-logo.png'}
                             height={160}
                             alt={society.name}
+                            fallbackSrc="https://placehold.co/160x160?text=No+Image"
                           />
                         </Card.Section>
                         <Stack gap="xs" mt="md">

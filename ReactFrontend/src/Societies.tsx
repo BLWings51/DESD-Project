@@ -12,7 +12,8 @@ interface Society {
     id: number;
     name: string;
     description: string;
-    logo: string | null;
+    pfp: string;
+    numOfInterestedPeople: number;
 }
 
 interface Is_Admin {
@@ -84,9 +85,10 @@ const Societies = () => {
                                     >
                                         <Card.Section>
                                             <Image
-                                                src={society.logo || '/default-society-logo.png'}
+                                                src={society.pfp || '/default-society-logo.png'}
                                                 height={160}
                                                 alt={society.name}
+                                                fallbackSrc="https://placehold.co/160x160?text=No+Image"
                                             />
                                         </Card.Section>
                                         <Title order={4} mt="sm">{society.name}</Title>

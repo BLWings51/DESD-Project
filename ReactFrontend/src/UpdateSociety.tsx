@@ -1,5 +1,5 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Image } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Image, Group } from "@mantine/core";
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 interface SocietyData {
     name: string;
     description: string;
-    logo: string | null;
+    pfp: string;
 }
 
 const UpdateSociety = () => {
@@ -15,12 +15,14 @@ const UpdateSociety = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [pfpFile, setPfpFile] = useState<File | null>(null);
+    const [isUploadingPfp, setIsUploadingPfp] = useState(false);
 
     const form = useForm<SocietyData>({
         initialValues: {
             name: '',
             description: '',
-            logo: null,
+            pfp: '',
         },
         validate: {
             name: (value) => (value.length < 3 ? 'Name must be at least 3 characters' : null),
@@ -39,7 +41,7 @@ const UpdateSociety = () => {
                     form.setValues({
                         name: response.data.name,
                         description: response.data.description,
-                        logo: response.data.logo,
+                        pfp: response.data.pfp,
                     });
                 }
             } catch (err) {
@@ -55,14 +57,34 @@ const UpdateSociety = () => {
         setError(null);
 
         try {
+            // First update the society details
             const response = await apiRequest<{ message: string }>({
                 endpoint: `/Societies/${society_name}/UpdateSociety/`,
                 method: 'POST',
-                data: values,
+                data: {
+                    name: values.name,
+                    description: values.description,
+                },
             });
 
             if (response.error) {
                 throw new Error(response.message || "Failed to update society");
+            }
+
+            // If there's a new profile picture, upload it
+            if (pfpFile) {
+                setIsUploadingPfp(true);
+                const formData = new FormData();
+                formData.append('pfp', pfpFile);
+
+                await apiRequest({
+                    endpoint: `/Societies/${values.name}/update_pfp/`,
+                    method: 'POST',
+                    data: formData,
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
             }
 
             navigate(`/Societies/${values.name}`);
@@ -70,6 +92,7 @@ const UpdateSociety = () => {
             setError(err instanceof Error ? err.message : "Failed to update society");
         } finally {
             setLoading(false);
+            setIsUploadingPfp(false);
         }
     };
 
@@ -88,16 +111,35 @@ const UpdateSociety = () => {
                     )}
 
                     <form onSubmit={form.onSubmit(handleSubmit)}>
-                        {form.values.logo && (
-                            <Flex justify="center" mb="md">
-                                <Image
-                                    src={form.values.logo}
-                                    alt="Current logo"
-                                    height={120}
-                                    radius="md"
-                                />
-                            </Flex>
-                        )}
+                        <Flex direction="column" align="center" mb="md">
+                            <Image
+                                src={form.values.pfp}
+                                width={100}
+                                height={100}
+                                radius="md"
+                                alt="Current profile picture"
+                                fallbackSrc="https://placehold.co/100x100?text=No+Image"
+                                mb="sm"
+                            />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setPfpFile(e.target.files?.[0] || null)}
+                                style={{ display: 'none' }}
+                                id="pfp-upload"
+                            />
+                            <label htmlFor="pfp-upload">
+                                <Button
+                                    component="span"
+                                    variant="outline"
+                                    size="sm"
+                                    loading={isUploadingPfp}
+                                    disabled={loading}
+                                >
+                                    Change Profile Picture
+                                </Button>
+                            </label>
+                        </Flex>
 
                         <TextInput
                             label="Society Name"
@@ -121,15 +163,22 @@ const UpdateSociety = () => {
                             mb="md"
                         />
 
-                        <Button
-                            fullWidth
-                            color="blue"
-                            type="submit"
-                            loading={loading}
-                            disabled={loading}
-                        >
-                            Update Society
-                        </Button>
+                        <Group justify="flex-end">
+                            <Button
+                                variant="default"
+                                onClick={() => navigate(`/Societies/${society_name}`)}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                loading={loading || isUploadingPfp}
+                                disabled={loading || isUploadingPfp}
+                            >
+                                Update Society
+                            </Button>
+                        </Group>
                     </form>
                 </Card.Section>
             </Card>
