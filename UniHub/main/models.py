@@ -158,6 +158,7 @@ class Post(models.Model):
     interests = models.ManyToManyField(InterestTag, related_name='posts', blank=True)
     likes = models.ManyToManyField(Account, related_name='liked_posts', blank=True)
     visibility = models.ForeignKey(PostVisibility, on_delete=models.SET_NULL, null=True, default=None)
+    image = models.ImageField(upload_to='', blank=True, null=True)
 
     class Meta:
         ordering = ['-created_at']

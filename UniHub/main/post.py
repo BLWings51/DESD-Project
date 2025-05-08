@@ -177,11 +177,12 @@ class PostSerializer(serializers.ModelSerializer):
     visibility = serializers.CharField(required=False)
     can_view = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments', 'visibility', 'can_view', 'can_edit']
+        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments', 'visibility', 'can_view', 'can_edit', 'image']
         read_only_fields = ['created_at']
 
     def get_author_name(self, obj):
@@ -218,6 +219,14 @@ class PostSerializer(serializers.ModelSerializer):
         if not obj.visibility:
             return PostVisibility.public
         return obj.visibility.name
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
     def create(self, validated_data):
         interests_data = validated_data.pop('interests', [])
