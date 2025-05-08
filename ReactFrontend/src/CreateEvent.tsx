@@ -1,5 +1,5 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Text, MultiSelect } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Text, MultiSelect, Switch } from "@mantine/core";
 import { DateTimePicker } from '@mantine/dates';
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,6 +30,7 @@ const CreateEvent = () => {
             endTime: new Date(Date.now() + 7200000), // 1 hour later by default
             location: '',
             interests: [] as string[],
+            online: false,
         },
         validate: {
             name: (value) => (value.length < 3 ? 'Name must be at least 3 characters' : null),
@@ -76,6 +77,7 @@ const CreateEvent = () => {
                     endTime: values.endTime.toISOString(),
                     location: values.location,
                     interests: values.interests,
+                    online: values.online,
                 },
             });
 
@@ -155,9 +157,14 @@ const CreateEvent = () => {
                             valueFormat="DD MMM YYYY hh:mm A"
                             {...form.getInputProps('endTime')}
                             required
-                            mb="md"
+                            mb="sm"
                             clearable={false}
-                            minDate={new Date(form.values.startTime.getTime() + 60000)} // 1 minute after start
+                        />
+
+                        <Switch
+                            label="Online Event"
+                            {...form.getInputProps('online', { type: 'checkbox' })}
+                            mb="sm"
                         />
 
                         <TextInput

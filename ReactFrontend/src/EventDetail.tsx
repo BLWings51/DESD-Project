@@ -20,6 +20,7 @@ interface EventDetail {
     endTime: string;
     location: string;
     status: string;
+    online: boolean;
 }
 
 interface Is_Admin {
@@ -138,26 +139,37 @@ const EventDetail = () => {
                                         {event.location}
                                     </Text>
                                 </div>
-                                {isAdmin && (
-                                    <Group>
+                                <Group>
+                                    {(event.status === "ongoing" || event.status === "finished") && event.online && (
                                         <Button
                                             variant="outline"
                                             component={Link}
-                                            to={`/Societies/${society_name}/${eventID}/UpdateEvent`}
-                                            leftSection={<Icon icon={edit} width={16} height={16} />}
+                                            to={`/Societies/${society_name}/${eventID}/chat`}
                                         >
-                                            Edit Event
+                                            View Chat
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            color="red"
-                                            onClick={() => setDeleteModalOpen(true)}
-                                            leftSection={<Icon icon={trash} width={16} height={16} />}
-                                        >
-                                            Delete Event
-                                        </Button>
-                                    </Group>
-                                )}
+                                    )}
+                                    {isAdmin && (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                component={Link}
+                                                to={`/Societies/${society_name}/${eventID}/UpdateEvent`}
+                                                leftSection={<Icon icon={edit} width={16} height={16} />}
+                                            >
+                                                Edit Event
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                color="red"
+                                                onClick={() => setDeleteModalOpen(true)}
+                                                leftSection={<Icon icon={trash} width={16} height={16} />}
+                                            >
+                                                Delete Event
+                                            </Button>
+                                        </>
+                                    )}
+                                </Group>
                             </Group>
                         </Card>
 

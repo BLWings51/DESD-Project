@@ -19,6 +19,7 @@ import { AuthProvider } from './authContext';
 import ProtectedRoute from './ProtectedRoute';
 import PermissionRoute from './PermissionRoute';
 import SearchPage from "./SearchPage";
+import ChatPage from "./ChatPage";
 
 import "./static/stylesheet.css";
 
@@ -36,7 +37,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
-            
+
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/home" element={<Home />} />
@@ -65,6 +66,7 @@ const App = () => {
                 {/* Member Routes */}
                 <Route element={<PermissionRoute requiredPermission="member" />}>
                   <Route path=":eventID" element={<EventDetail />} />
+                  <Route path=":eventID/chat" element={<ChatPage />} />
                 </Route>
               </Route>
             </Route>
