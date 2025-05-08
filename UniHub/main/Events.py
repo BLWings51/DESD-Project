@@ -97,11 +97,10 @@ def CreateEvent(request, society_name):
         members = Account.objects.filter(id__in=members_list)
         for member in members:
             Notification.objects.create(recipient=member, message=f"{request.data.get('name')} was just created in {society.name}")
-            dt = datetime.datetime.fromisoformat(request.data.get('startTime'))
-            readable = dt.strftime("%B %d, %Y at %I:%M %p")
+            local_start_time = localtime(event.startTime).strftime("%Y-%m-%d %H:%M")
             send_mail(
             subject=f"New Event That Might Interest You",
-            message=f"Hi {member.firstName},\n\nA new event -'{request.data.get('name')}' - has been created in {society_name}.\n\nDetails:\n{request.data.get('details')}\nWhen: {readable}\nWhere: {request.data.get('location')}\n\nThanks,\nUniHub Management",
+            message=f"Hi {member.firstName},\n\nA new event -'{request.data.get('name')}' - has been created in {society_name}.\n\nDetails:\n{request.data.get('details')}\nWhen: {local_start_time}\nWhere: {request.data.get('location')}\n\nThanks,\nUniHub Management",
             from_email=None,
             recipient_list=[member.email],
             fail_silently=False,
