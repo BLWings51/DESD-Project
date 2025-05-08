@@ -11,7 +11,7 @@ import datetime
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['message', 'created_at', 'is_read']
+        fields = ['id', 'message', 'created_at', 'is_read']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
