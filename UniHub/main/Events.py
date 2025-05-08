@@ -79,6 +79,10 @@ def CreateEvent(request, society_name):
         return Response({"error": "End date cannot be equal to or before the start date"}, status=400)
     if serializer.is_valid():
         serializer.save()
+        members_list = SocietyRelation.objects.filter(society=society).values_list('account', flat=True)
+        members = Account.objects.filter(id__in=members_list)
+        for member in members:
+            Notification.objects.create(recipient=member, message=f"{request.data.get('name')} was just created in {society.name}")
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
     
