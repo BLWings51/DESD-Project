@@ -12,6 +12,7 @@ urlpatterns = [
     path('admin_check/', views.is_admin),
     path('Profile/Settings/', Profile.UpdateProfileView),
     path('Profile/Delete/', Profile.deleteProfile),
+    path('Profile/<str:account_ID>/delete/', Profile.deleteProfile),
     path('Profile/<str:account_ID>/', Profile.getAccountDetails),
     path('Profile/<str:account_ID>/uploadpfp/', Profile.upload_profile_picture, name='upload_profile_picture'),
     path('Societies/', society.getAllSocieties, name='society-list'),

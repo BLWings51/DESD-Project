@@ -26,8 +26,14 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         user = self.context['request'].user
+        target_account = self.instance
         
-        if Account.objects.exclude(pk=user.pk).filter(email=value).exists():
+        # Admin users can change any user's email
+        if getattr(user, 'adminStatus', False):
+            return value
+        
+        # Regular users can only change their own email
+        if Account.objects.exclude(pk=target_account.pk).filter(email=value).exists():
             raise serializers.ValidationError("Email is already in use")
         return value
     
@@ -73,14 +79,20 @@ class UpdateProfilePictureSerializer(serializers.ModelSerializer):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def UpdateProfileView(request):
-    account = request.user
+    # Get the target account (either the user's own account or another account for admins)
+    target_account_id = request.data.get('accountID')
+    if target_account_id and getattr(request.user, 'adminStatus', False):
+        account = get_object_or_404(Account, accountID=target_account_id)
+    else:
+        account = request.user
+    
     serializer = UpdateProfileSerializer(account, data=request.data, partial=True, context={'request': request})
     
     if serializer.is_valid():
         serializer.save()
 
-        # Logout if password was changed
-        if 'password' in request.data:
+        # Logout if password was changed and it's the user's own account
+        if 'password' in request.data and account == request.user:
             res = Response({'message': 'Password updated. Please login again.'})
             res.delete_cookie('access_token', path="/", samesite='None')
             res.delete_cookie('refresh_token', path="/", samesite='None')
@@ -206,8 +218,14 @@ def getAccountDetails(request, account_ID):
 # Deleting account
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-def deleteProfile(request):
-    account = request.user
+def deleteProfile(request, account_ID=None):
+    # If account_ID is provided and user is admin, delete that account
+    # Otherwise, delete the user's own account
+    if account_ID and getattr(request.user, 'adminStatus', False):
+        account = get_object_or_404(Account, accountID=account_ID)
+    else:
+        account = request.user
+    
     account.delete()
     return Response({"message": "Account deleted successfully."}, status=204)
 
@@ -216,7 +234,8 @@ def deleteProfile(request):
 def upload_profile_picture(request, account_ID):
     try:
         account = Account.objects.get(accountID=account_ID)
-        if account != request.user:
+        # Allow admin users to update any profile picture
+        if account != request.user and not getattr(request.user, 'adminStatus', False):
             return Response({"error": "You can only update your own profile picture"}, status=status.HTTP_403_FORBIDDEN)
             
         if 'pfp' not in request.FILES:
