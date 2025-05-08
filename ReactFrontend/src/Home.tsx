@@ -43,10 +43,10 @@ const Home: React.FC = () => {
           throw new Error(societiesResponse.message);
         }
 
-        // Get top 3 societies by member count
+        // Get top 6 societies by member count
         const sortedSocieties = (societiesResponse.data || [])
           .sort((a, b) => b.numOfInterestedPeople - a.numOfInterestedPeople)
-          .slice(0, 3);
+          .slice(0, 6);
         setFeaturedSocieties(sortedSocieties);
 
         // Fetch events from each society
@@ -131,6 +131,7 @@ const Home: React.FC = () => {
                         <Stack gap="xs" mt="md">
                           <Text fw={500}>{society.name}</Text>
                           <Text size="sm" c="dimmed">{society.numOfInterestedPeople} members</Text>
+                          <Text size="sm" lineClamp={3}>{society.description}</Text>
                           <Button
                             variant="light"
                             fullWidth
