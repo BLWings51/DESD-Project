@@ -135,11 +135,25 @@ const Profile = () => {
     }, [isAuthenticated]);
 
     useEffect(() => {
-        if (!isAuthenticated) return;
-        apiRequest<{ is_friend: boolean }>({ endpoint: `/friends/are_friends/${profileID}/`, method: "GET" })
-            .then(r => setIsFriend(r.data?.is_friend ?? false))
-            .catch(() => console.error("Friend check failed"));
-    }, [isAuthenticated]);
+        const fetchFriendStatus = async () => {
+            if (!isAuthenticated || !profileID) return;
+
+            try {
+                const r = await apiRequest<{ are_friends: boolean }>({
+                    endpoint: `/friends/are_friends/${profileID}/`,
+                    method: "GET",
+                });
+                console.log(r.data);
+                if (r.error) throw new Error(r.message);
+                setIsFriend(r.data?.are_friends ?? false);
+            } catch (e: any) {
+                setIsFriend(false);
+            }
+        };
+
+        fetchFriendStatus();
+    }, [isAuthenticated, profileID]);
+
 
     /* fetch profile */
     const fetchProfile = async () => {
