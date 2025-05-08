@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.generics import get_object_or_404
@@ -13,22 +14,24 @@ from .permissions import CustomIsAdminUser, IsSocietyAdmin, IsAdminOrSocietyAdmi
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         try:
+            if request.user.is_authenticated:
+                return Response({"message": "You are already logged in."}, status=400)
+
             accountID = request.data.get('accountID')
             password = request.data.get('password')
 
-            account = authenticate(request, username=accountID, password=password)
+            user = authenticate(request, username=accountID, password=password)
 
-            if not account:
-                return Response({"message": "Invalid accountID or password"}, status=400)
+            if not user:
+                return Response({"success": False, "message": "Incorrect username or password"}, status=400)
 
+            # Generate token
             response = super().post(request, *args, **kwargs)
             tokens = response.data
             access_token = tokens['access']
             refresh_token = tokens['refresh']
 
-            res = Response()
-
-            res.data = {"success":True}
+            res = Response({"success": True})
 
             res.set_cookie(
                 key="access_token",
@@ -49,8 +52,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             )
 
             return res
-        except:
-            return Response({"success":False}, status=400)
+
+        except Exception as e:
+            return Response({"success": False, "message": str(e)}, status=400)
+    
         
 class CustomRefreshTokenView(TokenRefreshView):
     def post(self, request, *args, **kwargs):

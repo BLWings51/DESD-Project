@@ -32,14 +32,19 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
+  
     try {
       await login(accountID, password);
-      // No need to navigate here - the useEffect will handle it when isAuthenticated changes
+      // No need to navigate — useEffect handles it
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      if (err instanceof Error) {
+        setError(err.message);  // Use message from backend
+      } else {
+        setError("Login failed");
+      }
     }
   };
+  
 
   return (
 
