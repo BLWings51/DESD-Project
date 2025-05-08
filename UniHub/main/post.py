@@ -116,16 +116,19 @@ def delete_post(request, society_name, post_id):
 
 class PostSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
-    interests = serializers.SerializerMethodField()
+    interests = serializers.ListField(
+        child=serializers.CharField(), required=False, default=list, write_only=True
+    )
+    interests_display = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests']
+        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display']
 
     def get_author_name(self, obj):
         return f"{obj.author.firstName} {obj.author.lastName}"
 
-    def get_interests(self, obj):
+    def get_interests_display(self, obj):
         return [tag.name for tag in obj.interests.all()]
 
     def create(self, validated_data):
