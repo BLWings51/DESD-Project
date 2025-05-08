@@ -146,7 +146,7 @@ def dislike_post(request, society_name, post_id):
 
 class PostSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
-    #interests = InterestTagSerializer(many=True, required=False)
+    interests = InterestTagSerializer(many=True, required=False)
     interests = serializers.ListField(
         child=serializers.CharField(), required=False, default=list, write_only=True
     )
