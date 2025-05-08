@@ -69,6 +69,10 @@ const EventDetail = () => {
                     // Find the specific event by ID
                     const foundEvent = allEventsResponse.data.find(e => e.id.toString() === eventID);
                     if (foundEvent) {
+                        console.log('Event found:', foundEvent);
+                        console.log('Event status:', foundEvent.status);
+                        console.log('Event online status:', foundEvent.online);
+                        console.log('Should show chat button:', (foundEvent.status === "ongoing" || foundEvent.status === "finished") && foundEvent.online);
                         setEvent(foundEvent);
                     } else {
                         setError("Event not found");

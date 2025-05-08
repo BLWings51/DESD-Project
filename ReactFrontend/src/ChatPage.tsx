@@ -57,7 +57,7 @@ const ChatPage = () => {
         const checkChatStatus = async () => {
             try {
                 const response = await apiRequest<boolean>({
-                    endpoint: `${eventID}/hasChatEnded/`,
+                    endpoint: `/${eventID}/hasChatEnded/`,
                     method: "GET",
                 });
                 if (!response.error) {
@@ -71,7 +71,7 @@ const ChatPage = () => {
         const fetchEventDetails = async () => {
             try {
                 const response = await apiRequest<{ status: string; startTime: string }>({
-                    endpoint: `/Societies/${society_name}/Events/${eventID}/`,
+                    endpoint: `/Societies/${society_name}/${eventID}/`,
                     method: "GET",
                 });
                 if (!response.error && response.data) {
@@ -107,7 +107,7 @@ const ChatPage = () => {
         const fetchMessages = async () => {
             try {
                 const response = await apiRequest<ChatMessage[]>({
-                    endpoint: `${eventID}/liveChat/`,
+                    endpoint: `/${eventID}/liveChat/`,
                     method: "GET",
                 });
                 if (!response.error && response.data) {
@@ -130,7 +130,7 @@ const ChatPage = () => {
 
         try {
             const response = await apiRequest({
-                endpoint: `${eventID}/liveChat/talk/`,
+                endpoint: `/${eventID}/liveChat/talk/`,
                 method: "POST",
                 data: { message: newMessage },
             });
@@ -161,7 +161,7 @@ const ChatPage = () => {
     const handleDeleteMessage = async (messageId: number) => {
         try {
             const response = await apiRequest({
-                endpoint: `${society_name}/${eventID}/liveChat/${messageId}/delete/`,
+                endpoint: `/${society_name}/${eventID}/liveChat/${messageId}/delete/`,
                 method: "DELETE",
             });
 
