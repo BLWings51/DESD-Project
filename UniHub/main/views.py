@@ -125,6 +125,7 @@ def is_society_admin(request, society_name):
     return Response({"Society Admin": True})
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_choices(request):
     return Response({
         "course_choices": COURSE_CHOICES,

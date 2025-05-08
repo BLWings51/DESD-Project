@@ -49,8 +49,9 @@ const EventDetail = () => {
 
     // fetch user roles & membership
     useEffect(() => {
-        if (!isAuthenticated || !loggedAccountID) return;
-        (async () => {
+        if (!isAuthenticated || !loggedAccountID || !eventID) return;
+
+        const fetchUserStatus = async () => {
             try {
                 // get user database ID
                 const profile = await apiRequest<{ id: number }>({
@@ -79,6 +80,7 @@ const EventDetail = () => {
                     method: 'POST',
                 });
                 if (socAdm.data) setIsSocietyAdmin(socAdm.data.is_admin);
+
                 // joined event?
                 const join = await apiRequest<{ has_joined: boolean }>({
                     endpoint: `/Societies/${society_name}/${eventID}/CheckInterest/`,
@@ -86,9 +88,12 @@ const EventDetail = () => {
                 });
                 if (join.data) setHasJoined(join.data.has_joined);
             } catch (e) {
-                console.error(e);
+                console.error('Error fetching user status:', e);
+                setError(e instanceof Error ? e.message : "Failed to load user status");
             }
-        })();
+        };
+
+        fetchUserStatus();
     }, [isAuthenticated, loggedAccountID, society_name, eventID]);
 
     // fetch event data
@@ -144,6 +149,7 @@ const EventDetail = () => {
     const canManage = isAdmin || isSocietyAdmin;
     const showJoin = isAuthenticated && !hasJoined && event.status === "upcoming" && isMember;
     const showLeave = isAuthenticated && hasJoined && event.status === "upcoming" && isMember;
+    const showChat = isAuthenticated && (event.status === "ongoing" || event.status === "finished") && event.online;
 
     return (
         <>
@@ -199,6 +205,16 @@ const EventDetail = () => {
                                             }}
                                         >
                                             Leave Event
+                                        </Button>
+                                    )}
+                                    {showChat && (
+                                        <Button
+                                            component={Link}
+                                            to={`/Societies/${society_name}/${eventID}/Chat`}
+                                            color="blue"
+                                            variant="outline"
+                                        >
+                                            View Chat
                                         </Button>
                                     )}
                                     {canManage && (

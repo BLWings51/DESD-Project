@@ -13,7 +13,13 @@ import {
   Loader,
   SimpleGrid,
   Group,
+  Select,
 } from "@mantine/core";
+
+interface Choices {
+  course_choices: [string, string][];
+  year_choices: [string, string][];
+}
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -31,9 +37,31 @@ const SignUp = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [choices, setChoices] = useState<Choices | null>(null);
+  const [choicesLoading, setChoicesLoading] = useState(true);
 
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch choices from backend
+  useEffect(() => {
+    const fetchChoices = async () => {
+      try {
+        const response = await apiRequest<Choices>({
+          endpoint: '/choices/',
+          method: 'GET',
+        });
+        if (response.data) {
+          setChoices(response.data);
+        }
+      } catch (err) {
+        setError('Failed to load form choices');
+      } finally {
+        setChoicesLoading(false);
+      }
+    };
+    fetchChoices();
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -44,6 +72,13 @@ const SignUp = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value,
@@ -207,7 +242,7 @@ const SignUp = () => {
             </SimpleGrid>
 
             <Title order={4} mt="xl" mb="md">Additional Information (Optional)</Title>
-            
+
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
               <TextInput
                 label="Address"
@@ -219,14 +254,15 @@ const SignUp = () => {
                 onChange={handleChange}
               />
 
-              <TextInput
+              <Select
                 label="Course"
-                name="course"
+                placeholder="Select your course"
+                data={choices?.course_choices.map(([value, label]) => ({ value, label })) || []}
+                value={formData.course}
+                onChange={(value) => handleSelectChange('course', value || '')}
                 variant="filled"
                 radius="md"
-                placeholder="Computer Science"
-                value={formData.course}
-                onChange={handleChange}
+                disabled={choicesLoading}
               />
 
               <TextInput
@@ -239,15 +275,15 @@ const SignUp = () => {
                 onChange={handleChange}
               />
 
-              <TextInput
+              <Select
                 label="Year of Course"
-                name="yearOfCourse"
+                placeholder="Select your year"
+                data={choices?.year_choices.map(([value, label]) => ({ value, label })) || []}
+                value={formData.yearOfCourse}
+                onChange={(value) => handleSelectChange('yearOfCourse', value || '')}
                 variant="filled"
                 radius="md"
-                type="number"
-                placeholder="1, 2, 3..."
-                value={formData.yearOfCourse}
-                onChange={handleChange}
+                disabled={choicesLoading}
               />
             </SimpleGrid>
 

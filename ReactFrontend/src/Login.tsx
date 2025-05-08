@@ -32,29 +32,29 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-  
+
     try {
       await login(accountID, password);
       // No need to navigate — useEffect handles it
     } catch (err) {
       if (err instanceof Error) {
-        setError(err.message);  // Use message from backend
+        setError("Username or Password is incorrect");
       } else {
         setError("Login failed");
       }
     }
   };
-  
+
 
   return (
 
 
     <Flex justify="center" align="center" h="90vh" direction="column">
-        <Card p={50} withBorder radius="lg" w={400}>
-          <Card.Section p="md">
+      <Card p={50} withBorder radius="lg" w={400}>
+        <Card.Section p="md">
           <Flex justify="center" align="center">
-      <Title order={2}>Login</Title>
-    </Flex>
+            <Title order={2}>Login</Title>
+          </Flex>
         </Card.Section>
 
         <Card.Section p="md">
