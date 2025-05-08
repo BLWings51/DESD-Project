@@ -211,7 +211,7 @@ def deleteProfile(request):
     account.delete()
     return Response({"message": "Account deleted successfully."}, status=204)
 
-@api_view(['PUT'])
+@api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def upload_profile_picture(request, account_ID):
     try:
