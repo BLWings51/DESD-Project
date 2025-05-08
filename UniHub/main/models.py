@@ -108,7 +108,6 @@ class Society(models.Model):
     name = models.CharField(max_length=200)
     numOfInterestedPeople = models.IntegerField(default=0)
     description = models.CharField(max_length=2000)
-    members = models.ManyToManyField(Account, related_name='societies')
     interests = models.ManyToManyField(InterestTag, related_name='societies', blank=True)
     pfp = models.ImageField(upload_to='', default='default.webp')
 
@@ -135,6 +134,22 @@ class EventRelation(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
 
+class PostVisibility(models.Model):
+    public = 'public'
+    members_only = 'members_only'
+    admin_only = 'admin_only'
+    
+    VISIBILITY_CHOICES = [
+        (public, 'Public'),
+        (members_only, 'Members Only'),
+        (admin_only, 'Admin Only'),
+    ]
+    
+    name = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=public)
+    
+    def __str__(self):
+        return self.name
+
 class Post(models.Model):
     author = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='posts')
     society = models.ForeignKey(Society, on_delete=models.CASCADE, null=True, blank=True, related_name='posts')
@@ -142,9 +157,41 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     interests = models.ManyToManyField(InterestTag, related_name='posts', blank=True)
     likes = models.ManyToManyField(Account, related_name='liked_posts', blank=True)
+    visibility = models.ForeignKey(PostVisibility, on_delete=models.SET_NULL, null=True, default=None)
 
     class Meta:
         ordering = ['-created_at']
+
+    def can_view(self, user):
+        if not self.society:  # Personal post
+            return True
+        # For existing posts without visibility set, treat them as public
+        if not self.visibility:
+            return True
+        if self.visibility.name == PostVisibility.public:
+            return True
+        if self.visibility.name == PostVisibility.members_only:
+            return SocietyRelation.objects.filter(society=self.society, account=user).exists()
+        if self.visibility.name == PostVisibility.admin_only:
+            return SocietyRelation.objects.filter(
+                society=self.society,
+                account=user,
+                adminStatus=True
+            ).exists()
+        return False
+
+    def can_edit(self, user):
+        if user == self.author:
+            return True
+            
+        if self.society:
+            return SocietyRelation.objects.filter(
+                society=self.society,
+                account=user,
+                adminStatus=True
+            ).exists()
+            
+        return False
 
 class Notification(models.Model):
     recipient = models.ForeignKey(Account, on_delete=models.CASCADE)

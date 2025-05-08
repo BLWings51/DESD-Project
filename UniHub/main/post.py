@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsSocietyAdmin, IsAdminOrSocietyAdmin
 from rest_framework.response import Response
-from .models import Post, Society, SocietyRelation, InterestTag
+from .models import Post, Society, SocietyRelation, InterestTag, PostVisibility
 from .comments import CommentSerializer
 from .signup import InterestTagSerializer
 
@@ -23,9 +23,17 @@ def get_friends_posts(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_society_posts(request, society_name):
-    queryset = PostViewSet.queryset.filter(society__name=society_name)
-    serializer = PostViewSet.serializer_class(queryset, many=True, context={'request': request})
-    return Response(serializer.data)
+    try:
+        society = Society.objects.get(name=society_name)
+        posts = Post.objects.filter(society=society)
+        
+        # Filter posts based on user's permissions
+        visible_posts = [post for post in posts if post.can_view(request.user)]
+        
+        serializer = PostSerializer(visible_posts, many=True, context={'request': request})
+        return Response(serializer.data)
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -38,6 +46,22 @@ def create_post(request, society_name):
         try:
             society = Society.objects.get(name=society_name)
             data['society'] = society.id
+
+            # Check if user is a member of the society using SocietyRelation
+            if not SocietyRelation.objects.filter(society=society, account=request.user).exists():
+                return Response({"error": "You must be a member of this society to post."}, status=403)
+
+            # Check if user has permission to create posts with the requested visibility
+            visibility = data.get('visibility', {}).get('name', PostVisibility.public)
+            if visibility == PostVisibility.admin_only:
+                is_admin = SocietyRelation.objects.filter(
+                    society=society,
+                    account=request.user,
+                    adminStatus=True
+                ).exists()
+                if not is_admin:
+                    return Response({"error": "Only society admins can create admin-only posts"}, status=403)
+
         except Society.DoesNotExist:
             return Response({"error": "Society not found"}, status=404)
 
@@ -57,8 +81,19 @@ def update_post(request, society_name, post_id):
     except Post.DoesNotExist:
         return Response({"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.user != post.author:
+    if not post.can_edit(request.user):
         return Response({"error": "You are not allowed to edit this post."}, status=status.HTTP_403_FORBIDDEN)
+
+    # Check if user is trying to change visibility to admin-only
+    if request.data.get('visibility', {}).get('name') == PostVisibility.admin_only:
+        if post.society:
+            is_admin = SocietyRelation.objects.filter(
+                society=post.society,
+                account=request.user,
+                adminStatus=True
+            ).exists()
+            if not is_admin:
+                return Response({"error": "Only society admins can set admin-only visibility"}, status=403)
 
     serializer = PostSerializer(post, data=request.data, partial=True)
     if serializer.is_valid():
@@ -72,21 +107,11 @@ def update_post(request, society_name, post_id):
 @permission_classes([IsAuthenticated])
 def can_delete_post(request, society_name, post_id):
     try:
-        # Get the post and join with Account table to check author
         post = Post.objects.select_related('author').get(id=post_id)
     except Post.DoesNotExist:
         return Response({"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Check if user is the author by comparing accountID
-    is_author = request.user.accountID == post.author.accountID
-    is_admin = getattr(request.user, 'adminStatus', False)
-    is_society_admin = SocietyRelation.objects.filter(
-        society__name=society_name,
-        account=request.user,
-        adminStatus=True
-    ).exists()
-
-    can_delete = is_author or is_admin or is_society_admin
+    can_delete = post.can_edit(request.user)
     return Response({"can_delete": can_delete}, status=status.HTTP_200_OK)
 
 # Delete a post
@@ -94,21 +119,11 @@ def can_delete_post(request, society_name, post_id):
 @permission_classes([IsAuthenticated])
 def delete_post(request, society_name, post_id):
     try:
-        # Get the post and join with Account table to check author
         post = Post.objects.select_related('author').get(id=post_id)
     except Post.DoesNotExist:
         return Response({"error": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Check if user is the author by comparing accountID
-    is_author = request.user.accountID == post.author.accountID
-    is_admin = getattr(request.user, 'adminStatus', False)
-    is_society_admin = SocietyRelation.objects.filter(
-        society__name=society_name,
-        account=request.user,
-        adminStatus=True
-    ).exists()
-
-    if not (is_author or is_admin or is_society_admin):
+    if not post.can_edit(request.user):
         return Response({"error": "You are not allowed to delete this post."}, status=status.HTTP_403_FORBIDDEN)
 
     post.delete()
@@ -153,11 +168,14 @@ class PostSerializer(serializers.ModelSerializer):
     likes_count = serializers.SerializerMethodField()
     liked_by_user = serializers.SerializerMethodField()
     liked_by_display = serializers.SerializerMethodField(read_only=True)
+    visibility = serializers.SerializerMethodField()
+    can_view = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
 
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments']
+        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments', 'visibility', 'can_view', 'can_edit']
         read_only_fields = ['created_at']
 
     def get_author_name(self, obj):
@@ -178,11 +196,35 @@ class PostSerializer(serializers.ModelSerializer):
     def get_liked_by_display(self, obj):
         return [f"{user.firstName} {user.lastName}" for user in obj.likes.all()]
 
+    def get_can_view(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return obj.can_view(request.user)
+        return False
 
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return obj.can_edit(request.user)
+        return False
+
+    def get_visibility(self, obj):
+        if not obj.visibility:
+            return PostVisibility.public
+        return obj.visibility.name
 
     def create(self, validated_data):
         interests_data = validated_data.pop('interests', [])
-        post = Post.objects.create(**validated_data)
+        visibility_data = validated_data.pop('visibility', None)
+        
+        # Set default visibility if not provided
+        if not visibility_data:
+            visibility, _ = PostVisibility.objects.get_or_create(name=PostVisibility.public)
+        else:
+            visibility, _ = PostVisibility.objects.get_or_create(name=visibility_data['name'])
+            
+        post = Post.objects.create(**validated_data, visibility=visibility)
+        
         tags = []
         for interest_data in interests_data:
             tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
@@ -194,15 +236,22 @@ class PostSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         interests_data = validated_data.pop('interests', None)
+        visibility_data = validated_data.pop('visibility', None)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+            
+        if visibility_data:
+            visibility, _ = PostVisibility.objects.get_or_create(name=visibility_data['name'])
+            instance.visibility = visibility
+            
         if interests_data is not None:
             tags = []
             for interest_data in interests_data:
                 tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
                 tags.append(tag)
-
             instance.interests.set(tags)
+            
         instance.save()
         return instance
     
