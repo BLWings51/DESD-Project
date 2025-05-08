@@ -71,6 +71,8 @@ const Login = () => {
               radius="md"
               type="number"
               placeholder="#000000"
+              minLength={6}
+              maxLength={6}
               value={accountID}
               onChange={(e) => setAccountID(e.target.value)}
               required

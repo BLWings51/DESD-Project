@@ -89,6 +89,7 @@ const SocietyDetail = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSocietyAdmin, setIsSocietyAdmin] = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -217,22 +218,22 @@ const SocietyDetail = () => {
 
   const fetchPosts = async () => {
     if (!isAuthenticated) {
-        setPostsLoading(false);
-        return;
+      setPostsLoading(false);
+      return;
     }
 
     try {
-        const response = await apiRequest<Post[]>({
-            endpoint: `/Societies/${society_name}/posts/`,
-            method: 'GET'
-        });
+      const response = await apiRequest<Post[]>({
+        endpoint: `/Societies/${society_name}/posts/`,
+        method: 'GET'
+      });
 
-        setPosts(response.data || []);
+      setPosts(response.data || []);
     } catch (error) {
-        console.error('Error fetching posts:', error);
-        setPostsError('Failed to load posts');
+      console.error('Error fetching posts:', error);
+      setPostsError('Failed to load posts');
     } finally {
-        setPostsLoading(false);
+      setPostsLoading(false);
     }
   };
 
@@ -249,6 +250,7 @@ const SocietyDetail = () => {
         method: 'GET',
       });
       if (updated.data) setSociety(updated.data);
+      setIsMember(true);
     } catch {
       setError('Operation failed');
     }
@@ -263,6 +265,7 @@ const SocietyDetail = () => {
         method: 'GET',
       });
       if (updated.data) setSociety(updated.data);
+      setIsMember(false);
     } catch {
       setError('Operation failed');
     }
@@ -317,14 +320,14 @@ const SocietyDetail = () => {
   const formatDateTime = (str: string) => {
     const d = new Date(str);
     return isNaN(d.getTime())
-        ? 'Invalid date'
-        : d.toLocaleString(undefined, { 
-            year: 'numeric', 
-            month: 'numeric', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit'
-        });
+      ? 'Invalid date'
+      : d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
   };
 
   const handlePfpUpload = async () => {
@@ -360,36 +363,36 @@ const SocietyDetail = () => {
     if (!newComment.trim()) return;
 
     try {
-        const response = await apiRequest<Comment>({
-            endpoint: `/Societies/posts/${postId}/comments/`,
-            method: 'POST',
-            data: {
-                content: newComment,
-                post_id: postId
-            }
-        });
+      const response = await apiRequest<Comment>({
+        endpoint: `/Societies/posts/${postId}/comments/`,
+        method: 'POST',
+        data: {
+          content: newComment,
+          post_id: postId
+        }
+      });
 
-        setPosts(posts.map(post => {
-            if (post.id === postId) {
-                return {
-                    ...post,
-                    comments: [...(post.comments || []), response.data].filter((comment): comment is Comment => comment !== undefined)
-                };
-            }
-            return post;
-        }));
+      setPosts(posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            comments: [...(post.comments || []), response.data].filter((comment): comment is Comment => comment !== undefined)
+          };
+        }
+        return post;
+      }));
 
-        setNewComment('');
-        setCommentingPostId(null);
+      setNewComment('');
+      setCommentingPostId(null);
     } catch (error) {
-        console.error('Error adding comment:', error);
+      console.error('Error adding comment:', error);
     }
   };
 
   const toggleComments = (postId: number) => {
     setExpandedPosts(prev => ({
-        ...prev,
-        [postId]: !prev[postId]
+      ...prev,
+      [postId]: !prev[postId]
     }));
   };
 
@@ -400,7 +403,7 @@ const SocietyDetail = () => {
         endpoint: `/Societies/posts/${commentToDelete.postId}/comments/${commentToDelete.commentId}/delete/`,
         method: 'DELETE'
       });
-      
+
       setPosts(posts.map(post => {
         if (post.id === commentToDelete.postId) {
           return {
@@ -420,6 +423,50 @@ const SocietyDetail = () => {
 
   const canDeleteComment = (commentId: number) => commentPermissions[commentId] || false;
 
+  // useEffect(() => {
+  //   if (!isAuthenticated || !loggedAccountID) return;
+
+  //   const fetchUserStatus = async () => {
+  //     try {
+
+  //       // member?
+  //       const mem = await apiRequest<{ success: boolean }>({
+  //         endpoint: `/${society_name}/${loggedAccountID}/`,
+  //         method: 'GET',
+  //       });
+  //       if (mem.data) setIsMember(mem.data.success);
+
+  //     } catch (e) {
+  //       console.error('Error fetching user status:', e);
+  //       setError(e instanceof Error ? e.message : "Failed to load user status");
+  //     }
+  //   };
+
+  //   fetchUserStatus();
+  // }, [isAuthenticated, loggedAccountID, society_name]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !loggedAccountID) return;
+
+    const fetchUserStatus = async () => {
+      try {
+
+        // member?
+        const mem = await apiRequest<{ has_joined: boolean }>({
+          endpoint: `/Societies/${society_name}/CheckInterest/`,
+          method: 'GET',
+        });
+        if (mem.data) setIsMember(mem.data.has_joined);
+
+      } catch (e) {
+        console.error('Error fetching user status:', e);
+        setError(e instanceof Error ? e.message : "Failed to load user status");
+      }
+    };
+
+    fetchUserStatus();
+  }, [isAuthenticated, loggedAccountID, society_name]);
+
   if (!society) return <Text>Society not found</Text>;
   if (loading || authLoading) return <Loader size="xl" />;
 
@@ -427,7 +474,7 @@ const SocietyDetail = () => {
     <>
       <Sidebar>
         <Flex justify="center" align="flex-start" gap="md" px="md">
-          <div style={{ width:0 }} />
+          <div style={{ width: 0 }} />
           <Box style={{ flex: 1, maxWidth: 800 }}>
             <Flex justify="space-between" align="center" mb="md">
               <Group>
@@ -507,7 +554,7 @@ const SocietyDetail = () => {
               </Tabs.Panel>
 
               <Tabs.Panel value="posts" pt="md">
-                {isAuthenticated && (
+                {isAuthenticated && isMember && (
                   <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
                     <Textarea
                       placeholder="What's on your mind?"
@@ -555,7 +602,7 @@ const SocietyDetail = () => {
                             </ActionIcon>
                           )}
                         </Flex>
-                        
+
                         {/* Comments Section */}
                         <Divider my="sm" />
                         <Group justify="space-between" mb="xs">
@@ -599,7 +646,7 @@ const SocietyDetail = () => {
                                 Add Comment
                               </Button>
                             )}
-                            
+
                             {post.comments?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((comment) => (
                               <Paper key={comment.id} p="xs" withBorder>
                                 <Group justify="space-between" mb={4}>
