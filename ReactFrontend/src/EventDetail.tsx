@@ -82,7 +82,7 @@ const EventDetail = () => {
 
                 // joined event?
                 const join = await apiRequest<{ has_joined: boolean }>({
-                    endpoint: `/Societies/${society_name}/Events/${eventID}/hasJoined/`,
+                    endpoint: `/Societies/${society_name}/${eventID}/CheckInterest/`,
                     method: 'GET',
                 });
                 if (join.data) setHasJoined(join.data.has_joined);
