@@ -14,7 +14,10 @@ from .permissions import IsAdminOrSocietyAdmin
 from datetime import timedelta
 from celery import Celery
 from celery.result import AsyncResult
+from django.core.mail import send_mail
 from django.utils.timezone import make_aware, is_naive
+from django.utils.timezone import localtime
+import datetime
 
 
 # creating an event
@@ -42,29 +45,26 @@ def reschedule_event(event, newStartTime, user):
     event.startTime = timezone.localtime(event.startTime)
 
     times = {
-    "in 1 day": newStartTime - timedelta(days=1, hours=1),
-    "in 1 hour": newStartTime - timedelta(hours=2),
-    "now": newStartTime,
-    }
+        "in 1 day": event.startTime - timedelta(days=1),
+        "in 1 hour": event.startTime - timedelta(hours=1),
+        "now": event.startTime + timedelta(hours=1),
+        }
 
-    print(f"event.startTime: {newStartTime}, timezone.now(): {timezone.now()}")
+    print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
     for label, notify_time in times.items():
         print(f"Checking label '{label}' for time: {notify_time}")
-        if notify_time > timezone.now():
-            proper_notify_time = notify_time - timedelta(hours=1)
-            print(f"Scheduling for {label}")
-            if label=="now":
-                notify_time = notify_time - timedelta(hours=1)
-            task = send_event_notification.apply_async(
-                args=[user.id, event.id, label],
-                eta = notify_time
-            )
-            ScheduledEventNotification.objects.create(
-                user=user,
-                event=event,
-                notification_time=notify_time,
-                task_name=task.id
-            )
+        if label=="now":
+            notify_time = notify_time - timedelta(hours=1)
+        task = send_event_notification.apply_async(
+            args=[user.id, event.id, label],
+            eta = notify_time
+        )
+        ScheduledEventNotification.objects.create(
+            user=user,
+            event=event,
+            notification_time=notify_time,
+            task_name=task.id
+        )
 
 
 
@@ -83,6 +83,15 @@ def CreateEvent(request, society_name):
         members = Account.objects.filter(id__in=members_list)
         for member in members:
             Notification.objects.create(recipient=member, message=f"{request.data.get('name')} was just created in {society.name}")
+            dt = datetime.datetime.fromisoformat(request.data.get('startTime'))
+            readable = dt.strftime("%B %d, %Y at %I:%M %p")
+            send_mail(
+            subject=f"New Event That Might Interest You",
+            message=f"Hi {member.firstName},\n\nA new event -'{request.data.get('name')}' - has been created in {society_name}.\n\nDetails:\n{request.data.get('details')}\nWhen: {readable}\nWhere: {request.data.get('location')}\n\nThanks,\nUniHub Management",
+            from_email=None,
+            recipient_list=[member.email],
+            fail_silently=False,
+        )
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
     
@@ -185,6 +194,14 @@ def UpdateEvent(request, society_name, eventID):
         members = Account.objects.filter(id__in=members_list)
         for member in members:
             Notification.objects.create(recipient=member, message=f"{event.name} was just updated in {society.name}")
+            local_start_time = localtime(event.startTime).strftime("%Y-%m-%d %H:%M")
+            send_mail(
+            subject=f"One Of Your Events Was Updated",
+            message=f"Hi {member.firstName},\n\nOne of your events -'{event.name}' - has been updated in {society_name}.\n\nDetails:\n{event.details}\nWhen: {local_start_time}\nWhere: {event.location}\n\nThanks,\nUniHub Management",
+            from_email=None,
+            recipient_list=[member.email],
+            fail_silently=False,
+        )
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
 

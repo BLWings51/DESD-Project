@@ -6,6 +6,7 @@ from rest_framework.permissions import *
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, APIView
+from rest_framework.generics import get_object_or_404
 
 
 # Functions with decorators
@@ -225,6 +226,17 @@ def getmembers(request, society_name):
 
     serializer = GetSocietySerializer(society)  # Use the GetSocietySerializer
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def IsPersonInSociety(request, society_name, personID):
+    user = get_object_or_404(Account, accountID=personID)
+    society = get_object_or_404(Society, name=society_name)
+    societyRelation = SocietyRelation.objects.filter(society=society, account=user)
+    if societyRelation.exists():
+        return Response({"success":True})
+    else:
+        return Response({"success":False})
 
 
 # Serializers
