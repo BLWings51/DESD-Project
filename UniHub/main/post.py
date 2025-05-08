@@ -84,8 +84,14 @@ def update_post(request, society_name, post_id):
     if not post.can_edit(request.user):
         return Response({"error": "You are not allowed to edit this post."}, status=status.HTTP_403_FORBIDDEN)
 
-    # Check if user is trying to change visibility to admin-only
-    if request.data.get('visibility', {}).get('name') == PostVisibility.admin_only:
+    # Handle both dict and string for visibility
+    visibility_data = request.data.get('visibility')
+    if isinstance(visibility_data, dict):
+        visibility_name = visibility_data.get('name')
+    else:
+        visibility_name = visibility_data
+
+    if visibility_name == PostVisibility.admin_only:
         if post.society:
             is_admin = SocietyRelation.objects.filter(
                 society=post.society,
@@ -168,7 +174,7 @@ class PostSerializer(serializers.ModelSerializer):
     likes_count = serializers.SerializerMethodField()
     liked_by_user = serializers.SerializerMethodField()
     liked_by_display = serializers.SerializerMethodField(read_only=True)
-    visibility = serializers.SerializerMethodField()
+    visibility = serializers.CharField(required=False)
     can_view = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
 
@@ -216,20 +222,20 @@ class PostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         interests_data = validated_data.pop('interests', [])
         visibility_data = validated_data.pop('visibility', None)
-        
-        # Set default visibility if not provided
-        if not visibility_data:
-            visibility, _ = PostVisibility.objects.get_or_create(name=PostVisibility.public)
+        # Accept both dict and string for visibility
+        if visibility_data:
+            if isinstance(visibility_data, dict):
+                visibility_name = visibility_data.get('name')
+            else:
+                visibility_name = visibility_data
+            visibility, _ = PostVisibility.objects.get_or_create(name=visibility_name)
         else:
-            visibility, _ = PostVisibility.objects.get_or_create(name=visibility_data['name'])
-            
+            visibility, _ = PostVisibility.objects.get_or_create(name=PostVisibility.public)
         post = Post.objects.create(**validated_data, visibility=visibility)
-        
         tags = []
         for interest_data in interests_data:
             tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
             tags.append(tag)
-
         post.interests.set(tags)
         post.save()
         return post
@@ -237,24 +243,34 @@ class PostSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         interests_data = validated_data.pop('interests', None)
         visibility_data = validated_data.pop('visibility', None)
-        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-            
         if visibility_data:
-            visibility, _ = PostVisibility.objects.get_or_create(name=visibility_data['name'])
+            if isinstance(visibility_data, dict):
+                visibility_name = visibility_data.get('name')
+            else:
+                visibility_name = visibility_data
+            visibility, _ = PostVisibility.objects.get_or_create(name=visibility_name)
             instance.visibility = visibility
-            
         if interests_data is not None:
             tags = []
             for interest_data in interests_data:
                 tag, _ = InterestTag.objects.get_or_create(name=interest_data['name'])
                 tags.append(tag)
             instance.interests.set(tags)
-            
         instance.save()
         return instance
-    
+
+    def to_internal_value(self, data):
+        ret = super().to_internal_value(data)
+        visibility = data.get('visibility')
+        if visibility:
+            if isinstance(visibility, dict):
+                ret['visibility'] = visibility.get('name')
+            else:
+                ret['visibility'] = visibility
+        return ret
+
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
