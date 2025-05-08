@@ -46,11 +46,12 @@ const App = () => {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/Societies" element={<Societies />} />
+              <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
               <Route path="/Societies/:society_name" element={<SocietyDetail />} />
 
               {/* Admin Routes */}
               <Route element={<PermissionRoute requiredPermission="admin" />}>
-                <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
+                {/* Admin-only routes go here */}
               </Route>
 
               {/* Society Admin Routes */}
