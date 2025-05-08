@@ -29,7 +29,36 @@ SECRET_KEY = 'django-insecure-lo&i=f(@lf0v1b9^xenw1fmwepda*yd5*7$=+!m31evo57)k+'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'celery': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+
 ALLOWED_HOSTS = []
+
+TIME_ZONE = 'Europe/London'
+USE_TZ = True
+
+CELERY_BROKER_URL = "redis://redis:6379/0"
 
 
 # Application definition
@@ -133,14 +162,10 @@ DATABASES = {
         'NAME': os.environ.get('DATABASE_NAME', 'mydatabase'),
         'USER': os.environ.get('DATABASE_USER', 'myuser'),
         'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'mypassword'),
+        'HOST': os.getenv('DATABASE_HOST', 'db'),
         'PORT': os.environ.get('DATABASE_PORT', '5432'),
     }
 }
-
-if os.environ.get('RUNNING_IN_DOCKER') == 'true':
-    DATABASES['default']['HOST'] = os.environ.get('DATABASE_HOST', 'db')
-else:
-    DATABASES['default']['HOST'] = 'localhost'
 
 
 # Password validation

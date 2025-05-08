@@ -145,3 +145,9 @@ class Notification(models.Model):
     message = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+
+class ScheduledEventNotification(models.Model):
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    notification_time = models.DateTimeField()
+    task_name = models.CharField(max_length=255) 

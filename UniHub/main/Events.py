@@ -7,17 +7,21 @@ from rest_framework.fields import DateTimeField
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-import datetime
-
+from .tasks import send_event_notification
 from rest_framework import serializers
-from .models import Event, Society, SocietyRelation, EventRelation, Notification, Account
+from .models import Event, Society, SocietyRelation, EventRelation, Notification, Account, ScheduledEventNotification
 from .permissions import IsAdminOrSocietyAdmin
+from datetime import timedelta
+from celery import Celery
+from celery.result import AsyncResult
+from django.utils.timezone import make_aware, is_naive
+
 
 # creating an event
 class CreateEventSerializer(serializers.ModelSerializer):
     class Meta:
         model=Event
-        fields = ['name', 'details', 'startTime', 'endTime', 'location']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
 
     def create(self, validated_data):
         society = self.context.get('society')
@@ -25,6 +29,45 @@ class CreateEventSerializer(serializers.ModelSerializer):
         event.save()
         return event
     
+    
+def reschedule_event(event, newStartTime, user):
+    scheduled_tasks = ScheduledEventNotification.objects.filter(event=event)
+    for task in scheduled_tasks:
+        AsyncResult(task.task_name).revoke(terminate=True)
+        task.delete()
+
+    if is_naive(newStartTime):
+        newStartTime = make_aware(newStartTime)
+
+    event.startTime = timezone.localtime(event.startTime)
+
+    times = {
+    "in 1 day": newStartTime - timedelta(days=1, hours=1),
+    "in 1 hour": newStartTime - timedelta(hours=2),
+    "now": newStartTime,
+    }
+
+    print(f"event.startTime: {newStartTime}, timezone.now(): {timezone.now()}")
+    for label, notify_time in times.items():
+        print(f"Checking label '{label}' for time: {notify_time}")
+        if notify_time > timezone.now():
+            proper_notify_time = notify_time - timedelta(hours=1)
+            print(f"Scheduling for {label}")
+            if label=="now":
+                notify_time = notify_time - timedelta(hours=1)
+            task = send_event_notification.apply_async(
+                args=[user.id, event.id, label],
+                eta = notify_time
+            )
+            ScheduledEventNotification.objects.create(
+                user=user,
+                event=event,
+                notification_time=notify_time,
+                task_name=task.id
+            )
+
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminOrSocietyAdmin])
 def CreateEvent(request, society_name):
@@ -52,6 +95,8 @@ class GetAllEventSerializer(serializers.ModelSerializer):
         return eventDetails
 
     def get_status(self, event):
+        event.startTime = timezone.localtime(event.startTime)
+        event.startTime = event.startTime - timedelta(hours=1)
         status = "none"
         if event.startTime <= timezone.now() <= event.endTime:
             status = "ongoing"
@@ -85,7 +130,6 @@ def deleteEvent(request, society_name, eventID):
         return Response({"success":"true"}, status=200)
     except Exception as e:
         return Response({"error": str(e)}, status=400)
-    
 
 #update events
 class UpdateEventSerializer(serializers.ModelSerializer):
@@ -120,6 +164,7 @@ def UpdateEvent(request, society_name, eventID):
     try:
         if isinstance(startTime, str):
             startTime = datetime_parser.to_internal_value(startTime)
+            reschedule_event(event, startTime, request.user)
         if isinstance(endTime, str):
             endTime = datetime_parser.to_internal_value(endTime)
     except Exception:
@@ -137,9 +182,26 @@ def UpdateEvent(request, society_name, eventID):
 
 # retrieving the data for one event
 class GetSingleEventSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
     class Meta:
         model=Event
-        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location']
+        fields = ['id', 'name', 'details', 'startTime', 'endTime', 'location', 'status']
+
+    def getEventDetails(self, event):
+        eventDetails = {"id":event.id, "name":event.name, "details":event.details, "startTime":event.startTime, "endTime":event.endTime, "location":event.location, "status":event.status}
+        return eventDetails
+
+    def get_status(self, event):
+        event.startTime = timezone.localtime(event.startTime)
+        event.startTime = event.startTime - timedelta(hours=1)
+        status = "none"
+        if event.startTime <= timezone.now() <= event.endTime:
+            status = "ongoing"
+        elif event.endTime < timezone.now():
+            status = "finished"
+        elif event.startTime > timezone.now():
+            status = "upcoming"
+        return status 
 
 # retrieving the society from an event
 class GetSocietyFromEventSerializer(serializers.ModelSerializer):
@@ -249,14 +311,40 @@ def join_event(request, society_name, eventID):
 
     if serializer.is_valid():
         serializer.save()
+        if is_naive(event.startTime):
+            event.startTime = make_aware(event.startTime)
+
+        event.startTime = timezone.localtime(event.startTime)
+
+        times = {
+        "in 1 day": event.startTime - timedelta(days=1, hours=1),
+        "in 1 hour": event.startTime - timedelta(hours=2),
+        "now": event.startTime,
+        }
+
+        print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
+        for label, notify_time in times.items():
+            print(f"Checking label '{label}' for time: {notify_time}")
+            if label=="now":
+                notify_time = notify_time - timedelta(hours=1)
+            task = send_event_notification.apply_async(
+                args=[user.id, event.id, label],
+                eta = notify_time
+            )
+            ScheduledEventNotification.objects.create(
+                user=user,
+                event=event,
+                notification_time=notify_time,
+                task_name=task.id
+            )
+
         updated_event = Event.objects.get(id=event.id)
         return Response({
             "message": f"{user.firstName} {user.lastName} opted in to the event",
             "numOfInterestedPeople": updated_event.numOfInterestedPeople
         }, status=200)
-
-    return Response(serializer.errors, status=400)
-
+    
+    
 # Leave event
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -282,6 +370,10 @@ def leave_event(request, society_name, eventID):
     serializer = LeaveEventSerializer(data=data)
     
     if serializer.is_valid():
+        scheduled_tasks = ScheduledEventNotification.objects.filter(user=user, event=event)
+        for task in scheduled_tasks:
+            AsyncResult(task.task_name).revoke(terminate=True)
+            task.delete()
         response_data = serializer.leaveEvent(serializer.validated_data)
         return Response(response_data, status=200)
 

@@ -1,11 +1,17 @@
 # notifications/serializers.py
 from rest_framework import serializers
-from .models import Notification
+from .models import Notification, Event, Society, SocietyRelation
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Notification
 from rest_framework.generics import get_object_or_404
+import datetime
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['message', 'created_at', 'is_read']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -14,11 +20,6 @@ def get_notifications(request):
     notifications = Notification.objects.filter(recipient=user).order_by('-created_at')
     serializer = NotificationSerializer(notifications, many=True)
     return Response(serializer.data)
-
-class NotificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Notification
-        fields = ['message', 'created_at', 'is_read']
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -50,13 +51,30 @@ def mark_notification_as_read(request, notificationID):
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=400)
+
+class NotificationStartTimeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['message', 'created_at', 'is_read']
+
+    def create(self, validated_data):
+        user = validated_data.user
+        timing = self.context.get('timing')
+        event = self.context.get('event')
+        society = self.context.get('society')
+        notification = Notification(recipient=user, message=f"{event.name} for {society.name} starts {timing}")
+        notification.save()
+        return notification
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_timed_notifications(request):
+    user = request.user
+    society_ids = SocietyRelation.objects.filter(account=user).values_list('society_id', flat=True)
+    events = Event.objects.filter(society_id__in=society_ids)
+    for event in events:
+        if datetime.datetime.now() == event.startTime:
+            serializer = NotificationStartTimeSerializer(request.data, context={'timing':"now", 'event': event, 'society':event.society.name})
+    return Response({"success":"finished"})
     
-
-
-
-
-# things needed to be displayed on notifications:
-# Event announcements from societies they are a part of
-# 1 day, 1 hour, and 'starting now' announcements for events they opted into
-# Campus wide events set by admins and site announcements
         

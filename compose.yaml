@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   adminer:
     image: adminer:latest
@@ -7,6 +8,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+
   db:
     image: postgres:14
     restart: always
@@ -19,11 +21,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./UniHub:/app_host:ro
-    command: [ "postgres", "-c", "fsync=off" ] # Add any custom PostgreSQL commands here
+    command: [ "postgres", "-c", "fsync=off" ]
+
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
 
   backend:
     build:
-      context: ./UniHub # Build context is the UniHub directory
+      context: ./UniHub
       dockerfile: ./dockerfile
     ports:
       - "8000:8000"
@@ -33,16 +41,35 @@ services:
       - .env
     environment:
       - RUNNING_IN_DOCKER=true
+      - CELERY_BROKER_URL=redis://redis:6379/0
     depends_on:
       - db
+      - redis
     command: ["./importDB.sh"]
+
+  celery:
+    build:
+      context: ./UniHub
+      dockerfile: ./dockerfile
+    command: celery -A UniHub worker --loglevel=info
+    volumes:
+      - ./UniHub:/app
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DATABASE_HOST=db  # Make sure this matches what's in your Django settings
+      - DATABASE_URL=postgres://myuser:mypassword@db:5432/mydatabase  # Add this line
+    depends_on:
+      - db  # Ensure this is present
+      - redis
 
   frontend:
     build: ./ReactFrontend
     ports:
       - "5173:5173"
     volumes:
-      - ./ReactFrontend/certs:/app/certs # Map local certs directory to container
+      - ./ReactFrontend/certs:/app/certs
     depends_on:
       - backend
 
