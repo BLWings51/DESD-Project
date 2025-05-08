@@ -63,6 +63,16 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
         }}
       />
       <NavLink
+        label="Friends"
+        component={Link}
+        to="/friends"
+        active={location.pathname === "/friends"}
+        onClick={close}
+        styles={{
+          label: { fontSize: '1.2rem', padding: '12px 0' },
+        }}
+      />
+      <NavLink
         label="Profile"
         component={Link}
         to="/profile"

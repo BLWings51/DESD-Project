@@ -139,12 +139,13 @@ class GetAccountSerializer(serializers.ModelSerializer):
     societies = serializers.SerializerMethodField()
     events = serializers.SerializerMethodField()
     is_admin = serializers.SerializerMethodField()
+    is_friend = serializers.SerializerMethodField()
     
     class Meta:
         model=Account
         fields = [
             'bio', "accountID", 'firstName', 'lastName', 'email', 'pfp', "societies", "events",
-            'is_owner', 'is_admin', 'address', 'dob', 'course', 'year_of_course', 'interests'
+            'is_owner', 'is_admin', 'is_friend', 'address', 'dob', 'course', 'year_of_course', 'interests'
         ]
         
     def get_is_admin(self, account):
@@ -159,17 +160,17 @@ class GetAccountSerializer(serializers.ModelSerializer):
                 is_owner = True
         return is_owner
         
-    def is_friend(self, account):
+    def get_is_friend(self, account):
         request = self.context.get('request')
-        
-        return request.user.is_authenticated and FriendRelation.are_friends(account, request.user)
-
+        if not request.user.is_authenticated:
+            return False
+        return FriendRelation.are_friends(account, request.user)
 
     def get_societies(self, account):
         request = self.context.get('request')
         is_owner = self.get_is_owner(account)
         is_admin = self.get_is_admin(account)
-        is_friend = self.is_friend(account)
+        is_friend = self.get_is_friend(account)
 
         if is_owner or is_admin or is_friend:
             return [relation.society.name for relation in account.societyrelation_set.all()]
@@ -179,13 +180,12 @@ class GetAccountSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         is_owner = self.get_is_owner(account)
         is_admin = self.get_is_admin(account)
-        is_friend = self.is_friend(account)
+        is_friend = self.get_is_friend(account)
 
         if is_owner or is_admin or is_friend:
             events = [relation.event for relation in account.eventrelation_set.all()]
             return GetEventSerializer(events, many=True, context=self.context).data
         return []
-
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
