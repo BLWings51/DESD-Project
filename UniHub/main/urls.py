@@ -20,6 +20,7 @@ urlpatterns = [
     path('Societies/<str:society_name>/', society.getSocietyDetails, name='society-detail'),
     path('Societies/<str:society_name>/UpdateSociety/', society.UpdateSocietyView, name="update-society"),
     path('Societies/<str:society_name>/DeleteSociety/', society.DeleteSocietyView, name="delete-society"),
+    path('Societies/<str:society_name>/update_pfp/', society.update_society_pfp, name="update-society-pfp"),
     path('Societies/<str:society_name>/join/', society.join_society, name='join-society'),
     path('Societies/<str:society_name>/leave/', society.leave_society, name='leave-society'),
     path('Societies/<str:society_name>/promote/<int:member_id>/', society.promote_member, name='promote-member'),

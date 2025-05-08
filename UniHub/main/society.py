@@ -202,7 +202,7 @@ def kick_member(request, society_name, member_id):
 @permission_classes([AllowAny])
 def getAllSocieties(request):
     societies = Society.objects.all()  # Get all societies
-    serializer = GetSocietySerializer(societies, many=True)  # Serialize multiple objects
+    serializer = GetSocietySerializer(societies, many=True, context={'request': request})  # Pass request context
     return Response(serializer.data, status=200)
 
 # Get society Details
@@ -211,7 +211,7 @@ def getAllSocieties(request):
 def getSocietyDetails(request, society_name):
     try:
         society = Society.objects.get(name=society_name)
-        serializer = GetSocietySerializer(society)
+        serializer = GetSocietySerializer(society, context={'request': request})
         return Response(serializer.data, status=200)
     except Society.DoesNotExist:
         return Response({"SocietyError": "Society not found"}, status=404)
@@ -373,9 +373,11 @@ class CreateSocietySerializer(serializers.ModelSerializer):
 
 class UpdateSocietySerializer(serializers.ModelSerializer):
     interests = InterestTagSerializer(many=True, required=False)
+    pfp = serializers.ImageField(required=False)
+
     class Meta:
         model = Society
-        fields = ['name', 'description', 'interests']
+        fields = ['name', 'description', 'interests', 'pfp']
 
     def validate_name(self, value):
         """
@@ -390,8 +392,14 @@ class UpdateSocietySerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         interests_data = validated_data.pop('interests', None)
+        pfp = validated_data.pop('pfp', None)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+            
+        if pfp:
+            instance.pfp = pfp
+            
         if interests_data is not None:
             tags = []
             for interest_data in interests_data:
@@ -399,6 +407,7 @@ class UpdateSocietySerializer(serializers.ModelSerializer):
                 tags.append(tag)
 
             instance.interests.set(tags)
+            
         instance.save()
         return instance
 
@@ -411,6 +420,7 @@ class AccountSerializer(serializers.ModelSerializer):
 class GetSocietySerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     interests = InterestTagSerializer(many=True)
+    pfp = serializers.SerializerMethodField()
 
     class Meta:
         model = Society
@@ -419,6 +429,12 @@ class GetSocietySerializer(serializers.ModelSerializer):
     def get_members(self, society):
         society_relations = SocietyRelation.objects.filter(society=society)
         return SocietyMemberViaRelationSerializer(society_relations, many=True).data
+
+    def get_pfp(self, society):
+        request = self.context.get('request')
+        if request and society.pfp:
+            return request.build_absolute_uri(society.pfp.url)
+        return society.pfp.url if society.pfp else None
 
 class SocietyMemberViaRelationSerializer(serializers.ModelSerializer):
     account = serializers.SerializerMethodField()
@@ -429,3 +445,25 @@ class SocietyMemberViaRelationSerializer(serializers.ModelSerializer):
 
     def get_account(self, society_relation):
         return AccountSerializer(society_relation.account).data
+
+@api_view(['POST'])
+@permission_classes([IsAdminOrSocietyAdmin])
+def update_society_pfp(request, society_name):
+    try:
+        society = Society.objects.get(name=society_name)
+    except Society.DoesNotExist:
+        return Response({"error": "Society not found"}, status=404)
+
+    if 'pfp' not in request.FILES:
+        return Response({"error": "No image file provided"}, status=400)
+
+    society.pfp = request.FILES['pfp']
+    society.save()
+    
+    # Get the full URL for the profile picture
+    pfp_url = request.build_absolute_uri(society.pfp.url)
+    
+    return Response({
+        "message": "Profile picture updated successfully",
+        "pfp": pfp_url
+    }, status=200)

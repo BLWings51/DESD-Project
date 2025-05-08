@@ -10,7 +10,7 @@ interface Society {
   id: number;
   name: string;
   description: string;
-  logo: string | null;
+  pfp: string;
   numOfInterestedPeople: number;
 }
 
@@ -43,10 +43,10 @@ const Home: React.FC = () => {
           throw new Error(societiesResponse.message);
         }
 
-        // Get top 3 societies by member count
+        // Get top 6 societies by member count
         const sortedSocieties = (societiesResponse.data || [])
           .sort((a, b) => b.numOfInterestedPeople - a.numOfInterestedPeople)
-          .slice(0, 3);
+          .slice(0, 6);
         setFeaturedSocieties(sortedSocieties);
 
         // Fetch events from each society
@@ -122,14 +122,16 @@ const Home: React.FC = () => {
                       <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Card.Section>
                           <Image
-                            src={society.logo || '/default-society-logo.png'}
+                            src={society.pfp || '/default-society-logo.png'}
                             height={160}
                             alt={society.name}
+                            fallbackSrc="https://placehold.co/160x160?text=No+Image"
                           />
                         </Card.Section>
                         <Stack gap="xs" mt="md">
                           <Text fw={500}>{society.name}</Text>
                           <Text size="sm" c="dimmed">{society.numOfInterestedPeople} members</Text>
+                          <Text size="sm" lineClamp={3}>{society.description}</Text>
                           <Button
                             variant="light"
                             fullWidth

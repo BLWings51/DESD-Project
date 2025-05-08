@@ -19,6 +19,7 @@ import {
   Textarea,
   Container,
   MultiSelect,
+  Alert,
 } from "@mantine/core";
 import { Icon } from '@iconify/react';
 import edit from '@iconify-icons/tabler/edit';
@@ -33,7 +34,7 @@ interface SocietyDetail {
   name: string;
   description: string;
   numOfInterestedPeople: number;
-  logo?: string | null;
+  pfp: string;
   is_member?: boolean;
   interests: string[];
 }
@@ -80,6 +81,8 @@ const SocietyDetail = () => {
   const [isCreatingPost, setIsCreatingPost] = useState(false);
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
   const [deletePostModalOpen, setDeletePostModalOpen] = useState(false);
+  const [pfpFile, setPfpFile] = useState<File | null>(null);
+  const [isUploadingPfp, setIsUploadingPfp] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -271,6 +274,35 @@ const SocietyDetail = () => {
       : d.toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const handlePfpUpload = async () => {
+    if (!pfpFile) return;
+    setIsUploadingPfp(true);
+    try {
+      const formData = new FormData();
+      formData.append('pfp', pfpFile);
+
+      await apiRequest({
+        endpoint: `/Societies/${society_name}/update_pfp/`,
+        method: 'POST',
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const updated = await apiRequest<SocietyDetail>({
+        endpoint: `/Societies/${society_name}/`,
+        method: 'GET',
+      });
+      if (updated.data) setSociety(updated.data);
+      setPfpFile(null);
+    } catch (error) {
+      setError('Failed to upload profile picture');
+    } finally {
+      setIsUploadingPfp(false);
+    }
+  };
+
   if (!society) return <Text>Society not found</Text>;
   if (loading || authLoading) return <Loader size="xl" />;
 
@@ -279,9 +311,19 @@ const SocietyDetail = () => {
       <Sidebar>
         <Flex justify="center" align="flex-start" gap="md" px="md">
           <div style={{ width: 200 }} />
-          <Box style={{ flex: 1, maxWidth: 900 }}>
+          <Box style={{ flex: 1, maxWidth: 800 }}>
             <Flex justify="space-between" align="center" mb="md">
-              <Title order={2}>{society.name}</Title>
+              <Group>
+                <Image
+                  src={society.pfp}
+                  width={100}
+                  height={100}
+                  radius="md"
+                  alt={society.name}
+                  fallbackSrc="https://placehold.co/100x100?text=No+Image"
+                />
+                <Title order={2}>{society.name}</Title>
+              </Group>
               {(isAdmin || isSocietyAdmin) && (
                 <Group>
                   <Button leftSection={<Icon icon={edit} width={16} height={16} />} component={Link} to={`/Societies/${society_name}/UpdateSociety`}>
@@ -296,19 +338,16 @@ const SocietyDetail = () => {
               )}
             </Flex>
 
+            <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
+              <Text>{society.description}</Text>
+            </Card>
+
             {isAuthenticated && (
               <Group wrap="nowrap" mb="md">
                 <Button color="blue" onClick={handleJoin}>Join ({society.numOfInterestedPeople})</Button>
                 <Button color="red" onClick={handleLeave}>Leave</Button>
               </Group>
             )}
-
-            <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
-              <Card.Section>
-                <Image src={society.logo || "/default-society-logo.png"} height={300} alt={society.name} fit="cover" />
-              </Card.Section>
-              <Text mt="md">{society.description}</Text>
-            </Card>
 
             <Tabs defaultValue="events">
               <Tabs.List>
@@ -424,7 +463,6 @@ const SocietyDetail = () => {
               </Group>
             </Modal>
           </Box>
-          <div style={{ width: 200 }} />
         </Flex>
       </Sidebar>
       <RightSidebar />

@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "./authContext";
 import apiRequest from "./api/apiRequest";
-import { Card, Title, Text, Loader, Flex, Button, SimpleGrid, Image } from "@mantine/core";
+import { Card, Title, Text, Loader, Flex, Button, SimpleGrid, Image, Group } from "@mantine/core";
 import { Icon } from '@iconify/react';
 import plus from '@iconify-icons/tabler/plus';
+import users from '@iconify-icons/tabler/users';
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 
@@ -12,7 +13,8 @@ interface Society {
     id: number;
     name: string;
     description: string;
-    logo: string | null;
+    pfp: string;
+    numOfInterestedPeople: number;
 }
 
 interface Is_Admin {
@@ -33,7 +35,9 @@ const Societies = () => {
                     endpoint: '/Societies/',
                     method: 'GET',
                 });
-                setSocieties(response.data || []);
+                // Sort societies by member count in descending order
+                const sortedSocieties = (response.data || []).sort((a, b) => b.numOfInterestedPeople - a.numOfInterestedPeople);
+                setSocieties(sortedSocieties);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load societies");
             } finally {
@@ -84,12 +88,17 @@ const Societies = () => {
                                     >
                                         <Card.Section>
                                             <Image
-                                                src={society.logo || '/default-society-logo.png'}
+                                                src={society.pfp || '/default-society-logo.png'}
                                                 height={160}
                                                 alt={society.name}
+                                                fallbackSrc="https://placehold.co/160x160?text=No+Image"
                                             />
                                         </Card.Section>
                                         <Title order={4} mt="sm">{society.name}</Title>
+                                        <Group gap="xs" mt="xs">
+                                            <Icon icon={users} width={16} height={16} />
+                                            <Text size="sm" c="dimmed">{society.numOfInterestedPeople} members</Text>
+                                        </Group>
                                         <Text lineClamp={3} mt="xs">{society.description}</Text>
                                     </Card>
                                 ))}
