@@ -15,8 +15,6 @@ import { DateTimePicker } from "@mantine/dates";
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
-import calendarEvent from "@iconify-icons/tabler/calendar-event";
 
 interface EventData {
     id: number;
@@ -46,16 +44,13 @@ const UpdateEvent = () => {
             online: false,
         },
         validate: {
-            name: (value) =>
-                value.length < 3 ? "Name must be at least 3 characters" : null,
-            location: (value) =>
-                value.length < 2 ? "Location must be at least 2 characters" : null,
-            details: (value) =>
-                value.length < 10 ? "Details should be at least 10 characters" : null,
-            startTime: (value, values) =>
-                value >= values.endTime ? "Start time must be before end time" : null,
-            endTime: (value, values) =>
-                value <= values.startTime ? "End time must be after start time" : null,
+            name: (v) => (v.length < 3 ? "Name must be at least 3 characters" : null),
+            details: (v) => (v.length < 10 ? "Details should be at least 10 characters" : null),
+            location: (v) => (v.length < 2 ? "Location must be at least 2 characters" : null),
+            startTime: (v, vals) =>
+                v >= vals.endTime ? "Start time must be before end time" : null,
+            endTime: (v, vals) =>
+                v <= vals.startTime ? "End time must be after start time" : null,
         },
     });
 
@@ -82,9 +77,7 @@ const UpdateEvent = () => {
                     }
                 }
             } catch (err) {
-                setError(
-                    err instanceof Error ? err.message : "Failed to load event"
-                );
+                setError(err instanceof Error ? err.message : "Failed to load event");
             } finally {
                 setInitialLoading(false);
             }
@@ -99,8 +92,8 @@ const UpdateEvent = () => {
 
         try {
             const response = await apiRequest({
-                endpoint: `/Societies/${society_name}/Events/${eventID}/`,
-                method: "PUT",
+                endpoint: `/Societies/${society_name}/${eventID}/UpdateEvent/`,
+                method: "POST",  // use POST against your custom UpdateEvent view
                 data: {
                     ...values,
                     startTime: values.startTime.toISOString(),
@@ -110,7 +103,8 @@ const UpdateEvent = () => {
             if (response.error) {
                 throw new Error(response.message || "Failed to update event");
             }
-            navigate(`/Societies/${society_name}/Events/${eventID}`);
+            // on success, navigate back to the event detail page
+            navigate(`/Societies/${society_name}/${eventID}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to update event");
         } finally {
@@ -142,76 +136,49 @@ const UpdateEvent = () => {
                 <Card.Section p="md">
                     <Title order={2}>Update Event</Title>
                 </Card.Section>
-
                 <Card.Section p="md">
-                    {error && (
-                        <Alert color="red" mb="md">
-                            {error}
-                        </Alert>
-                    )}
-
                     <form onSubmit={form.onSubmit(handleSubmit)}>
                         <TextInput
                             label="Event Name"
-                            variant="filled"
-                            radius="md"
-                            placeholder="Event Name"
                             {...form.getInputProps("name")}
                             required
-                            autoComplete="off"
                             mb="sm"
                         />
-
                         <Textarea
                             label="Details"
-                            variant="filled"
-                            radius="md"
-                            placeholder="Event Details"
                             {...form.getInputProps("details")}
                             required
                             minRows={4}
                             mb="sm"
                         />
-
                         <Group grow mb="sm">
                             <DateTimePicker
                                 label="Start Time"
-                                variant="filled"
-                                radius="md"
                                 value={form.values.startTime}
-                                onChange={(date) => date && form.setFieldValue("startTime", date)}
+                                onChange={(d) => d && form.setFieldValue("startTime", d)}
                                 required
                                 withAsterisk
                             />
-
                             <DateTimePicker
                                 label="End Time"
-                                variant="filled"
-                                radius="md"
                                 value={form.values.endTime}
-                                onChange={(date) => date && form.setFieldValue("endTime", date)}
+                                onChange={(d) => d && form.setFieldValue("endTime", d)}
                                 required
                                 withAsterisk
                             />
                         </Group>
-
                         <TextInput
                             label="Location"
-                            variant="filled"
-                            radius="md"
-                            placeholder="Event Location"
                             {...form.getInputProps("location")}
                             required
-                            mb="md"
+                            mb="sm"
                         />
-
                         <Switch
                             label="Online Event"
                             {...form.getInputProps("online", { type: "checkbox" })}
-                            mb="sm"
+                            mb="md"
                         />
-
-                        <Button type="submit" loading={loading} fullWidth mt="md">
+                        <Button type="submit" loading={loading} fullWidth>
                             Update Event
                         </Button>
                     </form>
