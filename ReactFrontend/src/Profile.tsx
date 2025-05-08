@@ -47,6 +47,7 @@ interface UserProfile {
     course?: string;
     year_of_course?: string;
     interests?: string[];
+    is_friend?: boolean;
 }
 
 const Profile = () => {
@@ -84,6 +85,7 @@ const Profile = () => {
             is_owner: false,
             societies: [],
             events: [],
+            is_friend: false
         },
         validate: {
             firstName: (v) => (v ? null : "First name is required"),
@@ -164,6 +166,187 @@ const Profile = () => {
             </Flex>
         );
     }
+
+    if (loading && !user) {
+        return (
+            <Flex justify="center" align="center" h="100vh">
+                <Loader size="xl" />
+            </Flex>
+        );
+    }
+
+    const fetchUserProfile = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await apiRequest<UserProfile>({
+                endpoint: `/Profile/${profileID}/`,
+                method: "GET"
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            if (response.data) {
+                // Determine ownership
+                const isOwner = loggedAccountID ? profileID === parseInt(loggedAccountID) : false;
+                const profileData: UserProfile = {
+                    ...response.data,
+                    is_owner: isOwner,
+                    pfp: response.data.pfp || "http://127.0.0.1:8000/media/profile_pics/default.webp"
+                };
+                form.setValues(profileData);
+                setUser(profileData);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to load profile");
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUserProfile();
+    }, [profileID, loggedAccountID]);
+
+    const handleSubmit = async (values: UserProfile) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const { pfp, is_owner, societies, events, ...dataToSend } = values;
+            const response = await apiRequest<UserProfile>({
+                endpoint: "/Profile/Settings/",
+                method: "POST",
+                data: {
+                    ...dataToSend,
+                    accountID: profileID // Include the target account ID for admin actions
+                }
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            // Refresh after save
+            await fetchUserProfile();
+            setEditing(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to save profile");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const endpoint = isAdmin && paramID ? `/Profile/${paramID}/delete/` : '/Profile/delete/';
+            const response = await apiRequest({
+                endpoint,
+                method: "DELETE"
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            setUser(null);
+            setDeleteModalOpen(false);
+            form.reset();
+
+            // If admin deleting another user's profile, navigate to home
+            if (isAdmin && paramID) {
+                window.location.href = "/";
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to delete profile");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.currentTarget.files?.[0];
+        if (!file) return;
+
+        setLoading(true);
+        setError(null);
+
+        const formData = new FormData();
+        formData.append('pfp', file);
+
+        try {
+            const response = await apiRequest<{ pfp: string }>({
+                endpoint: `/Profile/${profileID}/uploadpfp/`,
+                method: "PATCH",
+                data: formData
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            const pfpUrl = response.data?.pfp;
+            if (pfpUrl) {
+                form.setFieldValue('pfp', pfpUrl);
+                setUser(prev => prev ? { ...prev, pfp: pfpUrl } : null);
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to upload profile picture");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddFriend = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await apiRequest<UserProfile>({
+                endpoint: `/friends/send/${profileID}/`,
+                method: "POST"
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            await fetchUserProfile();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to add friend");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRemoveFriend = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await apiRequest<UserProfile>({
+                endpoint: `/friends/remove/${profileID}/`,
+                method: "POST"
+            });
+
+            if (response.error) {
+                throw new Error(response.message);
+            }
+
+            await fetchUserProfile();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to remove friend");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // form submit handler
     const handleSubmit = async (values: UserProfile) => {
@@ -368,6 +551,13 @@ const Profile = () => {
                                                     )}
                                                 </Box>
                                             </>
+                                        )}
+
+                                        {!user?.is_owner && !user?.is_friend && (
+                                            <Button onClick={handleAddFriend}>Add Friend</Button>
+                                        )}
+                                        {user?.is_friend && (
+                                            <Button color="red" onClick={handleRemoveFriend}>Remove Friend</Button>
                                         )}
                                     </Box>
                                 ) : (

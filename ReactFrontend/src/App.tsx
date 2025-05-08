@@ -20,6 +20,8 @@ import ProtectedRoute from './ProtectedRoute';
 import PermissionRoute from './PermissionRoute';
 import SearchPage from "./SearchPage";
 import ChatPage from "./ChatPage";
+import FriendsList from "./FriendsList";
+import FriendRequests from "./FriendRequests";
 
 import "./static/stylesheet.css";
 
@@ -49,6 +51,8 @@ const App = () => {
               <Route path="/Societies" element={<Societies />} />
               <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
               <Route path="/Societies/:society_name" element={<SocietyDetail />} />
+              <Route path="/friends" element={<FriendsList />} />
+              <Route path="/friend-requests" element={<FriendRequests />} />
 
               {/* Admin Routes */}
               <Route element={<PermissionRoute requiredPermission="admin" />}>
