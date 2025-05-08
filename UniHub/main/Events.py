@@ -57,26 +57,23 @@ def reschedule_event(event, newStartTime, user):
     event.startTime = timezone.localtime(event.startTime)
 
     times = {
-        "in 1 day": event.startTime - timedelta(days=1),
-        "in 1 hour": event.startTime - timedelta(hours=1),
-        "now": event.startTime,
-        }
+    "1 day": event.startTime - timedelta(days=1),
+    "1 hour": event.startTime - timedelta(hours=1),
+    "now": event.startTime,
+}
 
-    print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
     for label, notify_time in times.items():
-        print(f"Checking label '{label}' for time: {notify_time}")
-        if label=="now":
-            notify_time = notify_time
-        task = send_event_notification.apply_async(
-            args=[user.id, event.id, label],
-            eta = notify_time
-        )
-        ScheduledEventNotification.objects.create(
-            user=user,
-            event=event,
-            notification_time=notify_time,
-            task_name=task.id
-        )
+        if notify_time > timezone.now():
+            task = send_event_notification.apply_async(
+                args=[user.id, event.id, label],
+                eta=notify_time
+            )
+            ScheduledEventNotification.objects.create(
+                user=user,
+                event=event,
+                notification_time=notify_time,
+                task_name=task.id  # This is Celery's task ID
+            )
 
 
 
@@ -378,33 +375,30 @@ def join_event(request, society_name, eventID):
         event.startTime = timezone.localtime(event.startTime)
 
         times = {
-        "in 1 day": event.startTime - timedelta(days=1),
-        "in 1 hour": event.startTime - timedelta(hours=1),
-        "now": event.startTime,
-        }
+    "1 day": event.startTime - timedelta(days=1),
+    "1 hour": event.startTime - timedelta(hours=1),
+    "now": event.startTime,
+}
 
-        print(f"event.startTime: {event.startTime}, timezone.now(): {timezone.now()}")
-        for label, notify_time in times.items():
-            print(f"Checking label '{label}' for time: {notify_time}")
-            if label=="now":
-                notify_time = notify_time
+    for label, notify_time in times.items():
+        if notify_time > timezone.now():
             task = send_event_notification.apply_async(
                 args=[user.id, event.id, label],
-                eta = notify_time
+                eta=notify_time
             )
             ScheduledEventNotification.objects.create(
                 user=user,
                 event=event,
                 notification_time=notify_time,
-                task_name=task.id
+                task_name=task.id  # This is Celery's task ID
             )
 
-        updated_event = Event.objects.get(id=event.id)
-        return Response({
-            "message": f"{user.firstName} {user.lastName} opted in to the event",
-            "numOfInterestedPeople": updated_event.numOfInterestedPeople
-        }, status=200)
-    
+    updated_event = Event.objects.get(id=event.id)
+    return Response({
+        "message": f"{user.firstName} {user.lastName} opted in to the event",
+        "numOfInterestedPeople": updated_event.numOfInterestedPeople
+    }, status=200)
+        
     
 # Leave event
 @api_view(['POST'])
