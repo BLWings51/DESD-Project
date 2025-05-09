@@ -98,6 +98,7 @@ const SocietyDetail = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSocietyAdmin, setIsSocietyAdmin] = useState(false);
   const [isMember, setIsMember] = useState(false);
+  const [isCheckingMembership, setIsCheckingMembership] = useState(true);
   const [userId, setUserId] = useState<number | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -253,17 +254,48 @@ const SocietyDetail = () => {
     fetchPosts();
   }, [society_name]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !loggedAccountID) return;
+
+    const fetchUserStatus = async () => {
+      setIsCheckingMembership(true);
+      try {
+        console.log('Checking membership for society:', society_name);
+        const mem = await apiRequest<{ status: string }>({
+          endpoint: `/Societies/${society_name}/CheckInterest/`,
+          method: 'GET',
+        });
+        console.log('Full API response:', mem);
+        // User is a member if status is either "member" or "admin"
+        const isUserMember = mem.data?.status === "member" || mem.data?.status === "admin";
+        console.log('Setting isMember to:', isUserMember);
+        setIsMember(isUserMember);
+      } catch (e) {
+        console.error('Error fetching user status:', e);
+        setError(e instanceof Error ? e.message : "Failed to load user status");
+        setIsMember(false);
+      } finally {
+        setIsCheckingMembership(false);
+      }
+    };
+
+    fetchUserStatus();
+  }, [isAuthenticated, loggedAccountID, society_name]);
+
   const handleJoin = async () => {
     if (!society) return;
     try {
+      console.log('Joining society:', society_name);
       await apiRequest({ endpoint: `/Societies/${society_name}/join/`, method: 'POST' });
       const updated = await apiRequest<SocietyDetail>({
         endpoint: `/Societies/${society_name}/`,
         method: 'GET',
       });
       if (updated.data) setSociety(updated.data);
+      console.log('Setting isMember to true after join');
       setIsMember(true);
-    } catch {
+    } catch (e) {
+      console.error('Error joining society:', e);
       setError('Operation failed');
     }
   };
@@ -271,14 +303,17 @@ const SocietyDetail = () => {
   const handleLeave = async () => {
     if (!society) return;
     try {
+      console.log('Leaving society:', society_name);
       await apiRequest({ endpoint: `/Societies/${society_name}/leave/`, method: 'POST' });
       const updated = await apiRequest<SocietyDetail>({
         endpoint: `/Societies/${society_name}/`,
         method: 'GET',
       });
       if (updated.data) setSociety(updated.data);
+      console.log('Setting isMember to false after leave');
       setIsMember(false);
-    } catch {
+    } catch (e) {
+      console.error('Error leaving society:', e);
       setError('Operation failed');
     }
   };
@@ -460,32 +495,6 @@ const SocietyDetail = () => {
     }
   };
 
-  useEffect(() => {
-    if (!isAuthenticated || !loggedAccountID) return;
-
-    const fetchUserStatus = async () => {
-      try {
-
-        // member?
-        const mem = await apiRequest<{ has_joined: boolean }>({
-          endpoint: `/Societies/${society_name}/CheckInterest/`,
-          method: 'GET',
-        });
-        if (mem.data) {
-          setIsMember(true);
-        } else {
-          setIsMember(false);
-        }
-
-      } catch (e) {
-        console.error('Error fetching user status:', e);
-        setError(e instanceof Error ? e.message : "Failed to load user status");
-      }
-    };
-
-    fetchUserStatus();
-  }, [isAuthenticated, loggedAccountID, society_name]);
-
   const handleLike = async (postId: number) => {
     if (!isAuthenticated || !society_name) return;
     
@@ -562,7 +571,9 @@ const SocietyDetail = () => {
             <Group>
               {isAuthenticated && (
                 <>
-                  {isMember ? (
+                  {isCheckingMembership ? (
+                    <Button loading>Loading...</Button>
+                  ) : isMember ? (
                     <Button
                       color="red"
                       onClick={handleLeave}
