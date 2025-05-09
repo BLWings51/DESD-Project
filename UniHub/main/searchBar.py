@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.db.models import Q
-from main.models import Society, Event, Account, Post, FriendRelation
+from main.models import Society, Event, Account, Post, FriendRelation, SocietyRelation
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
@@ -28,7 +28,8 @@ def search(request):
         if friends_only and request.user.is_authenticated:
             friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
             friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
-            societies = societies.filter(members__in=friends).distinct()
+            friend_society_ids = SocietyRelation.objects.filter(account__in=friends).values_list('society_id', flat=True)
+            societies = societies.filter(id__in=friend_society_ids).distinct()
         if sort == 'popularity':
             societies = societies.order_by('-numOfInterestedPeople' if order == 'desc' else 'numOfInterestedPeople')
         results['societies'] = list(societies.values('id', 'name', 'description', 'numOfInterestedPeople'))
