@@ -171,6 +171,7 @@ def dislike_post(request, society_name, post_id):
 
 class PostSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
+    society_name = serializers.SerializerMethodField()
     interests = InterestTagSerializer(many=True, required=False)
     #interests = serializers.ListField(    child=serializers.CharField(), required=False, default=list, write_only=True)
     interests_display = serializers.SerializerMethodField(read_only=True)
@@ -186,11 +187,18 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'author', 'author_name', 'society', 'content', 'created_at', 'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display', 'comments', 'visibility', 'can_view', 'can_edit', 'image']
+        fields = [
+            'id', 'author', 'author_name', 'society', 'society_name', 'content', 'created_at',
+            'interests', 'interests_display', 'likes_count', 'liked_by_user', 'liked_by_display',
+            'comments', 'visibility', 'can_view', 'can_edit', 'image'
+        ]
         read_only_fields = ['created_at']
 
     def get_author_name(self, obj):
         return f"{obj.author.firstName} {obj.author.lastName}"
+
+    def get_society_name(self, obj):
+        return obj.society.name if obj.society else None
 
     def get_interests_display(self, obj):
         return [tag.name for tag in obj.interests.all()]
