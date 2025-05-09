@@ -85,14 +85,52 @@ def delete_comment(request, post_id, comment_id):
 
 class CommentSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    liked_by_user = serializers.SerializerMethodField()
+    liked_by_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'author', 'author_name', 'post', 'content', 'created_at']
+        fields = ['id', 'author', 'author_name', 'post', 'content', 'created_at', 'likes_count', 'liked_by_user', 'liked_by_display']
         read_only_fields = ['author_name', 'created_at']
 
     def get_author_name(self, obj):
         if hasattr(obj, 'author'):
-            print(f"Comment author data: {obj.author.firstName} {obj.author.lastName}")
             return f"{obj.author.firstName} {obj.author.lastName}"
         return "Unknown Author"
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_liked_by_user(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
+
+    def get_liked_by_display(self, obj):
+        return [f"{user.firstName} {user.lastName}" for user in obj.likes.all()]
+
+# Like comment
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def like_comment(request, post_id, comment_id):
+    try:
+        comment = Comment.objects.get(id=comment_id, post_id=post_id)
+    except Comment.DoesNotExist:
+        return Response({"error": "Comment not found"}, status=404)
+
+    comment.likes.add(request.user)
+    return Response({"message": f"{request.user.firstName} {request.user.lastName} liked the comment"}, status=200)
+
+# Dislike comment
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def dislike_comment(request, post_id, comment_id):
+    try:
+        comment = Comment.objects.get(id=comment_id, post_id=post_id)
+    except Comment.DoesNotExist:
+        return Response({"error": "Comment not found"}, status=404)
+
+    comment.likes.remove(request.user)
+    return Response({"message": f"{request.user.firstName} {request.user.lastName} disliked the comment"}, status=200)

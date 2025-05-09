@@ -49,6 +49,8 @@ urlpatterns = [
     path('Societies/posts/<int:post_id>/comments/<int:comment_id>/update/', comments.update_comment, name="update-comment"),
     path('Societies/posts/<int:post_id>/comments/<int:comment_id>/can_delete/', comments.can_delete_comment, name="can-delete-comment"),
     path('Societies/posts/<int:post_id>/comments/<int:comment_id>/delete/', comments.delete_comment, name="delete-comment"),
+    path('Societies/posts/<int:post_id>/comments/<int:comment_id>/like/', comments.like_comment, name="like-comment"),
+    path('Societies/posts/<int:post_id>/comments/<int:comment_id>/dislike/', comments.dislike_comment, name="dislike-comment"),
     path('posts/friends/', post.get_friends_posts, name="get_friends_posts"),
     path('notifications/', notifications.get_notifications),
     path('notificationBell/', notifications.get_unread_notification_quantity),
