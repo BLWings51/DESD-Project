@@ -55,6 +55,10 @@ def search(request):
         users = Account.objects.filter(
             Q(firstName__icontains=query) | Q(lastName__icontains=query) | Q(email__icontains=query) | Q(interests__name__icontains=query)
         ).distinct()
+        if friends_only and request.user.is_authenticated:
+            friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
+            friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
+            users = users.filter(id__in=[friend.id for friend in friends])
         results['users'] = list(users.values('accountID', 'firstName', 'lastName', 'email'))
 
     # Search Posts
@@ -62,6 +66,10 @@ def search(request):
         posts = Post.objects.filter(
             Q(content__icontains=query) | Q(interests__name__icontains=query)
         ).distinct()
+        if friends_only and request.user.is_authenticated:
+            friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
+            friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
+            posts = posts.filter(author__in=friends)
         if sort == 'date':
             posts = posts.order_by('-created_at' if order == 'desc' else 'created_at')
         results['posts'] = list(posts.values('id', 'content', 'created_at', 'author_id', 'society_id'))
