@@ -75,11 +75,12 @@ const EventDetail = () => {
                 if (adm.data) setIsAdmin(adm.data.admin);
 
                 // society-admin?
-                const socAdm = await apiRequest<{ is_admin: boolean }>({
+                const socAdm = await apiRequest<{ "Society Admin": boolean }>({
                     endpoint: `/Societies/${society_name}/IsSocietyAdmin/`,
                     method: 'POST',
                 });
-                if (socAdm.data) setIsSocietyAdmin(socAdm.data.is_admin);
+                console.log(socAdm.data);
+                if (socAdm.data) setIsSocietyAdmin(socAdm.data["Society Admin"]);
 
                 // joined event?
                 const join = await apiRequest<{ has_joined: boolean }>({
