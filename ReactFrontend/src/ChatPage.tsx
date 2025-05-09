@@ -24,11 +24,10 @@ import RightSidebar from "./RightSidebar";
 
 interface ChatMessage {
     id: number;
-    message: string;
-    sender_first_name: string;
-    sender_last_name: string;
+    text: string;
+    firstName: string;
+    lastName: string;
     is_owner: boolean;
-    timestamp: string;
 }
 
 const ChatPage = () => {
@@ -61,7 +60,9 @@ const ChatPage = () => {
                     method: "GET",
                 });
                 if (!response.error) {
-                    setChatEnded(response.data || false);
+                    setChatEnded(response.data.data || false);
+                    console.log("chat status response:", response);
+                    console.log("data from response: ", response.data.data)
                 }
             } catch (err) {
                 console.error("Failed to check chat status:", err);
@@ -204,37 +205,40 @@ const ChatPage = () => {
                                 </Group>
 
                                 <Card withBorder p="md" style={{ height: "500px", overflowY: "auto" }}>
-                                    {messages.map((message) => (
-                                        <Card
-                                            key={message.id}
-                                            p="xs"
-                                            mb="xs"
-                                            style={{
-                                                backgroundColor: message.is_owner ? "#e3f2fd" : "#f5f5f5",
-                                                marginLeft: message.is_owner ? "auto" : "0",
-                                                marginRight: message.is_owner ? "0" : "auto",
-                                                maxWidth: "80%",
-                                            }}
-                                        >
-                                            <Group justify="space-between" mb="xs">
-                                                <Text size="sm" fw={500}>
-                                                    {message.sender_first_name} {message.sender_last_name}
-                                                </Text>
-                                                {isAdmin && (
-                                                    <ActionIcon
-                                                        color="red"
-                                                        onClick={() => handleDeleteMessage(message.id)}
-                                                    >
-                                                        <Icon icon={trash} width={16} height={16} />
-                                                    </ActionIcon>
-                                                )}
-                                            </Group>
-                                            <Text>{message.message}</Text>
-                                            <Text size="xs" c="dimmed" ta="right">
-                                                {new Date(message.timestamp).toLocaleTimeString()}
-                                            </Text>
-                                        </Card>
-                                    ))}
+                                    {messages.length === 0 ? (
+                                        <Text c="dimmed" ta="center" mt="md">
+                                            {chatEnded ? "Chat Ended" : "No messages yet"}
+                                        </Text>
+                                    ) : (
+                                        messages.map((message) => (
+                                            <Card
+                                                key={message.id}
+                                                p="xs"
+                                                mb="xs"
+                                                style={{
+                                                    backgroundColor: message.is_owner ? "#e3f2fd" : "#f5f5f5",
+                                                    marginLeft: message.is_owner ? "auto" : "0",
+                                                    marginRight: message.is_owner ? "0" : "auto",
+                                                    maxWidth: "80%",
+                                                }}
+                                            >
+                                                <Group justify="space-between" mb="xs">
+                                                    <Text size="sm" fw={500}>
+                                                        {message.firstName} {message.lastName}
+                                                    </Text>
+                                                    {isAdmin && (
+                                                        <ActionIcon
+                                                            color="red"
+                                                            onClick={() => handleDeleteMessage(message.id)}
+                                                        >
+                                                            <Icon icon={trash} width={16} height={16} />
+                                                        </ActionIcon>
+                                                    )}
+                                                </Group>
+                                                <Text>{message.text}</Text>
+                                            </Card>
+                                        ))
+                                    )}
                                     <div ref={messagesEndRef} />
                                 </Card>
 

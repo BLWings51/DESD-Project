@@ -211,6 +211,6 @@ def hasChatEnded(request, eventID):
     event = get_object_or_404(Event, id=eventID)
     finalMessage = LiveEventChat.objects.filter(event=event, finalMessage=True)
     if finalMessage.exists():
-        return Response({"success": True})
+        return Response({"data": True})
     else:
-        return Response({"success": False})
+        return Response({"data": False})
