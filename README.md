@@ -24,7 +24,7 @@ The application should now be running at [http://localhost:5173](http://localhos
 
 
 ### 3. Changing .sh files from CRLF to LF (for windows user only)
-Sometimes when running the file there might be some errors like ```unable to run ./importDB.sh, file not found```. 
+Sometimes when running the file there might be some errors like ```exec ./importDB.sh: no such file or directory```. 
 
 ![image](https://github.com/user-attachments/assets/772fa24a-8e3d-403e-b2ae-2bb687eab8d7)
 
