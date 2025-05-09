@@ -52,7 +52,11 @@ def create_post(request, society_name):
                 return Response({"error": "You must be a member of this society to post."}, status=403)
 
             # Check if user has permission to create posts with the requested visibility
-            visibility = data.get('visibility', {}).get('name', PostVisibility.public)
+            visibility_data = data.get('visibility', PostVisibility.public)
+            if isinstance(visibility_data, dict):
+                visibility = visibility_data.get('name', PostVisibility.public)
+            else:
+                visibility = visibility_data
             if visibility == PostVisibility.admins:
                 is_admin = SocietyRelation.objects.filter(
                     society=society,
@@ -272,12 +276,11 @@ class PostSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         ret = super().to_internal_value(data)
-        visibility = data.get('visibility')
-        if visibility:
-            if isinstance(visibility, dict):
-                ret['visibility'] = visibility.get('name')
-            else:
-                ret['visibility'] = visibility
+        visibility = data.get('visibility', PostVisibility.public)
+        if isinstance(visibility, dict):
+            ret['visibility'] = visibility.get('name', PostVisibility.public)
+        else:
+            ret['visibility'] = visibility
         return ret
 
 class PostViewSet(viewsets.ModelViewSet):
