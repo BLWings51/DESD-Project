@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import apiRequest from "./api/apiRequest";
-import { Card, Title, Button, Loader, Alert, Group, Text, Flex, Box, Stack, ActionIcon } from "@mantine/core";
-import { Link } from "react-router-dom";
+import apiRequest, { getMediaUrl } from "./api/apiRequest";
+import { Card, Title, Button, Loader, Alert, Group, Text, Flex, Box, Stack, ActionIcon, Image } from "@mantine/core";
+import { Link, useNavigate } from "react-router-dom";
 import { Icon } from '@iconify/react';
 import trash from '@iconify-icons/tabler/trash';
 import user from '@iconify-icons/tabler/user';
@@ -13,12 +13,14 @@ interface Friend {
   firstName: string;
   lastName: string;
   email: string;
+  pfp: string | null;
 }
 
 const FriendsList = () => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -36,6 +38,10 @@ const FriendsList = () => {
     const res = await apiRequest({ endpoint: `/friends/remove/${accountID}/`, method: "POST" });
     if (!res.error) setFriends(friends.filter(f => f.accountID !== accountID));
     else alert(res.message);
+  };
+
+  const handleFriendClick = (accountID: number) => {
+    navigate(`/Profile/${accountID}`);
   };
 
   if (loading) return (
@@ -73,12 +79,27 @@ const FriendsList = () => {
               ) : (
                 <Stack gap="md">
                   {friends.map(friend => (
-                    <Card key={friend.accountID} shadow="sm" p="md" radius="md" withBorder>
+                    <Card 
+                      key={friend.accountID} 
+                      shadow="sm" 
+                      p="md" 
+                      radius="md" 
+                      withBorder
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleFriendClick(friend.accountID)}
+                    >
                       <Group justify="space-between">
                         <Group>
-                          <Icon icon={user} width={24} height={24} />
+                          <Image
+                            src={getMediaUrl(friend.pfp)}
+                            width={60}
+                            height={60}
+                            radius="md"
+                            alt={`${friend.firstName} ${friend.lastName}`}
+                            fallbackSrc="https://placehold.co/60x60?text=No+Image"
+                          />
                           <Box>
-                            <Text fw={500} component={Link} to={`/profile/${friend.accountID}`} style={{ textDecoration: 'none' }}>
+                            <Text fw={500}>
                               {friend.firstName} {friend.lastName}
                             </Text>
                             <Text size="sm" c="dimmed">{friend.email}</Text>
@@ -87,7 +108,10 @@ const FriendsList = () => {
                         <ActionIcon 
                           color="red" 
                           variant="subtle" 
-                          onClick={() => handleRemove(friend.accountID)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemove(friend.accountID);
+                          }}
                           title="Remove friend"
                         >
                           <Icon icon={trash} width={18} height={18} />

@@ -3,19 +3,25 @@ from django.db.models import Q
 from main.models import Society, Event, Account, Post, FriendRelation, SocietyRelation
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from .post import PostSerializer
 
 # Search function to handle search queries for societies, events, users, and posts
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search(request):
     query = request.GET.get('q', '')  # Get the search query from the request
-    search_type = request.GET.get('type', '') 
-    sort = request.GET.get('sort')
-    order = request.GET.get('order', 'desc')
-    friends_only = request.GET.get('friends_only') == 'true'
-    tags = request.GET.getlist('tags')  # Get the list of tags from the request
+    search_type = request.GET.get('type', '')  # Get the type of search
+    sort = request.GET.get('sort', '')  # Get the sort parameter
+    order = request.GET.get('order', 'desc')  # Get the order parameter
+    friends_only = request.GET.get('friends_only', 'false').lower() == 'true'  # Get friends_only parameter
+    tags = request.GET.getlist('tags', [])  # Get tags parameter
 
-    results = {}
+    results = {
+        'societies': [],
+        'events': [],
+        'users': [],
+        'posts': []
+    }
 
     # Check if the query is empty
     if not query:
@@ -24,7 +30,8 @@ def search(request):
     # Search Societies
     if search_type in ['', 'society']:
         societies = Society.objects.filter(
-            Q(name__icontains=query) | Q(description__icontains=query)
+            Q(name__icontains=query) |
+            Q(description__icontains=query)
         ).distinct()
         if tags:
             societies = societies.filter(interests__name__in=tags).distinct()
@@ -40,7 +47,9 @@ def search(request):
     # Search Events
     if search_type in ['', 'event']:
         events = Event.objects.filter(
-            Q(name__icontains=query) | Q(details__icontains=query)
+            Q(name__icontains=query) |
+            Q(details__icontains=query) |
+            Q(location__icontains=query)
         ).distinct()
         if tags:
             events = events.filter(interests__name__in=tags).distinct()
@@ -52,19 +61,21 @@ def search(request):
             events = events.order_by('-numOfInterestedPeople' if order == 'desc' else 'numOfInterestedPeople')
         elif sort == 'date':
             events = events.order_by('-startTime' if order == 'desc' else 'startTime')
-        results['events'] = list(events.values('id', 'name', 'details', 'startTime', 'endTime', 'location', 'society_id', 'numOfInterestedPeople'))
+        results['events'] = list(events.values('id', 'name', 'details', 'startTime', 'endTime', 'location'))
 
     # Search Users
     if search_type in ['', 'user']:
         users = Account.objects.filter(
-            Q(firstName__icontains=query) | Q(lastName__icontains=query) | Q(email__icontains=query)
+            Q(firstName__icontains=query) |
+            Q(lastName__icontains=query) |
+            Q(email__icontains=query)
         ).distinct()
         if tags:
             users = users.filter(interests__name__in=tags).distinct()
         if friends_only and request.user.is_authenticated:
             friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
             friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
-            users = users.filter(id__in=[friend.id for friend in friends])
+            users = users.filter(id__in=[f.id for f in friends])
         results['users'] = list(users.values('accountID', 'firstName', 'lastName', 'email'))
 
     # Search Posts
@@ -80,6 +91,7 @@ def search(request):
             posts = posts.filter(author__in=friends)
         if sort == 'date':
             posts = posts.order_by('-created_at' if order == 'desc' else 'created_at')
-        results['posts'] = list(posts.values('id', 'content', 'created_at', 'author_id', 'society_id'))
+        serializer = PostSerializer(posts, many=True, context={'request': request})
+        results['posts'] = serializer.data
 
     return JsonResponse(results)

@@ -22,6 +22,7 @@ import SearchPage from "./SearchPage";
 import ChatPage from "./ChatPage";
 import FriendsList from "./FriendsList";
 import FriendRequests from "./FriendRequests";
+import SocietyMembers from "./SocietyMembers";
 
 import "./static/stylesheet.css";
 
@@ -36,45 +37,48 @@ const App = () => {
       <Router>
         <AuthProvider>
           <CustomNavbar />
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
+          <div style={{ paddingTop: "60px" }}>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
 
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/home" element={<Home />} />
-              <Route path="/Profile" element={<Profile />} />
-              <Route path="/Profile/:accountID" element={<Profile />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/Societies" element={<Societies />} />
-              <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
-              <Route path="/Societies/:society_name" element={<SocietyDetail />} />
-              <Route path="/friends" element={<FriendsList />} />
-              <Route path="/friend-requests" element={<FriendRequests />} />
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/home" element={<Home />} />
+                <Route path="/Profile" element={<Profile />} />
+                <Route path="/Profile/:accountID" element={<Profile />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/Societies" element={<Societies />} />
+                <Route path="/Societies/CreateSociety" element={<CreateSociety />} />
+                <Route path="/Societies/:society_name" element={<SocietyDetail />} />
+                <Route path="/Societies/:society_name/members" element={<SocietyMembers />} />
+                <Route path="/friends" element={<FriendsList />} />
+                <Route path="/friend-requests" element={<FriendRequests />} />
 
-              {/* Admin Routes */}
-              <Route element={<PermissionRoute requiredPermission="admin" />}>
-                {/* Admin-only routes go here */}
-              </Route>
-
-              {/* Society Admin Routes */}
-              <Route path="/Societies/:society_name">
-                <Route element={<PermissionRoute requiredPermission="society_admin" />}>
-                  <Route path="UpdateSociety" element={<UpdateSociety />} />
-                  <Route path="CreateEvent" element={<CreateEvent />} />
-                  <Route path=":eventID/UpdateEvent" element={<UpdateEvent />} />
+                {/* Admin Routes */}
+                <Route element={<PermissionRoute requiredPermission="admin" />}>
+                  {/* Admin-only routes go here */}
                 </Route>
 
-                {/* Member Routes */}
-                <Route element={<PermissionRoute requiredPermission="member" />}>
-                  <Route path=":eventID" element={<EventDetail />} />
-                  <Route path=":eventID/chat" element={<ChatPage />} />
+                {/* Society Admin Routes */}
+                <Route path="/Societies/:society_name">
+                  <Route element={<PermissionRoute requiredPermission="society_admin" />}>
+                    <Route path="UpdateSociety" element={<UpdateSociety />} />
+                    <Route path="CreateEvent" element={<CreateEvent />} />
+                    <Route path=":eventID/UpdateEvent" element={<UpdateEvent />} />
+                  </Route>
+
+                  {/* Member Routes */}
+                  <Route element={<PermissionRoute requiredPermission="member" />}>
+                    <Route path=":eventID" element={<EventDetail />} />
+                    <Route path=":eventID/chat" element={<ChatPage />} />
+                  </Route>
                 </Route>
               </Route>
-            </Route>
-          </Routes>
+            </Routes>
+          </div>
         </AuthProvider>
       </Router>
     </MantineProvider>

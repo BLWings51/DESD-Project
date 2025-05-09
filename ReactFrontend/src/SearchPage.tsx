@@ -1,7 +1,7 @@
 // SearchPage.tsx
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import apiRequest from "./api/apiRequest";
+import apiRequest, { getMediaUrl } from "./api/apiRequest";
 import {
     Container,
     Title,
@@ -14,10 +14,24 @@ import {
     Flex,
     Select,
     Checkbox,
+    Group,
+    Image,
+    Badge,
+    Button,
+    Divider,
+    Box,
+    TextInput,
+    Paper,
 } from "@mantine/core";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
 import TagDropdown from "./components/TagDropdown";
+import { Icon } from '@iconify/react';
+import messageCircle from '@iconify-icons/tabler/message-circle';
+import send from '@iconify-icons/tabler/send';
+import chevronDown from '@iconify-icons/tabler/chevron-down';
+import chevronUp from '@iconify-icons/tabler/chevron-up';
+import { useAuth } from "./authContext";
 
 interface Society {
     id: number;
@@ -34,7 +48,24 @@ interface Event {
 interface User {
     accountID: number; firstName: string; lastName: string; email: string;
 }
-interface Post { [key: string]: any }
+interface Post {
+    id: number;
+    content: string;
+    created_at: string;
+    author_name: string;
+    society: string;
+    visibility: string;
+    image?: string;
+    comments?: Comment[];
+    likes_count: number;
+    liked_by_user: boolean;
+}
+interface Comment {
+    id: number;
+    content: string;
+    created_at: string;
+    author_name: string;
+}
 interface SearchResults {
     societies: Society[]; events: Event[]; users: User[]; posts: Post[];
 }
@@ -44,6 +75,7 @@ const EMPTY_RESULTS: SearchResults = {
 
 const SearchPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const { isAuthenticated } = useAuth();
 
     /* ---------- filters pulled from URL ---------- */
     const query = searchParams.get("q") || "";
@@ -58,6 +90,10 @@ const SearchPage = () => {
     const [results, setResults] = useState<SearchResults>(EMPTY_RESULTS);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [expandedPosts, setExpandedPosts] = useState<{ [key: number]: boolean }>({});
+    const [newComment, setNewComment] = useState('');
+    const [commentingPostId, setCommentingPostId] = useState<number | null>(null);
+    const [likedPosts, setLikedPosts] = useState<{ [key: number]: boolean }>({});
 
     /* ---------- fetch tag suggestions once ---------- */
     useEffect(() => {
@@ -135,6 +171,96 @@ const SearchPage = () => {
         setSearchParams(params, { replace: true });
     };
 
+    const formatDateTime = (str: string) => {
+        const d = new Date(str);
+        return isNaN(d.getTime())
+            ? 'Invalid date'
+            : d.toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+    };
+
+    const toggleComments = (postId: number) => {
+        setExpandedPosts(prev => ({
+            ...prev,
+            [postId]: !prev[postId]
+        }));
+    };
+
+    const handleAddComment = async (postId: number) => {
+        if (!newComment.trim() || !isAuthenticated) return;
+
+        try {
+            const response = await apiRequest<Comment>({
+                endpoint: `/Societies/posts/${postId}/comments/`,
+                method: 'POST',
+                data: {
+                    content: newComment,
+                    post_id: postId
+                }
+            });
+
+            setResults(prev => ({
+                ...prev,
+                posts: prev.posts.map(post => {
+                    if (post.id === postId) {
+                        return {
+                            ...post,
+                            comments: [...(post.comments || []), response.data].filter((comment): comment is Comment => comment !== undefined)
+                        };
+                    }
+                    return post;
+                })
+            }));
+
+            setNewComment('');
+            setCommentingPostId(null);
+        } catch (error) {
+            console.error('Error adding comment:', error);
+        }
+    };
+
+    const handleLike = async (postId: number, society: string) => {
+        if (!isAuthenticated) return;
+        
+        try {
+            const endpoint = likedPosts[postId] 
+                ? `/Societies/${society}/posts/${postId}/dislike/`
+                : `/Societies/${society}/posts/${postId}/like/`;
+            
+            const response = await apiRequest({
+                endpoint,
+                method: 'POST'
+            });
+
+            if (!response.error) {
+                setResults(prev => ({
+                    ...prev,
+                    posts: prev.posts.map(post => {
+                        if (post.id === postId) {
+                            return {
+                                ...post,
+                                likes_count: likedPosts[postId] ? post.likes_count - 1 : post.likes_count + 1,
+                                liked_by_user: !likedPosts[postId]
+                            };
+                        }
+                        return post;
+                    })
+                }));
+                setLikedPosts(prev => ({
+                    ...prev,
+                    [postId]: !prev[postId]
+                }));
+            }
+        } catch (error) {
+            console.error('Error toggling like:', error);
+        }
+    };
+
     /* ---------- render ---------- */
     return (
         <>
@@ -144,7 +270,7 @@ const SearchPage = () => {
 
                     <div style={{ flex: 1, maxWidth: 900 }}>
                         <Container size="md" py="xl">
-                            <Title order={2} mb="lg">Search Results for “{query}”</Title>
+                            <Title order={2} mb="lg">Search Results for "{query}"</Title>
 
                             {/* Filters */}
                             <Card mb="lg" p="md" withBorder>
@@ -252,25 +378,112 @@ const SearchPage = () => {
                             {/* Posts */}
                             <Title order={3} mt="lg" mb="xs">Posts</Title>
                             {results.posts.length ? (
-                                <Stack gap="sm">
+                                <Stack gap="md">
                                     {results.posts.map((post) => (
-                                        <Card key={post.id} shadow="sm" p="md" radius="md" withBorder>
-                                            <Text>{post.content}</Text>
-                                            <Text size="sm" color="dimmed">
-                                                Posted on: {new Date(post.created_at).toLocaleString()}
-                                            </Text>
-                                            <Text size="sm" color="dimmed">
-                                                Author ID: {post.author_id}
-                                            </Text>
-                                            {post.society_id && (
-                                                <Text size="sm" color="dimmed">
-                                                    Society ID: {post.society_id}
-                                                </Text>
-                                            )}
+                                        <Card key={post.id} shadow="sm" padding="lg" radius="md" withBorder>
+                                            <Stack gap="xs">
+                                                <Group justify="space-between">
+                                                    <Text size="sm" c="dimmed">{post.author_name} • {formatDateTime(post.created_at)}</Text>
+                                                    <Badge color="blue">{post.visibility}</Badge>
+                                                </Group>
+                                                <Text>{post.content}</Text>
+                                                {post.image && (
+                                                    <Image
+                                                        src={getMediaUrl(post.image)}
+                                                        alt="Post image"
+                                                        mt="md"
+                                                        radius="md"
+                                                        fit="contain"
+                                                        style={{ maxHeight: '400px' }}
+                                                    />
+                                                )}
+                                                <Group justify="space-between">
+                                                    <Text size="sm" c="dimmed">Posted in {post.society}</Text>
+                                                    <Button
+                                                        variant="light"
+                                                        radius="md"
+                                                        component={Link}
+                                                        to={`/Societies/${post.society}`}
+                                                    >
+                                                        View Society
+                                                    </Button>
+                                                </Group>
+
+                                                {/* Comments Section */}
+                                                <Divider my="sm" />
+                                                <Group justify="space-between" mb="xs">
+                                                    <Group>
+                                                        <Button
+                                                            variant="subtle"
+                                                            color={post.liked_by_user ? "red" : "gray"}
+                                                            leftSection={<Icon icon={post.liked_by_user ? "tabler:heart-filled" : "tabler:heart"} width={16} height={16} />}
+                                                            onClick={() => handleLike(post.id, post.society)}
+                                                            disabled={!isAuthenticated}
+                                                        >
+                                                            {post.likes_count}
+                                                        </Button>
+                                                        <Text size="sm" fw={500}>
+                                                            {post.comments?.length || 0} Comments
+                                                        </Text>
+                                                    </Group>
+                                                    <Button
+                                                        variant="subtle"
+                                                        size="sm"
+                                                        leftSection={<Icon icon={expandedPosts[post.id] ? chevronUp : chevronDown} width={16} height={16} />}
+                                                        onClick={() => toggleComments(post.id)}
+                                                    >
+                                                        {expandedPosts[post.id] ? 'Hide Comments' : 'View Comments'}
+                                                    </Button>
+                                                </Group>
+
+                                                {expandedPosts[post.id] && (
+                                                    <Stack gap="xs">
+                                                        {commentingPostId === post.id ? (
+                                                            <Group>
+                                                                <TextInput
+                                                                    placeholder="Write a comment..."
+                                                                    value={newComment}
+                                                                    onChange={(e) => setNewComment(e.target.value)}
+                                                                    style={{ flex: 1 }}
+                                                                />
+                                                                <Button
+                                                                    variant="light"
+                                                                    onClick={() => handleAddComment(post.id)}
+                                                                    leftSection={<Icon icon={send} width={16} height={16} />}
+                                                                >
+                                                                    Post
+                                                                </Button>
+                                                            </Group>
+                                                        ) : (
+                                                            <Button
+                                                                variant="subtle"
+                                                                leftSection={<Icon icon={messageCircle} width={16} height={16} />}
+                                                                onClick={() => setCommentingPostId(post.id)}
+                                                            >
+                                                                Add Comment
+                                                            </Button>
+                                                        )}
+
+                                                        {post.comments?.map((comment) => (
+                                                            <Paper key={comment.id} p="xs" withBorder>
+                                                                <Group justify="space-between" mb={4}>
+                                                                    <Text size="sm" fw={500}>{comment.author_name}</Text>
+                                                                    <Text size="xs" c="dimmed">
+                                                                        {formatDateTime(comment.created_at)}
+                                                                    </Text>
+                                                                </Group>
+                                                                <Text size="sm">{comment.content}</Text>
+                                                            </Paper>
+                                                        ))}
+                                                    </Stack>
+                                                )}
+                                            </Stack>
                                         </Card>
                                     ))}
                                 </Stack>
-                            ) : <Text color="dimmed">No posts found.</Text>}
+                            ) : (
+                                <Text color="dimmed">No posts found.</Text>
+                            )}
                         </Container>
                     </div>
 

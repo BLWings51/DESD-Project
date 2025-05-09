@@ -25,6 +25,9 @@ import {
   Paper,
   TextInput,
   SimpleGrid,
+  Switch,
+  Select,
+  FileButton,
 } from "@mantine/core";
 import { Icon } from '@iconify/react';
 import edit from '@iconify-icons/tabler/edit';
@@ -74,6 +77,10 @@ interface Post {
   author_name: string;
   interests: string[];
   comments?: Comment[];
+  visibility: string;
+  image?: string;
+  likes_count: number;
+  liked_by_user: boolean;
 }
 
 interface Is_Admin {
@@ -110,6 +117,10 @@ const SocietyDetail = () => {
   const [commentPermissions, setCommentPermissions] = useState<{ [key: number]: boolean }>({});
   const [commentToDelete, setCommentToDelete] = useState<{ postId: number; commentId: number } | null>(null);
   const [deleteCommentModalOpen, setDeleteCommentModalOpen] = useState(false);
+  const [postVisibility, setPostVisibility] = useState('public');
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  const [likedPosts, setLikedPosts] = useState<{ [key: number]: boolean }>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -285,17 +296,28 @@ const SocietyDetail = () => {
     if (!newPostContent.trim()) return;
     setIsCreatingPost(true);
     try {
+      const formData = new FormData();
+      formData.append('content', newPostContent);
+      formData.append('interests', JSON.stringify(newPostInterests));
+      formData.append('visibility', postVisibility);
+      if (postImage) {
+        formData.append('image', postImage);
+      }
+
       await apiRequest({
         endpoint: `/Societies/${society_name}/posts/create/`,
         method: 'POST',
-        data: {
-          content: newPostContent,
-          interests: newPostInterests,
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
         },
       });
       fetchPosts();
       setNewPostContent('');
       setNewPostInterests([]);
+      setPostVisibility('public');
+      setPostImage(null);
+      setPostImagePreview(null);
     } catch {
       setPostsError('Failed to create post');
     } finally {
@@ -424,27 +446,19 @@ const SocietyDetail = () => {
 
   const canDeleteComment = (commentId: number) => commentPermissions[commentId] || false;
 
-  // useEffect(() => {
-  //   if (!isAuthenticated || !loggedAccountID) return;
-
-  //   const fetchUserStatus = async () => {
-  //     try {
-
-  //       // member?
-  //       const mem = await apiRequest<{ success: boolean }>({
-  //         endpoint: `/${society_name}/${loggedAccountID}/`,
-  //         method: 'GET',
-  //       });
-  //       if (mem.data) setIsMember(mem.data.success);
-
-  //     } catch (e) {
-  //       console.error('Error fetching user status:', e);
-  //       setError(e instanceof Error ? e.message : "Failed to load user status");
-  //     }
-  //   };
-
-  //   fetchUserStatus();
-  // }, [isAuthenticated, loggedAccountID, society_name]);
+  const handlePostImageChange = (file: File | null) => {
+    if (file) {
+      setPostImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPostImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPostImage(null);
+      setPostImagePreview(null);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !loggedAccountID) return;
@@ -471,6 +485,40 @@ const SocietyDetail = () => {
 
     fetchUserStatus();
   }, [isAuthenticated, loggedAccountID, society_name]);
+
+  const handleLike = async (postId: number) => {
+    if (!isAuthenticated || !society_name) return;
+    
+    try {
+      const endpoint = likedPosts[postId] 
+        ? `/Societies/${society_name}/posts/${postId}/dislike/`
+        : `/Societies/${society_name}/posts/${postId}/like/`;
+      
+      const response = await apiRequest({
+        endpoint,
+        method: 'POST'
+      });
+
+      if (!response.error) {
+        setPosts(posts => posts.map(post => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              likes_count: likedPosts[postId] ? post.likes_count - 1 : post.likes_count + 1,
+              liked_by_user: !likedPosts[postId]
+            };
+          }
+          return post;
+        }));
+        setLikedPosts(prev => ({
+          ...prev,
+          [postId]: !prev[postId]
+        }));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
 
   if (!society) return <Text>Society not found</Text>;
   if (loading || authLoading) return <Loader size="xl" />;
@@ -511,12 +559,36 @@ const SocietyDetail = () => {
               <Text>{society.description}</Text>
             </Card>
 
-            {isAuthenticated && (
-              <Group wrap="nowrap" mb="md">
-                <Button color="blue" onClick={handleJoin}>Join ({society.numOfInterestedPeople})</Button>
-                <Button color="red" onClick={handleLeave}>Leave</Button>
-              </Group>
-            )}
+            <Group>
+              {isAuthenticated && (
+                <>
+                  {isMember ? (
+                    <Button
+                      color="red"
+                      onClick={handleLeave}
+                      loading={loading}
+                    >
+                      Leave Society
+                    </Button>
+                  ) : (
+                    <Button
+                      color="blue"
+                      onClick={handleJoin}
+                      loading={loading}
+                    >
+                      Join Society
+                    </Button>
+                  )}
+                  <Button
+                    component={Link}
+                    to={`/Societies/${society_name}/members`}
+                    variant="outline"
+                  >
+                    Members
+                  </Button>
+                </>
+              )}
+            </Group>
 
             <Tabs defaultValue="events">
               <Tabs.List>
@@ -586,6 +658,42 @@ const SocietyDetail = () => {
                         </Button>
                       </Group>
                     </Paper>
+                    
+                    <Select
+                      label="Post Visibility"
+                      placeholder="Select who can see this post"
+                      value={postVisibility}
+                      onChange={(value) => setPostVisibility(value || 'public')}
+                      data={[
+                        { value: 'public', label: 'Public - Everyone can see this post' },
+                        { value: 'members_only', label: 'Members Only - Only society members can see this post' },
+                        { value: 'admins', label: 'Admin Only - Only society admins can see this post' }
+                      ]}
+                      mb="md"
+                    />
+                    <Group mb="md">
+                      <FileButton onChange={handlePostImageChange} accept="image/png,image/jpeg">
+                        {(props) => <Button {...props}>Upload Image</Button>}
+                      </FileButton>
+                      {postImagePreview && (
+                        <Image
+                          src={postImagePreview}
+                          alt="Post preview"
+                          width={100}
+                          height={100}
+                          fit="cover"
+                          radius="md"
+                        />
+                      )}
+                    </Group>
+                    <Button
+                      leftSection={<Icon icon={plus} width={16} height={16} />}
+                      onClick={handleCreatePost}
+                      loading={isCreatingPost}
+                      disabled={!newPostContent.trim()}
+                    >
+                      Create Post
+                    </Button>
                   </Card>
                 )}
                 {postsLoading ? (
@@ -600,6 +708,25 @@ const SocietyDetail = () => {
                           <Box>
                             <Text size="sm" color="dimmed">{post.author_name} • {formatDateTime(post.created_at)}</Text>
                             <Text mt="sm">{post.content}</Text>
+                            {post.image && (
+                              <Image
+                                src={post.image}
+                                alt="Post image"
+                                mt="md"
+                                radius="md"
+                                fit="contain"
+                                style={{ maxHeight: '400px' }}
+                              />
+                            )}
+                            <Badge mt="sm" color={
+                              post.visibility === 'public' ? 'blue' :
+                              post.visibility === 'members_only' ? 'yellow' :
+                              'red'
+                            }>
+                              {post.visibility === 'public' ? 'Public' :
+                               post.visibility === 'members_only' ? 'Members Only' :
+                               'Admin Only'}
+                            </Badge>
                           </Box>
                           {canDeletePost(post) && (
                             <ActionIcon color="red" variant="subtle" onClick={() => { setPostToDelete(post); setDeletePostModalOpen(true); }}>
@@ -611,9 +738,20 @@ const SocietyDetail = () => {
                         {/* Comments Section */}
                         <Divider my="sm" />
                         <Group justify="space-between" mb="xs">
-                          <Text size="sm" fw={500}>
-                            {post.comments?.length || 0} Comments
-                          </Text>
+                          <Group>
+                            <Button
+                              variant="subtle"
+                              color={post.liked_by_user ? "red" : "gray"}
+                              leftSection={<Icon icon={post.liked_by_user ? "tabler:heart-filled" : "tabler:heart"} width={16} height={16} />}
+                              onClick={() => handleLike(post.id)}
+                              disabled={!isAuthenticated}
+                            >
+                              {post.likes_count}
+                            </Button>
+                            <Text size="sm" fw={500}>
+                              {post.comments?.length || 0} Comments
+                            </Text>
+                          </Group>
                           <Button
                             variant="subtle"
                             size="sm"

@@ -52,11 +52,16 @@ def create_post(request, society_name):
                 return Response({"error": "You must be a member of this society to post."}, status=403)
 
             # Check if user has permission to create posts with the requested visibility
-            visibility_data = data.get('visibility', PostVisibility.public)
+            visibility_data = data.get('visibility')
             if isinstance(visibility_data, dict):
-                visibility = visibility_data.get('name', PostVisibility.public)
+                visibility = visibility_data.get('name')
+            elif isinstance(visibility_data, (int, str)) and str(visibility_data).isdigit():
+                # If it's a numeric ID, get the visibility object
+                visibility_obj = PostVisibility.objects.get(id=int(visibility_data))
+                visibility = visibility_obj.name
             else:
                 visibility = visibility_data
+
             if visibility == PostVisibility.admins:
                 is_admin = SocietyRelation.objects.filter(
                     society=society,
@@ -68,6 +73,8 @@ def create_post(request, society_name):
 
         except Society.DoesNotExist:
             return Response({"error": "Society not found"}, status=404)
+        except PostVisibility.DoesNotExist:
+            return Response({"error": "Invalid visibility setting"}, status=400)
 
     serializer = PostSerializer(data=data)
     if serializer.is_valid():

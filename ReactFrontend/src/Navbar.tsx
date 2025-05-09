@@ -105,7 +105,18 @@ const Navbar: React.FC = () => {
     };
 
     return (
-        <Paper shadow="sm" p="md" style={{ position: "sticky", top: 0, zIndex: 1000 }}>
+        <Paper 
+            shadow="sm" 
+            p="md" 
+            style={{ 
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000,
+                backgroundColor: "var(--mantine-color-body)"
+            }}
+        >
             <Container fluid>
                 <Group justify="space-between">
                     <Text size="xl" component={Link} to="/home" style={{ textDecoration: 'none' }}>

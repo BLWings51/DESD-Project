@@ -225,7 +225,7 @@ def getmembers(request, society_name):
     except Society.DoesNotExist:
         return Response({"error": "Society not found"}, status=404)
 
-    serializer = GetSocietySerializer(society)  # Use the GetSocietySerializer
+    serializer = GetSocietySerializer(society, context={'request': request})  # Pass request context
     return Response(serializer.data)
 
 @api_view(['GET'])
@@ -432,8 +432,18 @@ class UpdateSocietySerializer(serializers.ModelSerializer):
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['id', 'accountID', 'email']
+        fields = ['id', 'accountID', 'email', 'firstName', 'lastName', 'pfp']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.pfp:
+            data['pfp'] = request.build_absolute_uri(instance.pfp.url)
+        elif instance.pfp:
+            data['pfp'] = instance.pfp.url
+        else:
+            data['pfp'] = None
+        return data
 
 class GetSocietySerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
@@ -462,7 +472,15 @@ class SocietyMemberViaRelationSerializer(serializers.ModelSerializer):
         fields = ['account', 'adminStatus']
 
     def get_account(self, society_relation):
-        return AccountSerializer(society_relation.account).data
+        account_data = AccountSerializer(society_relation.account, context=self.context).data
+        request = self.context.get('request')
+        if request and society_relation.account.pfp:
+            account_data['pfp'] = request.build_absolute_uri(society_relation.account.pfp.url)
+        elif society_relation.account.pfp:
+            account_data['pfp'] = society_relation.account.pfp.url
+        else:
+            account_data['pfp'] = None
+        return account_data
 
 @api_view(['POST'])
 @permission_classes([IsAdminOrSocietyAdmin])

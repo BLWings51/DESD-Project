@@ -1,4 +1,12 @@
 const API_BASE_URL = "http://127.0.0.1:8000/api";
+const MEDIA_BASE_URL = "http://127.0.0.1:8000";
+
+// Function to convert relative media URLs to absolute URLs
+export function getMediaUrl(url: string | null): string | null {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `${MEDIA_BASE_URL}${url}`;
+}
 
 // Define response structure
 interface ApiResponse<T> {

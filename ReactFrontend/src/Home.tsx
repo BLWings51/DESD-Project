@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import { Stack, Group, Grid, Center, Card, Image, Text, Title, Button, Container, Flex } from '@mantine/core';
+import { Stack, Group, Grid, Center, Card, Image, Text, Title, Button, Container, Flex, Badge, TextInput, Paper, Divider } from '@mantine/core';
 import { Link } from "react-router-dom";
 import apiRequest from "./api/apiRequest";
 import "./App.css";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
+import { Icon } from '@iconify/react';
+import messageCircle from '@iconify-icons/tabler/message-circle';
+import send from '@iconify-icons/tabler/send';
+import chevronDown from '@iconify-icons/tabler/chevron-down';
+import chevronUp from '@iconify-icons/tabler/chevron-up';
+import { useAuth } from "./authContext";
 
 interface Society {
   id: number;
@@ -24,11 +30,37 @@ interface Event {
   society: string;
 }
 
+interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  author_name: string;
+}
+
+interface Post {
+  id: number;
+  content: string;
+  created_at: string;
+  author_name: string;
+  society: string;
+  visibility: string;
+  image?: string;
+  comments?: Comment[];
+  likes_count: number;
+  liked_by_user: boolean;
+}
+
 const Home: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const [featuredSocieties, setFeaturedSocieties] = useState<Society[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [publicPosts, setPublicPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedPosts, setExpandedPosts] = useState<{ [key: number]: boolean }>({});
+  const [newComment, setNewComment] = useState('');
+  const [commentingPostId, setCommentingPostId] = useState<number | null>(null);
+  const [likedPosts, setLikedPosts] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,6 +111,36 @@ const Home: React.FC = () => {
           .slice(0, 3);
         setUpcomingEvents(upcoming);
 
+        // Fetch public posts from all societies
+        const allPosts: Post[] = [];
+        for (const society of societiesResponse.data || []) {
+          try {
+            const postsResponse = await apiRequest<Post[]>({
+              endpoint: `/Societies/${society.name}/posts/`,
+              method: 'GET',
+            });
+
+            if (!postsResponse.error && postsResponse.data) {
+              // Add society name to each post and filter for public posts
+              const publicPostsWithSociety = postsResponse.data
+                .filter(post => post.visibility === 'public')
+                .map(post => ({
+                  ...post,
+                  society: society.name
+                }));
+              allPosts.push(...publicPostsWithSociety);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch posts for society ${society.name}:`, err);
+          }
+        }
+
+        // Sort posts by creation date (newest first) and limit to 60
+        const sortedPosts = allPosts
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 60);
+        setPublicPosts(sortedPosts);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
@@ -89,6 +151,89 @@ const Home: React.FC = () => {
     fetchData();
   }, []);
 
+  const formatDateTime = (str: string) => {
+    const d = new Date(str);
+    return isNaN(d.getTime())
+      ? 'Invalid date'
+      : d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+  };
+
+  const toggleComments = (postId: number) => {
+    setExpandedPosts(prev => ({
+      ...prev,
+      [postId]: !prev[postId]
+    }));
+  };
+
+  const handleAddComment = async (postId: number) => {
+    if (!newComment.trim() || !isAuthenticated) return;
+
+    try {
+      const response = await apiRequest<Comment>({
+        endpoint: `/Societies/posts/${postId}/comments/`,
+        method: 'POST',
+        data: {
+          content: newComment,
+          post_id: postId
+        }
+      });
+
+      setPublicPosts(posts => posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            comments: [...(post.comments || []), response.data].filter((comment): comment is Comment => comment !== undefined)
+          };
+        }
+        return post;
+      }));
+
+      setNewComment('');
+      setCommentingPostId(null);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleLike = async (postId: number, society: string) => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const endpoint = likedPosts[postId] 
+        ? `/Societies/${society}/posts/${postId}/dislike/`
+        : `/Societies/${society}/posts/${postId}/like/`;
+      
+      const response = await apiRequest({
+        endpoint,
+        method: 'POST'
+      });
+
+      if (!response.error) {
+        setPublicPosts(posts => posts.map(post => {
+          if (post.id === postId) {
+            return {
+              ...post,
+              likes_count: likedPosts[postId] ? post.likes_count - 1 : post.likes_count + 1,
+              liked_by_user: !likedPosts[postId]
+            };
+          }
+          return post;
+        }));
+        setLikedPosts(prev => ({
+          ...prev,
+          [postId]: !prev[postId]
+        }));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
 
   return (
     <>
@@ -184,6 +329,121 @@ const Home: React.FC = () => {
                     </Grid.Col>
                   )}
                 </Grid>
+              </Stack>
+
+              {/* Public Posts */}
+              <Stack gap="md">
+                <Group>
+                  <Icon icon={messageCircle} width={24} height={24} />
+                  <Title order={2} size="h4">Latest Posts</Title>
+                </Group>
+                <Stack gap="md">
+                  {publicPosts.length > 0 ? (
+                    publicPosts.map((post) => (
+                      <Card key={post.id} shadow="sm" padding="lg" radius="md" withBorder>
+                        <Stack gap="xs">
+                          <Group justify="space-between">
+                            <Text size="sm" c="dimmed">{post.author_name} • {formatDateTime(post.created_at)}</Text>
+                            <Badge color="blue">Public</Badge>
+                          </Group>
+                          <Text>{post.content}</Text>
+                          {post.image && (
+                            <Image
+                              src={post.image}
+                              alt="Post image"
+                              mt="md"
+                              radius="md"
+                              fit="contain"
+                              style={{ maxHeight: '400px' }}
+                            />
+                          )}
+                          <Group justify="space-between">
+                            <Text size="sm" c="dimmed">Posted in {post.society}</Text>
+                            <Button
+                              variant="light"
+                              radius="md"
+                              component={Link}
+                              to={`/Societies/${post.society}`}
+                            >
+                              View Society
+                            </Button>
+                          </Group>
+
+                          {/* Comments Section */}
+                          <Divider my="sm" />
+                          <Group justify="space-between" mb="xs">
+                            <Group>
+                              <Button
+                                variant="subtle"
+                                color={post.liked_by_user ? "red" : "gray"}
+                                leftSection={<Icon icon={post.liked_by_user ? "tabler:heart-filled" : "tabler:heart"} width={16} height={16} />}
+                                onClick={() => handleLike(post.id, post.society)}
+                                disabled={!isAuthenticated}
+                              >
+                                {post.likes_count}
+                              </Button>
+                              <Text size="sm" fw={500}>
+                                {post.comments?.length || 0} Comments
+                              </Text>
+                            </Group>
+                            <Button
+                              variant="subtle"
+                              size="sm"
+                              leftSection={<Icon icon={expandedPosts[post.id] ? chevronUp : chevronDown} width={16} height={16} />}
+                              onClick={() => toggleComments(post.id)}
+                            >
+                              {expandedPosts[post.id] ? 'Hide Comments' : 'View Comments'}
+                            </Button>
+                          </Group>
+
+                          {expandedPosts[post.id] && (
+                            <Stack gap="xs">
+                              {commentingPostId === post.id ? (
+                                <Group>
+                                  <TextInput
+                                    placeholder="Write a comment..."
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                    style={{ flex: 1 }}
+                                  />
+                                  <Button
+                                    variant="light"
+                                    onClick={() => handleAddComment(post.id)}
+                                    leftSection={<Icon icon={send} width={16} height={16} />}
+                                  >
+                                    Post
+                                  </Button>
+                                </Group>
+                              ) : (
+                                <Button
+                                  variant="subtle"
+                                  leftSection={<Icon icon={messageCircle} width={16} height={16} />}
+                                  onClick={() => setCommentingPostId(post.id)}
+                                >
+                                  Add Comment
+                                </Button>
+                              )}
+
+                              {post.comments?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((comment) => (
+                                <Paper key={comment.id} p="xs" withBorder>
+                                  <Group justify="space-between" mb={4}>
+                                    <Text size="sm" fw={500}>{comment.author_name}</Text>
+                                    <Text size="xs" c="dimmed">
+                                      {formatDateTime(comment.created_at)}
+                                    </Text>
+                                  </Group>
+                                  <Text size="sm">{comment.content}</Text>
+                                </Paper>
+                              ))}
+                            </Stack>
+                          )}
+                        </Stack>
+                      </Card>
+                    ))
+                  ) : (
+                    <Text c="dimmed" ta="center">No public posts available</Text>
+                  )}
+                </Stack>
               </Stack>
             </Stack>
           </Container>
