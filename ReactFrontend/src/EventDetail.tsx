@@ -83,11 +83,11 @@ const EventDetail = () => {
                 if (socAdm.data) setIsSocietyAdmin(socAdm.data["Society Admin"]);
 
                 // joined event?
-                const join = await apiRequest<{ has_joined: boolean }>({
+                const join = await apiRequest<{ is_registered: boolean }>({
                     endpoint: `/Societies/${society_name}/${eventID}/CheckInterest/`,
                     method: 'GET',
                 });
-                if (join.data) setHasJoined(join.data.has_joined);
+                if (join.data) setHasJoined(join.data.is_registered);
             } catch (e) {
                 console.error('Error fetching user status:', e);
                 setError(e instanceof Error ? e.message : "Failed to load user status");
