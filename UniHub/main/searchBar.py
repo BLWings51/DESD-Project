@@ -13,6 +13,7 @@ def search(request):
     sort = request.GET.get('sort')
     order = request.GET.get('order', 'desc')
     friends_only = request.GET.get('friends_only') == 'true'
+    tags = request.GET.getlist('tags')  # Get the list of tags from the request
 
     results = {}
 
@@ -23,8 +24,10 @@ def search(request):
     # Search Societies
     if search_type in ['', 'society']:
         societies = Society.objects.filter(
-            Q(name__icontains=query) | Q(description__icontains=query) | Q(interests__name__icontains=query)
+            Q(name__icontains=query) | Q(description__icontains=query)
         ).distinct()
+        if tags:
+            societies = societies.filter(interests__name__in=tags).distinct()
         if friends_only and request.user.is_authenticated:
             friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
             friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
@@ -37,10 +40,11 @@ def search(request):
     # Search Events
     if search_type in ['', 'event']:
         events = Event.objects.filter(
-            Q(name__icontains=query) | Q(details__icontains=query) | Q(interests__name__icontains=query)
+            Q(name__icontains=query) | Q(details__icontains=query)
         ).distinct()
+        if tags:
+            events = events.filter(interests__name__in=tags).distinct()
         if friends_only and request.user.is_authenticated:
-            # Get all friends' accounts
             friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
             friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
             events = events.filter(eventrelation__account__in=friends).distinct()
@@ -53,8 +57,10 @@ def search(request):
     # Search Users
     if search_type in ['', 'user']:
         users = Account.objects.filter(
-            Q(firstName__icontains=query) | Q(lastName__icontains=query) | Q(email__icontains=query) | Q(interests__name__icontains=query)
+            Q(firstName__icontains=query) | Q(lastName__icontains=query) | Q(email__icontains=query)
         ).distinct()
+        if tags:
+            users = users.filter(interests__name__in=tags).distinct()
         if friends_only and request.user.is_authenticated:
             friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
             friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
@@ -64,8 +70,10 @@ def search(request):
     # Search Posts
     if search_type in ['', 'post']:
         posts = Post.objects.filter(
-            Q(content__icontains=query) | Q(interests__name__icontains=query)
+            Q(content__icontains=query)
         ).distinct()
+        if tags:
+            posts = posts.filter(interests__name__in=tags).distinct()
         if friends_only and request.user.is_authenticated:
             friends = [fr.to_account for fr in FriendRelation.objects.filter(from_account=request.user, confirmed=True)]
             friends += [fr.from_account for fr in FriendRelation.objects.filter(to_account=request.user, confirmed=True)]
