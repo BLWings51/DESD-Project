@@ -1,8 +1,9 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, MultiSelect, Group } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Group } from "@mantine/core";
 import apiRequest from "./api/apiRequest";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import TagDropdown from "./components/TagDropdown";
 
 const CreateSociety = () => {
     const navigate = useNavigate();
@@ -84,14 +85,11 @@ const CreateSociety = () => {
                             mb="md"
                         />
 
-                        <MultiSelect
+                        <TagDropdown
                             label="Interest Tags"
-                            placeholder="Select or create interest tags"
-                            data={[]}
-                            searchable
-                            clearable
-                            {...form.getInputProps('interests')}
-                            mb="md"
+                            placeholder="Select interest tags"
+                            value={form.values.interests}
+                            onChange={(tags) => form.setFieldValue('interests', tags)}
                         />
 
                         <Group justify="flex-end" mt="md">

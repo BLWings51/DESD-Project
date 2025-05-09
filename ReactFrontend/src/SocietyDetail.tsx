@@ -37,6 +37,7 @@ import chevronDown from '@iconify-icons/tabler/chevron-down';
 import chevronUp from '@iconify-icons/tabler/chevron-up';
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
+import TagDropdown from "./components/TagDropdown";
 
 interface SocietyDetail {
   name: string;
@@ -560,31 +561,31 @@ const SocietyDetail = () => {
               <Tabs.Panel value="posts" pt="md">
                 {isAuthenticated && isMember && (
                   <Card shadow="sm" p="lg" radius="md" withBorder mb="md">
-                    <Textarea
-                      placeholder="What's on your mind?"
-                      value={newPostContent}
-                      onChange={e => setNewPostContent(e.target.value)}
-                      minRows={3}
-                      mb="md"
-                    />
-                    <MultiSelect
-                      label="Interest Tags"
-                      placeholder="Select or create interest tags"
-                      data={availableTags}
-                      value={newPostInterests}
-                      onChange={setNewPostInterests}
-                      searchable
-                      clearable
-                      mb="md"
-                    />
-                    <Button
-                      leftSection={<Icon icon={plus} width={16} height={16} />}
-                      onClick={handleCreatePost}
-                      loading={isCreatingPost}
-                      disabled={!newPostContent.trim()}
-                    >
-                      Create Post
-                    </Button>
+                    <Paper p="md" withBorder>
+                      <Textarea
+                        placeholder="Write a post..."
+                        value={newPostContent}
+                        onChange={(e) => setNewPostContent(e.currentTarget.value)}
+                        minRows={3}
+                        mb="md"
+                      />
+                      <TagDropdown
+                        label="Interest Tags"
+                        placeholder="Select interest tags"
+                        value={newPostInterests}
+                        onChange={setNewPostInterests}
+                      />
+                      <Group justify="flex-end" mt="md">
+                        <Button
+                          leftSection={<Icon icon={send} />}
+                          onClick={handleCreatePost}
+                          loading={isCreatingPost}
+                          disabled={!newPostContent.trim()}
+                        >
+                          Post
+                        </Button>
+                      </Group>
+                    </Paper>
                   </Card>
                 )}
                 {postsLoading ? (

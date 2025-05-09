@@ -3,11 +3,13 @@ import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Image, G
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import TagDropdown from "./components/TagDropdown";
 
 interface SocietyData {
     name: string;
     description: string;
     pfp: string;
+    interests: string[];
 }
 
 const UpdateSociety = () => {
@@ -23,6 +25,7 @@ const UpdateSociety = () => {
             name: '',
             description: '',
             pfp: '',
+            interests: [],
         },
         validate: {
             name: (value) => (value.length < 3 ? 'Name must be at least 3 characters' : null),
@@ -42,6 +45,7 @@ const UpdateSociety = () => {
                         name: response.data.name,
                         description: response.data.description,
                         pfp: response.data.pfp,
+                        interests: response.data.interests || [],
                     });
                 }
             } catch (err) {
@@ -64,6 +68,7 @@ const UpdateSociety = () => {
                 data: {
                     name: values.name,
                     description: values.description,
+                    interests: values.interests,
                 },
             });
 
@@ -163,7 +168,14 @@ const UpdateSociety = () => {
                             mb="md"
                         />
 
-                        <Group justify="flex-end">
+                        <TagDropdown
+                            label="Interest Tags"
+                            placeholder="Select interest tags"
+                            value={form.values.interests}
+                            onChange={(tags) => form.setFieldValue('interests', tags)}
+                        />
+
+                        <Group justify="flex-end" mt="md">
                             <Button
                                 variant="default"
                                 onClick={() => navigate(`/Societies/${society_name}`)}

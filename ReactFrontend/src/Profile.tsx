@@ -19,6 +19,7 @@ import apiRequest from "./api/apiRequest";
 import { useAuth } from "./authContext";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
+import TagDropdown from "./components/TagDropdown";
 
 /* ---------- data model ---------- */
 interface InterestTag {
@@ -376,12 +377,27 @@ const Profile = () => {
                                         <TextInput type="file" accept="image/*" label="Profile Picture" onChange={handleUploadPfp} mb="sm" />
                                         <TextInput label="First Name" {...form.getInputProps("firstName")} mb="sm" required />
                                         <TextInput label="Last Name"  {...form.getInputProps("lastName")} mb="sm" required />
-                                        <TextInput label="Email" {...form.getInputProps("email")} mb="sm" required disabled={!user?.is_owner && !isAdmin} />
+                                        <TextInput
+                                            label="Email"
+                                            {...form.getInputProps("email")}
+                                            required
+                                            mb="sm"
+                                        />
+                                        <TagDropdown
+                                            label="Interests"
+                                            placeholder="Select your interests"
+                                            value={form.values.interests.map(tag => tag.name)}
+                                            onChange={(tags) => form.setFieldValue('interests', tags.map(name => ({ id: 0, name })))}
+                                        />
                                         <Textarea label="Bio"   {...form.getInputProps("bio")} minRows={4} mb="sm" />
 
                                         {(user?.is_owner || isAdmin) && (
                                             <>
-                                                <TextInput label="Address" {...form.getInputProps("address")} mb="sm" />
+                                                <TextInput
+                                                    label="Address"
+                                                    {...form.getInputProps("address")}
+                                                    mb="sm"
+                                                />
                                                 <TextInput label="Date of Birth" type="date" {...form.getInputProps("dob")} mb="sm" />
                                                 <Select
                                                     label="Course"

@@ -15,6 +15,7 @@ import { DateTimePicker } from "@mantine/dates";
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import TagDropdown from "./components/TagDropdown";
 
 interface EventData {
     id: number;
@@ -25,6 +26,7 @@ interface EventData {
     location: string;
     status: string;
     online: boolean;
+    interests: string[];
 }
 
 const UpdateEvent = () => {
@@ -42,6 +44,7 @@ const UpdateEvent = () => {
             endTime: new Date(),
             location: "",
             online: false,
+            interests: [] as string[],
         },
         validate: {
             name: (v) => (v.length < 3 ? "Name must be at least 3 characters" : null),
@@ -71,6 +74,7 @@ const UpdateEvent = () => {
                             endTime: new Date(found.endTime),
                             location: found.location,
                             online: found.online,
+                            interests: found.interests || [],
                         });
                     } else {
                         setError("Event not found");
@@ -176,9 +180,15 @@ const UpdateEvent = () => {
                         <Switch
                             label="Online Event"
                             {...form.getInputProps("online", { type: "checkbox" })}
-                            mb="md"
+                            mb="sm"
                         />
-                        <Button type="submit" loading={loading} fullWidth>
+                        <TagDropdown
+                            label="Interest Tags"
+                            placeholder="Select interest tags"
+                            value={form.values.interests}
+                            onChange={(tags) => form.setFieldValue('interests', tags)}
+                        />
+                        <Button type="submit" loading={loading} fullWidth mt="md">
                             Update Event
                         </Button>
                     </form>

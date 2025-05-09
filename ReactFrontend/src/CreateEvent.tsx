@@ -1,10 +1,11 @@
 import { useForm } from "@mantine/form";
-import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Text, MultiSelect, Switch } from "@mantine/core";
+import { Button, TextInput, Textarea, Loader, Card, Flex, Title, Alert, Text, Switch } from "@mantine/core";
 import { DateTimePicker } from '@mantine/dates';
 import apiRequest from "./api/apiRequest";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import 'dayjs/locale/en-gb';
+import TagDropdown from "./components/TagDropdown";
 
 interface SocietyInfo {
     name: string;
@@ -177,14 +178,11 @@ const CreateEvent = () => {
                             mb="md"
                         />
 
-                        <MultiSelect
+                        <TagDropdown
                             label="Interest Tags"
-                            placeholder="Select or create interest tags"
-                            data={availableTags}
-                            searchable
-                            clearable
-                            {...form.getInputProps('interests')}
-                            mb="md"
+                            placeholder="Select interest tags"
+                            value={form.values.interests}
+                            onChange={(tags) => form.setFieldValue('interests', tags)}
                         />
 
                         <Button

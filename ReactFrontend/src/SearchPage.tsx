@@ -12,12 +12,12 @@ import {
     List,
     Anchor,
     Flex,
-    MultiSelect,
     Select,
     Checkbox,
 } from "@mantine/core";
 import Sidebar from "./Sidebar";
 import RightSidebar from "./RightSidebar";
+import TagDropdown from "./components/TagDropdown";
 
 interface Society {
     id: number;
@@ -178,10 +178,11 @@ const SearchPage = () => {
                                         onChange={e => handleFilterChange("friends_only", e.currentTarget.checked)}
                                         style={{ marginTop: 28 }}
                                     />
-                                    <MultiSelect label="Tags" placeholder="Select tags"
-                                        data={availableTags} value={selectedTags}
+                                    <TagDropdown
+                                        label="Tags"
+                                        placeholder="Select tags"
+                                        value={selectedTags}
                                         onChange={v => handleFilterChange("tags", v)}
-                                        searchable clearable style={{ minWidth: 200 }}
                                     />
                                 </Flex>
                             </Card>
@@ -251,11 +252,24 @@ const SearchPage = () => {
                             {/* Posts */}
                             <Title order={3} mt="lg" mb="xs">Posts</Title>
                             {results.posts.length ? (
-                                <List>
-                                    {results.posts.map((post, i) => (
-                                        <List.Item key={i}>{JSON.stringify(post)}</List.Item>
+                                <Stack gap="sm">
+                                    {results.posts.map((post) => (
+                                        <Card key={post.id} shadow="sm" p="md" radius="md" withBorder>
+                                            <Text>{post.content}</Text>
+                                            <Text size="sm" color="dimmed">
+                                                Posted on: {new Date(post.created_at).toLocaleString()}
+                                            </Text>
+                                            <Text size="sm" color="dimmed">
+                                                Author ID: {post.author_id}
+                                            </Text>
+                                            {post.society_id && (
+                                                <Text size="sm" color="dimmed">
+                                                    Society ID: {post.society_id}
+                                                </Text>
+                                            )}
+                                        </Card>
                                     ))}
-                                </List>
+                                </Stack>
                             ) : <Text color="dimmed">No posts found.</Text>}
                         </Container>
                     </div>
